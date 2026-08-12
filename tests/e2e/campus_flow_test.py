@@ -15,8 +15,16 @@ SHOTS = "/tmp/browser/campus-flow"
 
 async def sign_in(page):
     await page.goto(f"{BASE}/auth", wait_until="domcontentloaded")
-    await page.get_by_role("button", name=re.compile("enrol instead", re.I)).click()
-    await page.get_by_label(re.compile("student name", re.I)).fill("E2E Student")
+    toggle = page.get_by_role("button", name=re.compile("enrol instead", re.I))
+    name_field = page.get_by_label(re.compile("student name", re.I))
+    for _ in range(10):  # retry until React has hydrated the toggle
+        await toggle.click()
+        try:
+            await name_field.wait_for(timeout=1500)
+            break
+        except Exception:
+            continue
+    await name_field.fill("E2E Student")
     await page.get_by_label(re.compile("email", re.I)).fill(EMAIL)
     await page.get_by_label(re.compile("password", re.I)).first.fill(PASSWORD)
     await page.get_by_role("button", name=re.compile("create student record", re.I)).click()
