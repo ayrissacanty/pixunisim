@@ -84,7 +84,7 @@ class Grid {
   }
   set(x: number, y: number, kind: TileKind) {
     if (x < 0 || y < 0 || x >= this.width || y >= this.height) return;
-    this.tiles[y][x] = kind;
+    this.tiles[y]![x] = kind;
   }
   get(x: number, y: number): TileKind {
     return this.tiles[y]?.[x] ?? "wall";
@@ -144,18 +144,18 @@ function welcomePlaza(): ZoneMap {
     g.set(x, y, rnd() > 0.45 ? "tree" : "flower");
   }
   // benches + lamps around plaza
-  [
+  ([
     [12, 10],
     [12, 15],
     [21, 10],
     [21, 15],
-  ].forEach(([x, y]) => g.set(x, y, "bench"));
-  [
+  ] as const).forEach(([x, y]) => g.set(x, y, "bench"));
+  ([
     [11, 8],
     [22, 8],
     [11, 17],
     [22, 17],
-  ].forEach(([x, y]) => g.set(x, y, "lamp"));
+  ] as const).forEach(([x, y]) => g.set(x, y, "lamp"));
   // signs
   g.set(14, 20, "sign");
   g.set(19, 20, "board");
@@ -304,20 +304,20 @@ function centralQuad(): ZoneMap {
     const r = rnd();
     g.set(x, y, r > 0.62 ? "tree" : r > 0.42 ? "flower" : "grassAlt");
   }
-  [
+  ([
     [15, 12],
     [15, 17],
     [23, 12],
     [23, 17],
     [12, 16],
     [27, 16],
-  ].forEach(([x, y]) => g.set(x, y, "bench"));
-  [
+  ] as const).forEach(([x, y]) => g.set(x, y, "bench"));
+  ([
     [14, 10],
     [24, 10],
     [14, 19],
     [24, 19],
-  ].forEach(([x, y]) => g.set(x, y, "lamp"));
+  ] as const).forEach(([x, y]) => g.set(x, y, "lamp"));
   g.set(11, 12, "table");
   g.set(11, 13, "chair");
   g.set(28, 12, "table");
@@ -494,12 +494,12 @@ function studentCommons(): ZoneMap {
     if (g.get(x, y) !== "grass") continue;
     g.set(x, y, rnd() > 0.5 ? "tree" : "flower");
   }
-  [
+  ([
     [5, 14],
     [10, 14],
     [16, 14],
     [22, 14],
-  ].forEach(([x, y]) => {
+  ] as const).forEach(([x, y]) => {
     g.set(x, y, "table");
     g.set(x, y + 1, "chair");
     g.set(x + 1, y, "chair");
@@ -586,12 +586,12 @@ function studyGardens(): ZoneMap {
     const r = rnd();
     g.set(x, y, r > 0.7 ? "tree" : r > 0.35 ? "flower" : "hedge");
   }
-  [
+  ([
     [6, 8],
     [20, 8],
     [12, 15],
     [18, 15],
-  ].forEach(([x, y]) => g.set(x, y, "bench"));
+  ] as const).forEach(([x, y]) => g.set(x, y, "bench"));
   g.set(4, 14, "lamp");
   g.set(22, 4, "lamp");
 
@@ -873,11 +873,11 @@ function studentCenterZone(): ZoneMap {
   const g = new Grid(28, 18, "floor");
   g.border(0, 0, 28, 18, "wall");
   g.rect(2, 2, 10, 6, "rug");
-  [
+  ([
     [3, 3],
     [6, 3],
     [9, 3],
-  ].forEach(([x, y]) => {
+  ] as const).forEach(([x, y]) => {
     g.set(x, y, "chair");
     g.set(x, y + 2, "table");
   });
@@ -1395,7 +1395,7 @@ const cache = new Map<string, ZoneMap>();
 export function getZone(id: string): ZoneMap {
   const cached = cache.get(id);
   if (cached) return cached;
-  const build = builders[id] ?? builders["welcome-plaza"];
+  const build = builders[id] ?? builders["welcome-plaza"]!;
   const zone = build();
   cache.set(zone.id, zone);
   return zone;
@@ -1421,5 +1421,5 @@ export const ZONE_LABELS: Record<string, string> = {
 
 export function zoneIsSolidAt(zone: ZoneMap, tx: number, ty: number): boolean {
   if (tx < 0 || ty < 0 || tx >= zone.width || ty >= zone.height) return true;
-  return isSolid(zone.tiles[ty][tx]);
+  return isSolid(zone.tiles[ty]![tx]!);
 }
