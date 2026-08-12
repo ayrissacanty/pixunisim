@@ -50,6 +50,16 @@ async def main():
                 if "student_progress" in r.url
                 else None,
             )
+            page.on(
+                "requestfailed",
+                lambda r: print("REQFAIL", r.method, r.url[:110], r.failure),
+            )
+            page.on(
+                "console",
+                lambda m: print("CONSOLE", m.type, m.text[:200])
+                if m.type in ("error", "warning")
+                else None,
+            )
 
         await sign_in(page)
 
