@@ -27,38 +27,38 @@ export interface PromptState {
 
 interface CampusState {
   currentZone: string;
-  currentBuilding?: string;
-  currentRoom?: string;
-  currentRoomName?: string;
+  currentBuilding?: string | undefined;
+  currentRoom?: string | undefined;
+  currentRoomName?: string | undefined;
   playerPosition: { x: number; y: number };
   playerDirection: "up" | "down" | "left" | "right";
-  currentObjective?: string;
-  objectiveTargetZone?: string;
-  interactionTarget?: PromptState;
-  dialogue?: DialogueState;
-  reading?: ReadingState;
+  currentObjective?: string | undefined;
+  objectiveTargetZone?: string | undefined;
+  interactionTarget?: PromptState | undefined;
+  dialogue?: DialogueState | undefined;
+  reading?: ReadingState | undefined;
   mapOpen: boolean;
-  lessonOpen?: { lessonId: string; courseId: string; roomId?: string };
+  lessonOpen?: { lessonId: string; courseId: string; roomId?: string | undefined } | undefined;
   discovered: string[];
-  pendingTravel?: { zone: string; x: number; y: number };
+  pendingTravel?: { zone: string; x: number; y: number } | undefined;
   mobileAction: number;
 
   setZone: (zone: string) => void;
-  setRoom: (roomId?: string, roomName?: string) => void;
+  setRoom: (roomId?: string | undefined, roomName?: string | undefined) => void;
   setPlayer: (x: number, y: number, dir: CampusState["playerDirection"]) => void;
-  setPrompt: (p?: PromptState) => void;
+  setPrompt: (p?: PromptState | undefined) => void;
   openDialogue: (d: Omit<DialogueState, "lineIndex">) => void;
   advanceDialogue: () => void;
   closeDialogue: () => void;
   openReading: (r: ReadingState) => void;
   closeReading: () => void;
   setMapOpen: (open: boolean) => void;
-  openLesson: (lessonId: string, courseId: string, roomId?: string) => void;
+  openLesson: (lessonId: string, courseId: string, roomId?: string | undefined) => void;
   closeLesson: () => void;
   discover: (id: string) => void;
   travel: (zone: string, x: number, y: number) => void;
   consumeTravel: () => void;
-  setObjective: (text?: string, zone?: string) => void;
+  setObjective: (text?: string | undefined, zone?: string | undefined) => void;
   triggerMobileAction: () => void;
 }
 
