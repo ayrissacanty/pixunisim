@@ -203,6 +203,15 @@ export function CampusView({
           <p className="font-display text-lg">Opening the campus gates…</p>
         </div>
       )}
+      {tourStep && (
+        <div
+          data-testid="tour-step"
+          className="pointer-events-none absolute left-1/2 top-4 z-40 -translate-x-1/2 rounded-md border-2 border-accent bg-sidebar/95 px-4 py-2 font-display text-sm text-sidebar-foreground shadow-lg"
+        >
+          Guided route: {tourStep}
+        </div>
+      )}
+
       <CampusHud onMove={move} onAction={() => sceneRef.current?.interact()} />
       <DialogueBox />
       <ReadingBox />
