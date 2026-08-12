@@ -130,14 +130,15 @@ async def main():
         await page.screenshot(path=f"{SHOTS}/03-scored.png")
 
         # 7. Save progress and return to campus
-        if os.environ.get("E2E_DEBUG"):
-            page.on("request", lambda r: print("REQ", r.method, r.url[:110]) if "supabase.co" in r.url else None)
-            print("DEBUG scored panel:", await page.get_by_text(re.compile(r"You scored \d+%")).inner_text())
-            print("DEBUG complete btns:", await page.get_by_role("button", name=re.compile("record lesson as complete", re.I)).count())
-        await page.get_by_role("button", name=re.compile("record lesson as complete", re.I)).click()
-        if os.environ.get("E2E_DEBUG"):
-            await page.wait_for_timeout(5000)
-            print("DEBUG after-click body:", (await page.inner_text("body"))[:400].replace("\n", " | "))
+        # The completion upsert must land before we navigate away.
+        async with page.expect_response(
+            lambda r: "student_progress" in r.url and r.request.method == "POST",
+            timeout=30000,
+        ) as saved:
+            await page.get_by_role(
+                "button", name=re.compile("record lesson as complete", re.I)
+            ).click()
+        assert (await saved.value).status in (200, 201), await (await saved.value).text()
         await expect(page.get_by_text("In class")).to_be_hidden(timeout=15000)
 
         # The save is in flight when the overlay closes — wait for the campus
