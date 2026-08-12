@@ -15,14 +15,16 @@ SHOTS = "/tmp/browser/campus-flow"
 
 async def sign_in(page):
     await page.goto(f"{BASE}/auth", wait_until="domcontentloaded")
+    await page.get_by_role("button", name=re.compile("enrol instead", re.I)).click()
+    await page.get_by_label(re.compile("student name", re.I)).fill("E2E Student")
     await page.get_by_label(re.compile("email", re.I)).fill(EMAIL)
     await page.get_by_label(re.compile("password", re.I)).first.fill(PASSWORD)
-    create = page.get_by_role("button", name=re.compile("create|sign up", re.I))
-    if await create.count():
-        await create.first.click()
-    else:
-        await page.get_by_role("button", name=re.compile("sign in", re.I)).first.click()
-    await page.wait_for_url(re.compile(r"/(campus|workspace)"), timeout=30000)
+    await page.get_by_role("button", name=re.compile("create student record", re.I)).click()
+    try:
+        await page.wait_for_url(re.compile(r"/campus"), timeout=30000)
+    except Exception:
+        err = await page.locator("p.text-destructive").all_inner_texts()
+        raise AssertionError(f"sign-up failed: {err} url={page.url}")
 
 
 async def main():
