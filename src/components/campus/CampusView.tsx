@@ -3,6 +3,8 @@ import { useNavigate } from "@tanstack/react-router";
 import type Phaser from "phaser";
 import { useCampusStore } from "@/lib/campus/store";
 import { getZone, type InteractAction, type NpcSpawn } from "@/lib/campus/world";
+import { WALKTHROUGHS, buildWalkthrough } from "@/lib/campus/walkthrough";
+
 import type { CampusScene } from "@/game/CampusScene";
 import { CampusHud } from "@/components/campus/CampusHud";
 import { DialogueBox, ReadingBox } from "@/components/campus/DialogueBox";
@@ -11,14 +13,22 @@ import { LessonOverlay } from "@/components/campus/LessonOverlay";
 import { useCampusObjectives } from "@/lib/campus/objectives";
 import { useOfflineSync } from "@/lib/data";
 
-export function CampusView({ initialZone = "welcome-plaza" }: { initialZone?: string }) {
+export function CampusView({
+  initialZone = "welcome-plaza",
+  tour,
+}: {
+  initialZone?: string;
+  tour?: string | undefined;
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
   const sceneRef = useRef<CampusScene | null>(null);
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
+  const [tourStep, setTourStep] = useState<string | null>(null);
   useCampusObjectives();
   useOfflineSync();
+
 
 
   useEffect(() => {
@@ -88,7 +98,7 @@ export function CampusView({ initialZone = "welcome-plaza" }: { initialZone?: st
 
       game.events.on("unify-interact", runAction);
 
-      game.events.on("unify-talk", (npc: NpcSpawn) => {
+      const talkTo = (npc: NpcSpawn) => {
         const choices = [] as {
           label: string;
           action: () => void;
@@ -110,18 +120,64 @@ export function CampusView({ initialZone = "welcome-plaza" }: { initialZone?: st
         }
         store.openDialogue({ speaker: npc.name, role: npc.role, lines: npc.lines, choices });
         store.discover(npc.id);
-      });
+      };
+
+      game.events.on("unify-talk", talkTo);
+
+      /** Scripted camera route: /campus?tour=algebra-204 */
+      const runTour = async (tourId: string) => {
+        const preset = WALKTHROUGHS[tourId];
+        const walk = buildWalkthrough(preset?.lessonId ?? tourId);
+        for (const stepInfo of walk.steps) {
+          if (disposed) return;
+          setTourStep(stepInfo.label);
+          store.travel(stepInfo.zone, stepInfo.x, stepInfo.y);
+          await new Promise((r) => setTimeout(r, 900));
+        }
+        if (disposed) return;
+        setTourStep(null);
+        talkTo(walk.npc);
+      };
+
+      // Test/automation hook used by the Playwright end-to-end walkthrough.
+      (window as unknown as Record<string, unknown>)["__unifyCampus"] = {
+        tour: (id: string) => runTour(id),
+        walkthrough: (id: string) => {
+          const w = buildWalkthrough(WALKTHROUGHS[id]?.lessonId ?? id);
+          return {
+            roomId: w.roomId,
+            zoneId: w.zoneId,
+            courseId: w.courseId,
+            lessonId: w.lessonId,
+            teacher: w.npc.name,
+            steps: w.steps,
+          };
+        },
+        state: () => {
+          const s = useCampusStore.getState();
+          return {
+            zone: s.currentZone,
+            room: s.currentRoom,
+            objective: s.currentObjective,
+            lessonOpen: s.lessonOpen,
+          };
+        },
+      };
+
+      if (tour) void runTour(tour);
     };
 
     void boot();
 
     return () => {
       disposed = true;
+      delete (window as unknown as Record<string, unknown>)["__unifyCampus"];
       gameRef.current?.destroy(true);
       gameRef.current = null;
       sceneRef.current = null;
     };
-  }, [initialZone, navigate]);
+  }, [initialZone, navigate, tour]);
+
 
   // Zone changes (doors, fast travel) restart the scene in place.
   const pendingTravel = useCampusStore((s) => s.pendingTravel);
@@ -147,6 +203,15 @@ export function CampusView({ initialZone = "welcome-plaza" }: { initialZone?: st
           <p className="font-display text-lg">Opening the campus gates…</p>
         </div>
       )}
+      {tourStep && (
+        <div
+          data-testid="tour-step"
+          className="pointer-events-none absolute left-1/2 top-4 z-40 -translate-x-1/2 rounded-md border-2 border-accent bg-sidebar/95 px-4 py-2 font-display text-sm text-sidebar-foreground shadow-lg"
+        >
+          Guided route: {tourStep}
+        </div>
+      )}
+
       <CampusHud onMove={move} onAction={() => sceneRef.current?.interact()} />
       <DialogueBox />
       <ReadingBox />
