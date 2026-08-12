@@ -112,24 +112,25 @@ export function LessonPlayer({
   const allAnswered = checks.length > 0 && answeredChecks.length === checks.length;
   const score = checks.length ? Math.round((correct / checks.length) * 100) : null;
 
-  const persist = (status: "in_progress" | "completed", sectionsRead: number) => {
-    save.mutate({
+  const persist = (status: "in_progress" | "completed", sectionsRead: number) =>
+    save.mutateAsync({
       lesson_id: lesson.id,
       course_id: lesson.course_id,
       status,
       score: status === "completed" ? score : (existing?.score ?? null),
       sections_read: Math.max(sectionsRead, existing?.sections_read ?? 0),
     });
-  };
 
   const next = () => {
     const target = Math.min(step + 1, totalSteps - 1);
     setStep(target);
-    persist("in_progress", Math.min(target + 1, sections.length));
+    void persist("in_progress", Math.min(target + 1, sections.length));
   };
 
-  const finish = () => {
-    persist("completed", sections.length);
+  // Wait for the save to settle before closing, so leaving the classroom can
+  // never cancel the in-flight completion write.
+  const finish = async () => {
+    await persist("completed", sections.length);
     onComplete?.();
   };
 
@@ -196,7 +197,7 @@ export function LessonPlayer({
                 <p className="text-sm font-semibold">
                   You scored {score}% ({correct}/{checks.length})
                 </p>
-                <Button className="mt-3" onClick={finish}>
+                <Button className="mt-3" disabled={save.isPending} onClick={() => void finish()}>
                   Record lesson as complete
                 </Button>
               </div>
