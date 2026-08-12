@@ -123,12 +123,21 @@ async def main():
         await page.get_by_role("button", name=re.compile("record lesson as complete", re.I)).click()
         await expect(page.get_by_text("In class")).to_be_hidden(timeout=15000)
 
+        # The save is in flight when the overlay closes — wait for the campus
+        # objective to advance before navigating away.
+        await page.wait_for_function(
+            "() => { const s = window.__unifyCampus.state();"
+            " return s.objective && !/Algebra 204/.test(s.objective); }",
+            timeout=30000,
+        )
+        await page.screenshot(path=f"{SHOTS}/04-objective-updated.png")
+
         # 8. Progress persisted and shared with the Traditional Workspace
         await page.goto(f"{BASE}/workspace/lesson/algebra-lesson-2", wait_until="domcontentloaded")
         await expect(page.get_by_text(re.compile("completed", re.I)).first).to_be_visible(
             timeout=20000
         )
-        await page.screenshot(path=f"{SHOTS}/04-workspace.png")
+        await page.screenshot(path=f"{SHOTS}/05-workspace.png")
 
         # 9. Back on campus the next objective has advanced past Algebra 204
         await page.goto(f"{BASE}/campus", wait_until="domcontentloaded")
@@ -139,7 +148,7 @@ async def main():
             timeout=30000,
         )
         objective = (await page.evaluate("() => window.__unifyCampus.state()"))["objective"]
-        await page.screenshot(path=f"{SHOTS}/05-next-objective.png")
+        await page.screenshot(path=f"{SHOTS}/06-next-objective.png")
 
         assert not errors, errors
         print("PASS — next objective:", objective)
