@@ -130,6 +130,10 @@ async def main():
         await page.screenshot(path=f"{SHOTS}/03-scored.png")
 
         # 7. Save progress and return to campus
+        if os.environ.get("E2E_DEBUG"):
+            page.on("request", lambda r: print("REQ", r.method, r.url[:110]) if "supabase.co" in r.url else None)
+            print("DEBUG scored panel:", await page.get_by_text(re.compile(r"You scored \d+%")).inner_text())
+            print("DEBUG complete btns:", await page.get_by_role("button", name=re.compile("record lesson as complete", re.I)).count())
         await page.get_by_role("button", name=re.compile("record lesson as complete", re.I)).click()
         await expect(page.get_by_text("In class")).to_be_hidden(timeout=15000)
 
