@@ -111,14 +111,7 @@ async def main():
 
         # 6. Answer every question
         for _ in range(12):
-            card = page.locator("div.rounded-md.border").filter(
-                has=page.locator("button:not([disabled])")
-            )
-            choice = page.locator("button:not([disabled])").filter(
-                has_text=re.compile(r".+")
-            )
-            answered = page.get_by_text(re.compile(r"You scored \d+%"))
-            if await answered.count():
+            if await page.get_by_text(re.compile(r"You scored \d+%")).count():
                 break
             btns = page.locator("section button:not([disabled])")
             n = await btns.count()
