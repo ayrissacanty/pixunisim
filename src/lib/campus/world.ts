@@ -713,8 +713,9 @@ function academicHall(opts: {
         lines: spec.teacher.lines,
         roomId: spec.id,
         roomName: spec.name,
-        lessonId: spec.lessonId,
-        courseId: spec.courseId,
+        ...(spec.lessonId ? { lessonId: spec.lessonId } : {}),
+        ...(spec.courseId ? { courseId: spec.courseId } : {}),
+
       });
     }
     interactables.push({
