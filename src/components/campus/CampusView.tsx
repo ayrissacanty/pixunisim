@@ -8,6 +8,8 @@ import { CampusHud } from "@/components/campus/CampusHud";
 import { DialogueBox, ReadingBox } from "@/components/campus/DialogueBox";
 import { CampusMapOverlay } from "@/components/campus/CampusMapOverlay";
 import { LessonOverlay } from "@/components/campus/LessonOverlay";
+import { useCampusObjectives } from "@/lib/campus/objectives";
+import { useOfflineSync } from "@/lib/data";
 
 export function CampusView({ initialZone = "welcome-plaza" }: { initialZone?: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -15,6 +17,9 @@ export function CampusView({ initialZone = "welcome-plaza" }: { initialZone?: st
   const sceneRef = useRef<CampusScene | null>(null);
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
+  useCampusObjectives();
+  useOfflineSync();
+
 
   useEffect(() => {
     let disposed = false;
