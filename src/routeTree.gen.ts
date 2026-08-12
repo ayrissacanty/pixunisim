@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedCampusRouteImport } from './routes/_authenticated/campus'
 import { Route as AuthenticatedWorkspaceIndexRouteImport } from './routes/_authenticated/workspace.index'
+import { Route as AuthenticatedWorkspaceLessonLessonIdRouteImport } from './routes/_authenticated/workspace.lesson.$lessonId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,18 +41,26 @@ const AuthenticatedWorkspaceIndexRoute =
     path: '/workspace/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedWorkspaceLessonLessonIdRoute =
+  AuthenticatedWorkspaceLessonLessonIdRouteImport.update({
+    id: '/workspace/lesson/$lessonId',
+    path: '/workspace/lesson/$lessonId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/campus': typeof AuthenticatedCampusRoute
   '/workspace/': typeof AuthenticatedWorkspaceIndexRoute
+  '/workspace/lesson/$lessonId': typeof AuthenticatedWorkspaceLessonLessonIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/campus': typeof AuthenticatedCampusRoute
   '/workspace': typeof AuthenticatedWorkspaceIndexRoute
+  '/workspace/lesson/$lessonId': typeof AuthenticatedWorkspaceLessonLessonIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -60,12 +69,14 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/campus': typeof AuthenticatedCampusRoute
   '/_authenticated/workspace/': typeof AuthenticatedWorkspaceIndexRoute
+  '/_authenticated/workspace/lesson/$lessonId': typeof AuthenticatedWorkspaceLessonLessonIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/campus' | '/workspace/'
+  fullPaths:
+    '/' | '/auth' | '/campus' | '/workspace/' | '/workspace/lesson/$lessonId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/campus' | '/workspace'
+  to: '/' | '/auth' | '/campus' | '/workspace' | '/workspace/lesson/$lessonId'
   id:
     | '__root__'
     | '/'
@@ -73,6 +84,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/campus'
     | '/_authenticated/workspace/'
+    | '/_authenticated/workspace/lesson/$lessonId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -118,17 +130,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWorkspaceIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/workspace/lesson/$lessonId': {
+      id: '/_authenticated/workspace/lesson/$lessonId'
+      path: '/workspace/lesson/$lessonId'
+      fullPath: '/workspace/lesson/$lessonId'
+      preLoaderRoute: typeof AuthenticatedWorkspaceLessonLessonIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCampusRoute: typeof AuthenticatedCampusRoute
   AuthenticatedWorkspaceIndexRoute: typeof AuthenticatedWorkspaceIndexRoute
+  AuthenticatedWorkspaceLessonLessonIdRoute: typeof AuthenticatedWorkspaceLessonLessonIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCampusRoute: AuthenticatedCampusRoute,
   AuthenticatedWorkspaceIndexRoute: AuthenticatedWorkspaceIndexRoute,
+  AuthenticatedWorkspaceLessonLessonIdRoute:
+    AuthenticatedWorkspaceLessonLessonIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
