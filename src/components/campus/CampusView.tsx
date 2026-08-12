@@ -3,6 +3,8 @@ import { useNavigate } from "@tanstack/react-router";
 import type Phaser from "phaser";
 import { useCampusStore } from "@/lib/campus/store";
 import { getZone, type InteractAction, type NpcSpawn } from "@/lib/campus/world";
+import { WALKTHROUGHS, buildWalkthrough } from "@/lib/campus/walkthrough";
+
 import type { CampusScene } from "@/game/CampusScene";
 import { CampusHud } from "@/components/campus/CampusHud";
 import { DialogueBox, ReadingBox } from "@/components/campus/DialogueBox";
