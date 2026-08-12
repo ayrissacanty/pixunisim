@@ -167,15 +167,35 @@ export function useSaveProgress() {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth.user?.id;
       if (!userId) throw new Error("Sign in to save progress");
-      const row = { ...input, user_id: userId };
+
+      const cached = await local?.progress.get(input.lesson_id);
+      const merged = mergeProgress(input, cached ?? null);
+      const row = { ...merged, user_id: userId };
       await local?.progress.put(row);
+
+      const { data: remote } = await supabase
+        .from("student_progress")
+        .select("lesson_id, course_id, status, score, sections_read")
+        .eq("lesson_id", input.lesson_id)
+        .maybeSingle();
+
+      const resolved = { ...mergeProgress(merged, (remote as Progress | null) ?? null), user_id: userId };
+      await local?.progress.put(resolved);
+
       const { error } = await supabase
         .from("student_progress")
-        .upsert({ ...row, updated_at: new Date().toISOString() }, { onConflict: "user_id,lesson_id" });
+        .upsert(
+          { ...resolved, updated_at: new Date().toISOString() },
+          { onConflict: "user_id,lesson_id" },
+        );
       if (error) {
-        await local?.pending.put({ key: input.lesson_id, payload: row, queuedAt: Date.now() });
+        await local?.pending.put({
+          key: input.lesson_id,
+          payload: resolved,
+          queuedAt: Date.now(),
+        });
       }
-      return row;
+      return resolved;
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["progress"] });
@@ -192,19 +212,38 @@ export function useOfflineSync() {
       if (!local) return;
       const queued = await local.pending.toArray();
       if (!queued.length) return;
+      let synced = false;
       for (const item of queued) {
+        const { data: remote, error: readError } = await supabase
+          .from("student_progress")
+          .select("lesson_id, course_id, status, score, sections_read")
+          .eq("lesson_id", item.payload.lesson_id)
+          .maybeSingle();
+        if (readError) continue;
+        const resolved = {
+          ...mergeProgress(item.payload, (remote as Progress | null) ?? null),
+          user_id: item.payload.user_id,
+        };
         const { error } = await supabase
           .from("student_progress")
-          .upsert({ ...item.payload, updated_at: new Date().toISOString() }, { onConflict: "user_id,lesson_id" });
-        if (!error) await local.pending.delete(item.key);
+          .upsert(
+            { ...resolved, updated_at: new Date().toISOString() },
+            { onConflict: "user_id,lesson_id" },
+          );
+        if (!error) {
+          await local.progress.put(resolved);
+          await local.pending.delete(item.key);
+          synced = true;
+        }
       }
-      void qc.invalidateQueries({ queryKey: ["progress"] });
+      if (synced) void qc.invalidateQueries({ queryKey: ["progress"] });
     };
     void flush();
     window.addEventListener("online", flush);
     return () => window.removeEventListener("online", flush);
   }, [qc]);
 }
+
 
 /* --------------------------------- campus --------------------------------- */
 
