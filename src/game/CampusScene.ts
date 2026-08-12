@@ -202,7 +202,7 @@ export class CampusScene extends Phaser.Scene {
     super("campus");
   }
 
-  override create(data: { zoneId: string; x: number; y: number }) {
+  create(data: { zoneId: string; x: number; y: number }) {
     this.zone = getZone(data.zoneId);
     this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#5d7047" : "#cbb894");
 
