@@ -135,6 +135,9 @@ async def main():
             print("DEBUG scored panel:", await page.get_by_text(re.compile(r"You scored \d+%")).inner_text())
             print("DEBUG complete btns:", await page.get_by_role("button", name=re.compile("record lesson as complete", re.I)).count())
         await page.get_by_role("button", name=re.compile("record lesson as complete", re.I)).click()
+        if os.environ.get("E2E_DEBUG"):
+            await page.wait_for_timeout(5000)
+            print("DEBUG after-click body:", (await page.inner_text("body"))[:400].replace("\n", " | "))
         await expect(page.get_by_text("In class")).to_be_hidden(timeout=15000)
 
         # The save is in flight when the overlay closes — wait for the campus
