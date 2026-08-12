@@ -43,6 +43,13 @@ async def main():
         page = await ctx.new_page()
         errors = []
         page.on("pageerror", lambda e: errors.append(str(e)))
+        if os.environ.get("E2E_DEBUG"):
+            page.on(
+                "response",
+                lambda r: print("HTTP", r.status, r.request.method, r.url)
+                if "student_progress" in r.url
+                else None,
+            )
 
         await sign_in(page)
 
