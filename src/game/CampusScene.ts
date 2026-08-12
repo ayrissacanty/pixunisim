@@ -202,7 +202,7 @@ export class CampusScene extends Phaser.Scene {
     super("campus");
   }
 
-  create(data: { zoneId: string; x: number; y: number }) {
+  override create(data: { zoneId: string; x: number; y: number }) {
     this.zone = getZone(data.zoneId);
     this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#5d7047" : "#cbb894");
 
@@ -318,7 +318,7 @@ export class CampusScene extends Phaser.Scene {
     }
   }
 
-  update(_time: number, delta: number) {
+  override update(_time: number, delta: number) {
     const store = useCampusStore.getState();
     const blocked = !!(store.dialogue || store.reading || store.lessonOpen || store.mapOpen);
     let vx = 0;
