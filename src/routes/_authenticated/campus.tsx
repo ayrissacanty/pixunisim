@@ -2,6 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CampusView } from "@/components/campus/CampusView";
 
 export const Route = createFileRoute("/_authenticated/campus")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tour: typeof search["tour"] === "string" ? (search["tour"] as string) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Campus World — Unify University" },
@@ -18,5 +21,10 @@ export const Route = createFileRoute("/_authenticated/campus")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: () => <CampusView initialZone="welcome-plaza" />,
+  component: CampusRoute,
 });
+
+function CampusRoute() {
+  const { tour } = Route.useSearch();
+  return <CampusView initialZone="welcome-plaza" tour={tour} />;
+}
