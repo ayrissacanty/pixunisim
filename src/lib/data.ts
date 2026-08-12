@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { db } from "@/lib/offline/db";
+import { mergeProgress } from "@/lib/offline/merge";
+
 
 export interface LessonSection {
   heading: string;
