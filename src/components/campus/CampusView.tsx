@@ -11,14 +11,22 @@ import { LessonOverlay } from "@/components/campus/LessonOverlay";
 import { useCampusObjectives } from "@/lib/campus/objectives";
 import { useOfflineSync } from "@/lib/data";
 
-export function CampusView({ initialZone = "welcome-plaza" }: { initialZone?: string }) {
+export function CampusView({
+  initialZone = "welcome-plaza",
+  tour,
+}: {
+  initialZone?: string;
+  tour?: string | undefined;
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
   const sceneRef = useRef<CampusScene | null>(null);
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
+  const [tourStep, setTourStep] = useState<string | null>(null);
   useCampusObjectives();
   useOfflineSync();
+
 
 
   useEffect(() => {
