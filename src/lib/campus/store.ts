@@ -1,0 +1,102 @@
+import { create } from "zustand";
+
+export interface DialogueChoice {
+  label: string;
+  action: () => void;
+  variant?: "primary" | "ghost";
+}
+
+export interface DialogueState {
+  speaker: string;
+  role?: string;
+  lines: string[];
+  lineIndex: number;
+  choices: DialogueChoice[];
+}
+
+export interface ReadingState {
+  title: string;
+  body: string;
+}
+
+export interface PromptState {
+  verb: string;
+  label: string;
+  id: string;
+}
+
+interface CampusState {
+  currentZone: string;
+  currentBuilding?: string;
+  currentRoom?: string;
+  currentRoomName?: string;
+  playerPosition: { x: number; y: number };
+  playerDirection: "up" | "down" | "left" | "right";
+  currentObjective?: string;
+  objectiveTargetZone?: string;
+  interactionTarget?: PromptState;
+  dialogue?: DialogueState;
+  reading?: ReadingState;
+  mapOpen: boolean;
+  lessonOpen?: { lessonId: string; courseId: string; roomId?: string };
+  discovered: string[];
+  pendingTravel?: { zone: string; x: number; y: number };
+  mobileAction: number;
+
+  setZone: (zone: string) => void;
+  setRoom: (roomId?: string, roomName?: string) => void;
+  setPlayer: (x: number, y: number, dir: CampusState["playerDirection"]) => void;
+  setPrompt: (p?: PromptState) => void;
+  openDialogue: (d: Omit<DialogueState, "lineIndex">) => void;
+  advanceDialogue: () => void;
+  closeDialogue: () => void;
+  openReading: (r: ReadingState) => void;
+  closeReading: () => void;
+  setMapOpen: (open: boolean) => void;
+  openLesson: (lessonId: string, courseId: string, roomId?: string) => void;
+  closeLesson: () => void;
+  discover: (id: string) => void;
+  travel: (zone: string, x: number, y: number) => void;
+  consumeTravel: () => void;
+  setObjective: (text?: string, zone?: string) => void;
+  triggerMobileAction: () => void;
+}
+
+export const useCampusStore = create<CampusState>((set, get) => ({
+  currentZone: "welcome-plaza",
+  playerPosition: { x: 16, y: 21 },
+  playerDirection: "up",
+  mapOpen: false,
+  discovered: ["welcome-plaza"],
+  mobileAction: 0,
+
+  setZone: (zone) =>
+    set((s) => ({
+      currentZone: zone,
+      currentRoom: undefined,
+      currentRoomName: undefined,
+      discovered: s.discovered.includes(zone) ? s.discovered : [...s.discovered, zone],
+    })),
+  setRoom: (roomId, roomName) => set({ currentRoom: roomId, currentRoomName: roomName }),
+  setPlayer: (x, y, dir) => set({ playerPosition: { x, y }, playerDirection: dir }),
+  setPrompt: (p) => set({ interactionTarget: p }),
+  openDialogue: (d) => set({ dialogue: { ...d, lineIndex: 0 } }),
+  advanceDialogue: () => {
+    const d = get().dialogue;
+    if (!d) return;
+    if (d.lineIndex < d.lines.length - 1) set({ dialogue: { ...d, lineIndex: d.lineIndex + 1 } });
+  },
+  closeDialogue: () => set({ dialogue: undefined }),
+  openReading: (r) => set({ reading: r }),
+  closeReading: () => set({ reading: undefined }),
+  setMapOpen: (open) => set({ mapOpen: open }),
+  openLesson: (lessonId, courseId, roomId) =>
+    set({ lessonOpen: { lessonId, courseId, ...(roomId ? { roomId } : {}) }, dialogue: undefined }),
+  closeLesson: () => set({ lessonOpen: undefined }),
+  discover: (id) =>
+    set((s) => (s.discovered.includes(id) ? s : { discovered: [...s.discovered, id] })),
+  travel: (zone, x, y) => set({ pendingTravel: { zone, x, y } }),
+  consumeTravel: () => set({ pendingTravel: undefined }),
+  setObjective: (text, zone) => set({ currentObjective: text, objectiveTargetZone: zone }),
+  triggerMobileAction: () => set((s) => ({ mobileAction: s.mobileAction + 1 })),
+}));
