@@ -96,7 +96,7 @@ export function CampusView({
 
       game.events.on("unify-interact", runAction);
 
-      game.events.on("unify-talk", (npc: NpcSpawn) => {
+      const talkTo = (npc: NpcSpawn) => {
         const choices = [] as {
           label: string;
           action: () => void;
@@ -118,18 +118,64 @@ export function CampusView({
         }
         store.openDialogue({ speaker: npc.name, role: npc.role, lines: npc.lines, choices });
         store.discover(npc.id);
-      });
+      };
+
+      game.events.on("unify-talk", talkTo);
+
+      /** Scripted camera route: /campus?tour=algebra-204 */
+      const runTour = async (tourId: string) => {
+        const preset = WALKTHROUGHS[tourId];
+        const walk = buildWalkthrough(preset?.lessonId ?? tourId);
+        for (const stepInfo of walk.steps) {
+          if (disposed) return;
+          setTourStep(stepInfo.label);
+          store.travel(stepInfo.zone, stepInfo.x, stepInfo.y);
+          await new Promise((r) => setTimeout(r, 900));
+        }
+        if (disposed) return;
+        setTourStep(null);
+        talkTo(walk.npc);
+      };
+
+      // Test/automation hook used by the Playwright end-to-end walkthrough.
+      (window as unknown as Record<string, unknown>)["__unifyCampus"] = {
+        tour: (id: string) => runTour(id),
+        walkthrough: (id: string) => {
+          const w = buildWalkthrough(WALKTHROUGHS[id]?.lessonId ?? id);
+          return {
+            roomId: w.roomId,
+            zoneId: w.zoneId,
+            courseId: w.courseId,
+            lessonId: w.lessonId,
+            teacher: w.npc.name,
+            steps: w.steps,
+          };
+        },
+        state: () => {
+          const s = useCampusStore.getState();
+          return {
+            zone: s.currentZone,
+            room: s.currentRoom,
+            objective: s.currentObjective,
+            lessonOpen: s.lessonOpen,
+          };
+        },
+      };
+
+      if (tour) void runTour(tour);
     };
 
     void boot();
 
     return () => {
       disposed = true;
+      delete (window as unknown as Record<string, unknown>)["__unifyCampus"];
       gameRef.current?.destroy(true);
       gameRef.current = null;
       sceneRef.current = null;
     };
-  }, [initialZone, navigate]);
+  }, [initialZone, navigate, tour]);
+
 
   // Zone changes (doors, fast travel) restart the scene in place.
   const pendingTravel = useCampusStore((s) => s.pendingTravel);
