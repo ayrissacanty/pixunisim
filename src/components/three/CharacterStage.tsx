@@ -101,11 +101,8 @@ export function CharacterStage({
             model.traverse((child) => {
               const mesh = child as import("three").Mesh;
               if (!mesh.isMesh) return;
-              mesh.material = new THREE.MeshStandardMaterial({
-                map,
-                roughness: 0.75,
-                metalness: 0,
-              });
+              mesh.frustumCulled = false;
+              mesh.material = new THREE.MeshBasicMaterial({ map, color: 0xff0000 });
             });
 
             // Normalise: models are authored in centimetres and off-origin.
