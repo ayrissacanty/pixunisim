@@ -34,20 +34,22 @@ export function ClassroomBeat() {
   }, [roomId, avatar]);
 
   const phase = classroom?.phase;
+  // Hold the beat until the room has actually rendered, then let it play out.
+  const [castReady, setCastReady] = useState(false);
+  useEffect(() => setCastReady(false), [roomId, phase]);
+
   useEffect(() => {
     if (!classroom || lessonOpen) return;
-    const timer = window.setTimeout(
-      () => {
-        if (phase === "arrive") {
-          openLesson(classroom.lessonId, classroom.courseId, classroom.roomId);
-        } else {
-          leaveClassroom();
-        }
-      },
-      phase === "arrive" ? 2000 : 1500,
-    );
+    const wait = castReady ? (phase === "arrive" ? 2600 : 1800) : 9000;
+    const timer = window.setTimeout(() => {
+      if (phase === "arrive") {
+        openLesson(classroom.lessonId, classroom.courseId, classroom.roomId);
+      } else {
+        leaveClassroom();
+      }
+    }, wait);
     return () => window.clearTimeout(timer);
-  }, [classroom, phase, lessonOpen, openLesson, leaveClassroom]);
+  }, [classroom, phase, lessonOpen, castReady, openLesson, leaveClassroom]);
 
   if (!classroom || lessonOpen) return null;
 
