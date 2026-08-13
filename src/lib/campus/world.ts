@@ -656,6 +656,38 @@ interface RoomSpec {
   furniture?: "desks" | "lab" | "computers" | "soft";
 }
 
+/** Named student aides stationed in each academic hall lobby. */
+const HALL_AIDES: Record<string, { name: string; lines: string[] }> = {
+  "math-tech-hall": {
+    name: "Oso Bankole",
+    lines: [
+      "Algebra 204 is along this corridor — Professor Maya teaches it.",
+      "Talk to the instructor inside, then attend class; it is the same lesson as in your Workspace.",
+    ],
+  },
+  "science-hall": {
+    name: "Ivy Larkin",
+    lines: [
+      "Labs sit at the far end, lecture rooms nearer the door.",
+      "Read a room sign if you want to know who teaches there before walking in.",
+    ],
+  },
+  "humanities-hall": {
+    name: "Claudia Rossi",
+    lines: [
+      "Writing studios on the left, seminar rooms on the right.",
+      "Most students draft here and submit from the Workspace.",
+    ],
+  },
+  "arts-center": {
+    name: "Milo Reyes",
+    lines: [
+      "Studios stay open late; choir rehearses on Thursdays.",
+      "Every room has an instructor to speak with before class starts.",
+    ],
+  },
+};
+
 function academicHall(opts: {
   id: string;
   name: string;
