@@ -7,10 +7,8 @@ import {
   SCALE,
   SRC_TILE,
   TILESET_KEY,
-  TILESET_SCALED_KEY,
   TILESET_URL,
   TILE_FRAMES,
-  frameName,
   variantFor,
 } from "@/lib/campus/tileset";
 
