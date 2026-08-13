@@ -95,6 +95,9 @@ export const DORM_PROPS: PropPlacement[] = [
   { model: "carpet", x: 0.6, z: 1.1, scale: 1.4 },
   { model: "light", x: -0.2, z: -0.6 },
   { model: "painting", x: 0.4, z: -3.4, rotation: Math.PI },
+  { model: "window", x: -3.4, z: -1.0, rotation: Math.PI / 2 },
+  { model: "wallShelf", x: 3.4, z: 0.6, rotation: -Math.PI / 2 },
+  { model: "trashCan", x: 2.9, z: -0.4, scale: 0.85 },
 ];
 
 /** Compact desk set behind the Layer 4 lesson cast. */
