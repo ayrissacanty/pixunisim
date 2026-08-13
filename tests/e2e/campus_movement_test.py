@@ -134,7 +134,14 @@ async def main():
         # --- Step 6: teacher dialogue -> attend class ----------------------------
         await page.wait_for_selector("[data-testid='dialogue-box']", timeout=15000)
         await shot(page, "6_teacher")
-        await page.get_by_role("button", name=re.compile("attend the lesson", re.I)).click()
+        print("dialogue buttons", await page.locator("[data-testid='dialogue-box'] button").all_inner_texts())
+        attend = page.get_by_role("button", name=re.compile("attend the lesson", re.I))
+        for _ in range(8):  # dialogue lines advance before the choices appear
+            if await attend.count():
+                break
+            await page.locator("[data-testid='dialogue-box'] button").last.click()
+            await page.wait_for_timeout(300)
+        await attend.click()
         await page.wait_for_function(
             "() => window.__unifyCampus.state().layer >= 3", timeout=15000
         )
