@@ -84,6 +84,14 @@ interface CampusState {
   consumeTravel: () => void;
   setObjective: (text?: string | undefined, zone?: string | undefined) => void;
   triggerMobileAction: () => void;
+
+  setLayer: (layer: CampusLayer) => void;
+  beginTransition: (t: TransitionState) => void;
+  endTransition: () => void;
+  rememberPosition: (zone: string, x: number, y: number) => void;
+  enterClassroom: (c: Omit<ClassroomState, "phase">) => void;
+  dismissClass: () => void;
+  leaveClassroom: () => void;
 }
 
 export const useCampusStore = create<CampusState>((set, get) => ({
