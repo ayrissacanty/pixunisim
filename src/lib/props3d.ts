@@ -61,9 +61,12 @@ export const CLASSROOM_PROPS: PropPlacement[] = [
   { model: "desk", x: 0, z: -4.1, rotation: Math.PI, scale: 1.1 },
   { model: "officeChair", x: 1.1, z: -4.6, rotation: Math.PI },
   { model: "laptop", x: -0.3, z: -4.1, rotation: Math.PI, scale: 0.9 },
+  { model: "mug", x: 0.7, z: -4.0, scale: 0.85 },
   { model: "shelf", x: -3.6, z: -3.6, rotation: Math.PI / 2 },
   { model: "wallShelf", x: 3.6, z: -3.8, rotation: -Math.PI / 2 },
   { model: "painting", x: -2.4, z: -4.9, rotation: Math.PI },
+  { model: "window", x: 2.2, z: -4.9, rotation: Math.PI },
+  { model: "light", x: 0, z: -2.4 },
   { model: "desk", x: -2.1, z: -0.9, scale: 0.95 },
   { model: "chair", x: -2.1, z: -0.1 },
   { model: "desk", x: 2.1, z: -0.9, scale: 0.95 },
@@ -71,6 +74,7 @@ export const CLASSROOM_PROPS: PropPlacement[] = [
   { model: "desk", x: 0, z: 1.7, scale: 0.95 },
   { model: "chair", x: 0, z: 2.5 },
   { model: "book", x: 0.35, z: 1.6, scale: 0.9 },
+  { model: "meetingTable", x: -3.2, z: 2.2, rotation: Math.PI / 2, scale: 0.9 },
   { model: "trashCan", x: 3.9, z: -1.4, scale: 0.9 },
   { model: "carpet", x: 0, z: 0.4, scale: 1.6 },
 ];
@@ -91,6 +95,9 @@ export const DORM_PROPS: PropPlacement[] = [
   { model: "carpet", x: 0.6, z: 1.1, scale: 1.4 },
   { model: "light", x: -0.2, z: -0.6 },
   { model: "painting", x: 0.4, z: -3.4, rotation: Math.PI },
+  { model: "window", x: -3.4, z: -1.0, rotation: Math.PI / 2 },
+  { model: "wallShelf", x: 3.4, z: 0.6, rotation: -Math.PI / 2 },
+  { model: "trashCan", x: 2.9, z: -0.4, scale: 0.85 },
 ];
 
 /** Compact desk set behind the Layer 4 lesson cast. */
