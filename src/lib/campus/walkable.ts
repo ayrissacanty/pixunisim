@@ -36,14 +36,11 @@ export function buildWalkMask(zone: ZoneMap): WalkMask {
     data[ty * width + tx] = 0;
   }
 
-  // Doors and the tile in front of them must stay walkable so the player can
-  // always reach a transition trigger, even if decor lands nearby.
+  // Doorways and travel triggers must always stay walkable, even if a decor
+  // prop or a wall tile happens to sit on them.
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      if (zone.tiles[y]![x] !== "door") continue;
-      data[y * width + x] = 1;
-      if (y + 1 < height && zone.tiles[y + 1]![x] !== "wall") data[(y + 1) * width + x] = 1;
-      if (y > 0 && zone.tiles[y - 1]![x] !== "wall") data[(y - 1) * width + x] = 1;
+      if (zone.tiles[y]![x] === "door") data[y * width + x] = 1;
     }
   }
   for (const i of zone.interactables) {
