@@ -26,6 +26,8 @@ export interface DecorPlacement {
   px: number;
   py: number;
   scale: number;
+  /** Whether the prop physically blocks movement (feeds the walkability mask). */
+  solid: boolean;
 }
 
 export function frameRect(name: string): Rect | undefined {
@@ -99,6 +101,7 @@ export function decorFor(zone: ZoneMap): DecorPlacement[] {
         px: x * TILE + TILE / 2,
         py: (y + 1) * TILE,
         scale: pool === STRUCTURE || pool === GROVE ? 0.72 : 0.6,
+        solid: pool === STRUCTURE || pool === GROVE || pool === WATER_SIDE,
       });
       reserve(x, y, 1);
     }
