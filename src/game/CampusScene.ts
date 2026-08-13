@@ -4,6 +4,7 @@ import { getZone, type Interactable, type NpcSpawn, type ZoneMap } from "@/lib/c
 import { canStandBox } from "@/lib/campus/walkable";
 import { npcPalette, type NpcPalette } from "@/lib/campus/npc-cast";
 import { useCampusStore } from "@/lib/campus/store";
+import { bobScale, cameraLerp, useMotionStore } from "@/lib/a11y/motion";
 import { DECOR_KEY, DECOR_URL, decorFor, frameRect } from "@/lib/campus/decor";
 import {
   OVERLAY_TILES,
@@ -228,6 +229,7 @@ export class CampusScene extends Phaser.Scene {
   private doorCooldown = 0;
   /** Doors re-arm only after the player has stepped clear of the trigger. */
   private doorArmed = false;
+  private motionUnsub?: (() => void) | undefined;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private npcs: NpcSprite[] = [];
