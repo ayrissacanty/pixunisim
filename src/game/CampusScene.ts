@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { TILE, TILE_COLORS, type TileKind } from "@/lib/campus/tiles";
-import { getZone, zoneIsSolidAt, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
+import { getZone, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
+import { canStandBox } from "@/lib/campus/walkable";
 import { useCampusStore } from "@/lib/campus/store";
 import { DECOR_KEY, DECOR_URL, decorFor, frameRect } from "@/lib/campus/decor";
 import {
@@ -13,11 +14,32 @@ import {
   variantFor,
 } from "@/lib/campus/tileset";
 
-const SPEED = 150;
+const SPEED = 168;
+/** Pixels/sec^2 used to ease into and out of a walk so movement is not snappy. */
+const ACCEL = 1400;
+const FRICTION = 1900;
+
+export type Direction = "up" | "down" | "left" | "right";
+
+interface CharacterParts {
+  shadow: Phaser.GameObjects.Ellipse;
+  legL: Phaser.GameObjects.Rectangle;
+  legR: Phaser.GameObjects.Rectangle;
+  armL: Phaser.GameObjects.Rectangle;
+  armR: Phaser.GameObjects.Rectangle;
+  body: Phaser.GameObjects.Rectangle;
+  head: Phaser.GameObjects.Arc;
+  hair: Phaser.GameObjects.Rectangle;
+  face: Phaser.GameObjects.Rectangle;
+}
+
+export interface CharacterContainer extends Phaser.GameObjects.Container {
+  parts: CharacterParts;
+}
 
 interface NpcSprite {
   spawn: NpcSpawn;
-  container: Phaser.GameObjects.Container;
+  container: CharacterContainer;
   homeX: number;
   homeY: number;
   dir: number;
@@ -198,8 +220,11 @@ function paintTile(g: Phaser.GameObjects.Graphics, kind: TileKind, px: number, p
 
 export class CampusScene extends Phaser.Scene {
   private zone!: ZoneMap;
-  private player!: Phaser.GameObjects.Container;
-  private playerBody!: Phaser.GameObjects.Rectangle;
+  private player!: CharacterContainer;
+  private vx = 0;
+  private vy = 0;
+  private facing: Direction = "down";
+  private doorCooldown = 0;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private npcs: NpcSprite[] = [];
@@ -331,11 +356,24 @@ export class CampusScene extends Phaser.Scene {
     }));
 
     this.player = this.makeCharacter(data.x * TILE + 16, data.y * TILE + 16, 0xa8543f, "You");
-    this.playerBody = this.player.getAt(1) as Phaser.GameObjects.Rectangle;
+    this.vx = 0;
+    this.vy = 0;
+    // Spawning inside a blocked tile would trap the player: nudge to the
+    // nearest walkable tile before the first frame.
+    if (!this.canStand(this.player.x, this.player.y)) {
+      const spot = this.nearestWalkable(data.x, data.y);
+      this.player.setPosition(spot.x * TILE + 16, spot.y * TILE + 16);
+    }
+    // Doors we spawn on should not immediately fire a transition back.
+    this.doorCooldown = 700;
 
-    this.cameras.main.setBounds(0, 0, this.zone.width * TILE, this.zone.height * TILE);
-    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
-    this.cameras.main.setZoom(this.scale.width < 720 ? 1.5 : 1.8);
+    const cam = this.cameras.main;
+    cam.setBounds(0, 0, this.zone.width * TILE, this.zone.height * TILE);
+    cam.setZoom(this.scale.width < 720 ? 1.5 : 1.8);
+    cam.setRoundPixels(true);
+    cam.startFollow(this.player, true, 0.14, 0.14);
+    cam.setDeadzone(48, 36);
+    cam.setLerp(0.14, 0.14);
 
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
