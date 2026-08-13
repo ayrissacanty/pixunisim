@@ -260,6 +260,7 @@ export class CampusScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#5d7047" : "#cbb894");
 
     const groundKey = this.zone.kind === "outdoor" ? this.bakeGround(this.zone) : null;
+    console.log("[tiles] groundKey", groundKey, this.textures.exists(TILESET_KEY));
 
     const g = this.add.graphics();
     for (let y = 0; y < this.zone.height; y++) {
