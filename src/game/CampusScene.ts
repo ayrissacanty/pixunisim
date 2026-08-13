@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { TILE, TILE_COLORS, type TileKind } from "@/lib/campus/tiles";
 import { getZone, type Interactable, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
 import { canStandBox } from "@/lib/campus/walkable";
+import { npcPalette, type NpcPalette } from "@/lib/campus/npc-cast";
 import { useCampusStore } from "@/lib/campus/store";
 import { DECOR_KEY, DECOR_URL, decorFor, frameRect } from "@/lib/campus/decor";
 import {
@@ -348,7 +349,7 @@ export class CampusScene extends Phaser.Scene {
       container: this.makeCharacter(
         spawn.x * TILE + 16,
         spawn.y * TILE + 16,
-        spawn.role.toLowerCase().includes("student") ? 0x5d7f96 : 0x6d2f34,
+        npcPalette(spawn.id, spawn.role),
         spawn.name.split(" ")[0]!,
       ),
       homeX: spawn.x * TILE + 16,
@@ -357,7 +358,12 @@ export class CampusScene extends Phaser.Scene {
       timer: 0,
     }));
 
-    this.player = this.makeCharacter(data.x * TILE + 16, data.y * TILE + 16, 0xa8543f, "You");
+    this.player = this.makeCharacter(
+      data.x * TILE + 16,
+      data.y * TILE + 16,
+      { cloth: 0xa8543f, hair: 0x4a3324, skin: 0xe8c9a0 },
+      "You",
+    );
     this.vx = 0;
     this.vy = 0;
     // Spawning inside a blocked tile would trap the player: nudge to the
@@ -390,15 +396,16 @@ export class CampusScene extends Phaser.Scene {
       .setPlayer(Math.round(this.player.x / TILE), Math.round(this.player.y / TILE), this.facing);
   }
 
-  private makeCharacter(x: number, y: number, color: number, label: string) {
+  private makeCharacter(x: number, y: number, palette: NpcPalette, label: string) {
+    const color = palette.cloth;
     const shadow = this.add.ellipse(0, 12, 20, 8, 0x000000, 0.18);
     const legL = this.add.rectangle(-4, 10, 5, 8, 0x3b2c22);
     const legR = this.add.rectangle(4, 10, 5, 8, 0x3b2c22);
     const armL = this.add.rectangle(-9, 0, 4, 12, color).setStrokeStyle(1, 0x2b1e18, 0.4);
     const armR = this.add.rectangle(9, 0, 4, 12, color).setStrokeStyle(1, 0x2b1e18, 0.4);
     const body = this.add.rectangle(0, 0, 16, 20, color).setStrokeStyle(1, 0x2b1e18, 0.5);
-    const head = this.add.circle(0, -14, 7, 0xe8c9a0).setStrokeStyle(1, 0x2b1e18, 0.4);
-    const hair = this.add.rectangle(0, -19, 14, 5, 0x4a3324);
+    const head = this.add.circle(0, -14, 7, palette.skin).setStrokeStyle(1, 0x2b1e18, 0.4);
+    const hair = this.add.rectangle(0, -19, 14, 5, palette.hair);
     const face = this.add.rectangle(0, -13, 8, 3, 0x2b1e18, 0.55);
     const name = this.add
       .text(0, -34, label, { fontFamily: "monospace", fontSize: "10px", color: "#f1e6d0" })
