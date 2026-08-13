@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCampusStore } from "@/lib/campus/store";
 import { useAlleyDialogue, useLesson, useProgress, progressFor } from "@/lib/data";
 import { CharacterStage, type StageActor } from "@/components/three/CharacterStage";
@@ -81,6 +81,7 @@ export function ClassroomBeat() {
           <CharacterStage
             actors={cast}
             height={420}
+            onReady={() => setCastReady(true)}
             background={0x8a6a45}
             className="h-full w-full overflow-hidden"
           />
