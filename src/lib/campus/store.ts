@@ -25,7 +25,31 @@ export interface PromptState {
   id: string;
 }
 
+/** Layer 1 campus · Layer 2 building interior · Layer 3 classroom beat · Layer 4 lesson. */
+export type CampusLayer = 1 | 2 | 3 | 4;
+
+export interface TransitionState {
+  kind: "door" | "fade" | "wipe";
+  label: string;
+  toLayer: CampusLayer;
+}
+
+export interface ClassroomState {
+  roomId: string;
+  roomName: string;
+  lessonId: string;
+  courseId: string;
+  teacher: string;
+  /** "arrive" plays the greeting, "dismiss" plays the goodbye beat. */
+  phase: "arrive" | "dismiss";
+}
+
 interface CampusState {
+  layer: CampusLayer;
+  transition?: TransitionState | undefined;
+  classroom?: ClassroomState | undefined;
+  /** Last standing position per zone so backing out never loses your place. */
+  zoneMemory: Record<string, { x: number; y: number }>;
   currentZone: string;
   currentBuilding?: string | undefined;
   currentRoom?: string | undefined;
