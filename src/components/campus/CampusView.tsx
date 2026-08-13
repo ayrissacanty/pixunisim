@@ -27,7 +27,9 @@ export function CampusView({
   const sceneRef = useRef<CampusScene | null>(null);
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
-  const [tourStep, setTourStep] = useState<string | null>(null);
+  const [tourStep, setTourStep] = useState<{ label: string; index: number; total: number } | null>(
+    null,
+  );
   useCampusObjectives();
   useOfflineSync();
 
@@ -180,9 +182,9 @@ export function CampusView({
       const runTour = async (tourId: string) => {
         const preset = WALKTHROUGHS[tourId];
         const walk = buildWalkthrough(preset?.lessonId ?? tourId);
-        for (const stepInfo of walk.steps) {
+        for (const [i, stepInfo] of walk.steps.entries()) {
           if (disposed) return;
-          setTourStep(stepInfo.label);
+          setTourStep({ label: stepInfo.label, index: i, total: walk.steps.length });
           store.travel(stepInfo.zone, stepInfo.x, stepInfo.y);
           await new Promise((r) => setTimeout(r, 900));
         }
@@ -269,9 +271,13 @@ export function CampusView({
       {tourStep && (
         <div
           data-testid="tour-step"
+          data-step-index={tourStep.index}
+          data-step-total={tourStep.total}
+          data-step-label={tourStep.label}
+          data-step-zone={useCampusStore.getState().currentZone}
           className="pointer-events-none absolute left-1/2 top-4 z-40 -translate-x-1/2 rounded-md border-2 border-accent bg-sidebar/95 px-4 py-2 font-display text-sm text-sidebar-foreground shadow-lg"
         >
-          Guided route: {tourStep}
+          Guided route: {tourStep.label}
         </div>
       )}
 
