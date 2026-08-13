@@ -63,8 +63,9 @@ async def main():
 
         await sign_in(page)
 
-        # 1. Scripted route: Welcome Plaza -> Mathematics Hall -> Algebra 204
-        await page.goto(f"{BASE}/campus?tour=algebra-204", wait_until="domcontentloaded")
+        # 1. Load the campus, then drive the scripted route step by step so each
+        #    banner step can be asserted instead of racing an auto-playing tour.
+        await page.goto(f"{BASE}/campus", wait_until="domcontentloaded")
         await page.wait_for_function("() => !!window.__unifyCampus", timeout=30000)
 
         # 2. The classroom must carry the shared course_id / lesson_id
