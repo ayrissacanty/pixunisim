@@ -128,6 +128,7 @@ async def main():
 
         # --- Step 5: zone memory is recorded for the way back --------------------
         print("state after tour", st)
+        print("probe", await page.evaluate("()=>{const s=window.__unifyCampus.state();return s.zoneMemory;}"))
         assert "welcome-plaza" in st["zoneMemory"], st["zoneMemory"]
 
         # --- Step 6: teacher dialogue -> attend class ----------------------------
