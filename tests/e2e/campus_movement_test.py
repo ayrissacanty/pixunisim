@@ -101,7 +101,7 @@ async def main():
         # --- Step 4: guided route to Mathematics Hall ----------------------------
         walk = await page.evaluate("() => window.__unifyCampus.walkthrough('algebra-204')")
         print("walkthrough", walk["zoneId"], walk["courseId"], walk["lessonId"])
-        await page.evaluate("() => window.__unifyCampus.tour('algebra-204')")
+        await page.evaluate("() => { window.__unifyCampus.tour('algebra-204'); }")
 
         seen = []
         banner = page.locator("[data-testid='tour-step']")
