@@ -225,6 +225,8 @@ export class CampusScene extends Phaser.Scene {
   private vy = 0;
   private facing: Direction = "down";
   private doorCooldown = 0;
+  /** Doors re-arm only after the player has stepped clear of the trigger. */
+  private doorArmed = false;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private npcs: NpcSprite[] = [];
@@ -365,7 +367,8 @@ export class CampusScene extends Phaser.Scene {
       this.player.setPosition(spot.x * TILE + 16, spot.y * TILE + 16);
     }
     // Doors we spawn on should not immediately fire a transition back.
-    this.doorCooldown = 700;
+    this.doorCooldown = 500;
+    this.doorArmed = false;
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, this.zone.width * TILE, this.zone.height * TILE);
@@ -488,14 +491,21 @@ export class CampusScene extends Phaser.Scene {
     }
     const px = this.player.x / TILE;
     const py = this.player.y / TILE;
+    let nearest: { d: number; i: (typeof this.zone.interactables)[number] } | null = null;
     for (const i of this.zone.interactables) {
       if (i.action.kind !== "travel") continue;
       const d = Math.hypot(i.x + 0.5 - px, i.y + 0.5 - py);
-      if (d > 0.62) continue;
-      this.doorCooldown = 1400;
-      this.game.events.emit("unify-door", i.action, i.label);
+      if (!nearest || d < nearest.d) nearest = { d, i };
+    }
+    if (!nearest) return;
+    if (!this.doorArmed) {
+      if (nearest.d > 1.4) this.doorArmed = true;
       return;
     }
+    if (nearest.d > 0.62) return;
+    this.doorArmed = false;
+    this.doorCooldown = 1200;
+    this.game.events.emit("unify-door", nearest.i.action, nearest.i.label);
   }
 
   override update(_time: number, delta: number) {
