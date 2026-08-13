@@ -463,40 +463,106 @@ export class CampusScene extends Phaser.Scene {
     }
   }
 
+  /** Breadth-first search for the closest walkable tile to a spawn point. */
+  private nearestWalkable(tx: number, ty: number) {
+    for (let r = 1; r < 12; r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          const x = tx + dx;
+          const y = ty + dy;
+          if (this.canStand(x * TILE + 16, y * TILE + 16)) return { x, y };
+        }
+      }
+    }
+    return { x: tx, y: ty };
+  }
+
+  /**
+   * Door trigger: standing on (or right beside) a travel interactable fades
+   * into the next zone without needing an explicit key press.
+   */
+  private checkDoorTrigger(delta: number) {
+    if (this.doorCooldown > 0) {
+      this.doorCooldown -= delta;
+      return;
+    }
+    const px = this.player.x / TILE;
+    const py = this.player.y / TILE;
+    for (const i of this.zone.interactables) {
+      if (i.action.kind !== "travel") continue;
+      const d = Math.hypot(i.x + 0.5 - px, i.y + 0.5 - py);
+      if (d > 0.62) continue;
+      this.doorCooldown = 1400;
+      this.game.events.emit("unify-door", i.action, i.label);
+      return;
+    }
+  }
+
   override update(_time: number, delta: number) {
     const store = useCampusStore.getState();
     const blocked = !!(store.dialogue || store.reading || store.lessonOpen || store.mapOpen);
-    let vx = 0;
-    let vy = 0;
+    const dt = Math.min(delta, 50) / 1000;
+    let ix = 0;
+    let iy = 0;
     if (!blocked) {
-      if (this.cursors.left.isDown || this.keys["A"]!.isDown) vx -= 1;
-      if (this.cursors.right.isDown || this.keys["D"]!.isDown) vx += 1;
-      if (this.cursors.up.isDown || this.keys["W"]!.isDown) vy -= 1;
-      if (this.cursors.down.isDown || this.keys["S"]!.isDown) vy += 1;
-      vx += this.joystick.x;
-      vy += this.joystick.y;
+      if (this.cursors.left.isDown || this.keys["A"]!.isDown) ix -= 1;
+      if (this.cursors.right.isDown || this.keys["D"]!.isDown) ix += 1;
+      if (this.cursors.up.isDown || this.keys["W"]!.isDown) iy -= 1;
+      if (this.cursors.down.isDown || this.keys["S"]!.isDown) iy += 1;
+      ix += this.joystick.x;
+      iy += this.joystick.y;
     }
-    const len = Math.hypot(vx, vy);
-    if (len > 0) {
-      vx /= len;
-      vy /= len;
-      const step = (SPEED * delta) / 1000;
-      const nx = this.player.x + vx * step;
-      const ny = this.player.y + vy * step;
-      if (this.canStand(nx, this.player.y)) this.player.x = nx;
-      if (this.canStand(this.player.x, ny)) this.player.y = ny;
-      this.stepPhase += delta / 90;
-      this.playerBody.y = Math.sin(this.stepPhase) * 1.5;
-      const dir =
-        Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? "right" : "left") : vy > 0 ? "down" : "up";
-      this.playerBody.scaleX = dir === "left" ? -1 : 1;
+    const len = Math.hypot(ix, iy);
+    if (len > 1) {
+      ix /= len;
+      iy /= len;
+    }
+
+    // Accelerate toward the desired velocity, decelerate to a stop.
+    const targetVX = ix * SPEED;
+    const targetVY = iy * SPEED;
+    const approach = (v: number, target: number) => {
+      const rate = (target === 0 ? FRICTION : ACCEL) * dt;
+      if (v < target) return Math.min(v + rate, target);
+      if (v > target) return Math.max(v - rate, target);
+      return v;
+    };
+    this.vx = approach(this.vx, targetVX);
+    this.vy = approach(this.vy, targetVY);
+
+    // Axis-separated collision so sliding along a hedge or riverbank works.
+    const nx = this.player.x + this.vx * dt;
+    if (this.canStand(nx, this.player.y)) this.player.x = nx;
+    else this.vx = 0;
+    const ny = this.player.y + this.vy * dt;
+    if (this.canStand(this.player.x, ny)) this.player.y = ny;
+    else this.vy = 0;
+
+    const speed = Math.hypot(this.vx, this.vy);
+    const moving = speed > 6;
+    if (moving) {
+      this.facing =
+        Math.abs(this.vx) > Math.abs(this.vy)
+          ? this.vx > 0
+            ? "right"
+            : "left"
+          : this.vy > 0
+            ? "down"
+            : "up";
+      this.stepPhase += (delta / 1000) * (4 + (speed / SPEED) * 7);
+    } else {
+      this.stepPhase = 0;
+    }
+    this.animateCharacter(this.player, this.facing, this.stepPhase, moving);
+    if (moving) {
       store.setPlayer(
         Math.round(this.player.x / TILE),
         Math.round(this.player.y / TILE),
-        dir as "up" | "down" | "left" | "right",
+        this.facing,
       );
-    } else {
-      this.playerBody.y = 0;
+      this.checkDoorTrigger(delta);
+    } else if (this.doorCooldown > 0) {
+      this.doorCooldown -= delta;
     }
 
     // NPC behaviour
@@ -504,11 +570,20 @@ export class CampusScene extends Phaser.Scene {
       n.timer += delta;
       if (n.spawn.behavior === "walk") {
         const targetX = n.homeX + Math.sin(n.timer / 1400) * 48;
-        if (this.canStand(targetX, n.container.y)) n.container.x = targetX;
+        const walking = this.canStand(targetX, n.container.y);
+        if (walking) n.container.x = targetX;
+        this.animateCharacter(
+          n.container,
+          Math.cos(n.timer / 1400) > 0 ? "right" : "left",
+          n.timer / 130,
+          walking,
+        );
       } else if (n.spawn.behavior === "study" || n.spawn.behavior === "read") {
         n.container.y = n.homeY + Math.sin(n.timer / 600) * 1.2;
+        this.animateCharacter(n.container, "down", 0, false);
       }
     });
+
 
     // prompt + room tracking
     const hit = this.nearestInteraction();
