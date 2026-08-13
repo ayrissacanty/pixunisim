@@ -2,6 +2,7 @@ import { useCampusStore } from "@/lib/campus/store";
 import { Button } from "@/components/ui/button";
 import { PortraitView } from "@/components/campus/PortraitView";
 import { usePortrait } from "@/lib/profile";
+import { npcPortrait } from "@/lib/campus/npc-cast";
 
 export function DialogueBox() {
   const dialogue = useCampusStore((s) => s.dialogue);
