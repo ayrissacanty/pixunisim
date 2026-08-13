@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { TILE, TILE_COLORS, type TileKind } from "@/lib/campus/tiles";
-import { getZone, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
+import { getZone, type Interactable, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
 import { canStandBox } from "@/lib/campus/walkable";
 import { useCampusStore } from "@/lib/campus/store";
 import { DECOR_KEY, DECOR_URL, decorFor, frameRect } from "@/lib/campus/decor";
@@ -491,7 +491,7 @@ export class CampusScene extends Phaser.Scene {
     }
     const px = this.player.x / TILE;
     const py = this.player.y / TILE;
-    let nearest: { d: number; i: (typeof this.zone.interactables)[number] } | null = null;
+    let nearest: { d: number; i: Interactable } | null = null;
     for (const i of this.zone.interactables) {
       if (i.action.kind !== "travel") continue;
       const d = Math.hypot(i.x + 0.5 - px, i.y + 0.5 - py);
