@@ -113,7 +113,8 @@ export function CharacterStage({
             ]);
             if (disposed) return;
             map.colorSpace = THREE.SRGBColorSpace;
-            map.flipY = false;
+            // FBX UVs expect the default (flipped) orientation.
+            map.flipY = true;
             const model = cloneSkinned(fbx) as import("three").Group;
 
             model.traverse((child) => {
