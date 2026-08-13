@@ -191,7 +191,13 @@ export function CampusView({
             action: () => void navigate({ to: npc.route as string }),
           });
         }
-        store.openDialogue({ speaker: npc.name, role: npc.role, lines: npc.lines, choices });
+        store.openDialogue({
+          speaker: npc.name,
+          role: npc.role,
+          speakerId: npc.id,
+          lines: npc.lines,
+          choices,
+        });
         store.discover(npc.id);
       };
 
