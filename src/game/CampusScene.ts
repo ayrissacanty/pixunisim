@@ -263,20 +263,23 @@ export class CampusScene extends Phaser.Scene {
         const kind = this.zone.tiles[y]![x]!;
         const frames = useSprites ? TILE_FRAMES[kind] : undefined;
         if (rt && frames && frames.length) {
+          const stampCfg = { originX: 0, originY: 0 };
           if (OVERLAY_TILES.has(kind)) {
             const bed = TILE_FRAMES.grass!;
-            rt.drawFrame(
+            rt.stamp(
               TILESET_SCALED_KEY,
               frameName("grass", variantFor(x, y, bed.length)),
               x * TILE,
               y * TILE,
+              stampCfg,
             );
           }
-          rt.drawFrame(
+          rt.stamp(
             TILESET_SCALED_KEY,
             frameName(kind, variantFor(x, y, frames.length)),
             x * TILE,
             y * TILE,
+            stampCfg,
           );
         } else {
           paintTile(g, kind, x * TILE, y * TILE);
