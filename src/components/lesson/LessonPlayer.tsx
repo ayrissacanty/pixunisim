@@ -5,6 +5,9 @@ import { Progress as ProgressBar } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { AiTeacher } from "@/components/lesson/AiTeacher";
 import { Lesson3DStage } from "@/components/lesson/Lesson3DStage";
+import { CharacterStage } from "@/components/three/CharacterStage";
+import { TEACHER_CHARACTER } from "@/lib/characters";
+import { useAvatar } from "@/lib/profile";
 import {
   useLesson,
   useQuestions,
@@ -90,6 +93,7 @@ export function LessonPlayer({
   const { data: questions } = useQuestions(lessonId);
   const { data: progress } = useProgress();
   const save = useSaveProgress();
+  const avatar = useAvatar();
   const [step, setStep] = useState(0);
   const [results, setResults] = useState<Record<string, boolean>>({});
   const [tutorOpen, setTutorOpen] = useState(false);
