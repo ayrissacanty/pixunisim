@@ -9,6 +9,8 @@ export interface DialogueChoice {
 export interface DialogueState {
   speaker: string;
   role?: string;
+  /** NPC id, used to look up the paper-doll portrait of the speaker. */
+  speakerId?: string;
   lines: string[];
   lineIndex: number;
   choices: DialogueChoice[];
