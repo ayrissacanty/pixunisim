@@ -13,7 +13,11 @@ export function DialogueBox() {
   const last = dialogue.lineIndex >= dialogue.lines.length - 1;
 
   return (
-    <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 p-3 sm:p-5">
+    <div
+      data-testid="dialogue-box"
+      data-speaker={dialogue.speaker}
+      className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 p-3 sm:p-5"
+    >
       <div className="mx-auto flex max-w-3xl items-end gap-3">
         <div className="hidden w-24 shrink-0 sm:block">
           <PortraitView portrait={portrait} alt="Your portrait" />

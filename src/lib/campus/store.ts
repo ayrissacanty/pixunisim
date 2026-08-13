@@ -153,7 +153,12 @@ export const useCampusStore = create<CampusState>((set, get) => ({
     })),
   discover: (id) =>
     set((s) => (s.discovered.includes(id) ? s : { discovered: [...s.discovered, id] })),
-  travel: (zone, x, y) => set({ pendingTravel: { zone, x, y } }),
+  travel: (zone, x, y) =>
+    set((s) => ({
+      pendingTravel: { zone, x, y },
+      // Always bookmark where we stood so returning restores the position.
+      zoneMemory: { ...s.zoneMemory, [s.currentZone]: { ...s.playerPosition } },
+    })),
   consumeTravel: () => set({ pendingTravel: undefined }),
   setObjective: (text, zone) => set({ currentObjective: text, objectiveTargetZone: zone }),
   triggerMobileAction: () => set((s) => ({ mobileAction: s.mobileAction + 1 })),

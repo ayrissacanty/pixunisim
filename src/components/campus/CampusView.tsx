@@ -4,6 +4,7 @@ import type Phaser from "phaser";
 import { useCampusStore } from "@/lib/campus/store";
 import { getZone, ZONE_LABELS, type InteractAction, type NpcSpawn } from "@/lib/campus/world";
 import { WALKTHROUGHS, buildWalkthrough } from "@/lib/campus/walkthrough";
+import { isWalkableTile } from "@/lib/campus/walkable";
 
 import type { CampusScene } from "@/game/CampusScene";
 import { CampusHud } from "@/components/campus/CampusHud";
@@ -79,11 +80,16 @@ export function CampusView({
       const enterZone = (zoneId: string, x: number, y: number) => {
         const target = getZone(zoneId);
         const current = useCampusStore.getState();
+        if (current.transition) return;
         store.rememberPosition(
           current.currentZone,
           current.playerPosition.x,
           current.playerPosition.y,
         );
+        // Returning to a zone puts you back exactly where you left it.
+        const remembered = current.zoneMemory[zoneId];
+        const spawnX = remembered?.x ?? x;
+        const spawnY = remembered?.y ?? y;
         const indoors = target.kind === "interior";
         store.beginTransition({
           kind: indoors ? "door" : "fade",
@@ -92,7 +98,7 @@ export function CampusView({
             : `Stepping outside — ${ZONE_LABELS[zoneId] ?? target.name}`,
           toLayer: indoors ? 2 : 1,
         });
-        window.setTimeout(() => store.travel(zoneId, x, y), 340);
+        window.setTimeout(() => store.travel(zoneId, spawnX, spawnY), 340);
       };
 
       /** Layer 2 -> Layer 3: the classroom beat. */
@@ -150,6 +156,14 @@ export function CampusView({
       };
 
       game.events.on("unify-interact", runAction);
+
+      /** Walking into a doorway transitions automatically (no key press). */
+      game.events.on("unify-door", (action: InteractAction) => {
+        if (action.kind !== "travel") return;
+        const s = useCampusStore.getState();
+        if (s.dialogue || s.reading || s.lessonOpen || s.mapOpen || s.transition) return;
+        enterZone(action.zone, action.spawnX, action.spawnY);
+      });
 
       const talkTo = (npc: NpcSpawn) => {
         const choices = [] as {
@@ -212,10 +226,13 @@ export function CampusView({
             steps: w.steps,
           };
         },
+        walkable: (zoneId: string, x: number, y: number) => isWalkableTile(getZone(zoneId), x, y),
         state: () => {
           const s = useCampusStore.getState();
           return {
             zone: s.currentZone,
+            player: s.playerPosition,
+            zoneMemory: s.zoneMemory,
             room: s.currentRoom,
             objective: s.currentObjective,
             lessonOpen: s.lessonOpen,

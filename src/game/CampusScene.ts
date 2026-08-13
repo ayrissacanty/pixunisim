@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { TILE, TILE_COLORS, type TileKind } from "@/lib/campus/tiles";
-import { getZone, zoneIsSolidAt, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
+import { getZone, type Interactable, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
+import { canStandBox } from "@/lib/campus/walkable";
 import { useCampusStore } from "@/lib/campus/store";
 import { DECOR_KEY, DECOR_URL, decorFor, frameRect } from "@/lib/campus/decor";
 import {
@@ -13,11 +14,32 @@ import {
   variantFor,
 } from "@/lib/campus/tileset";
 
-const SPEED = 150;
+const SPEED = 168;
+/** Pixels/sec^2 used to ease into and out of a walk so movement is not snappy. */
+const ACCEL = 1400;
+const FRICTION = 1900;
+
+export type Direction = "up" | "down" | "left" | "right";
+
+interface CharacterParts {
+  shadow: Phaser.GameObjects.Ellipse;
+  legL: Phaser.GameObjects.Rectangle;
+  legR: Phaser.GameObjects.Rectangle;
+  armL: Phaser.GameObjects.Rectangle;
+  armR: Phaser.GameObjects.Rectangle;
+  body: Phaser.GameObjects.Rectangle;
+  head: Phaser.GameObjects.Arc;
+  hair: Phaser.GameObjects.Rectangle;
+  face: Phaser.GameObjects.Rectangle;
+}
+
+export interface CharacterContainer extends Phaser.GameObjects.Container {
+  parts: CharacterParts;
+}
 
 interface NpcSprite {
   spawn: NpcSpawn;
-  container: Phaser.GameObjects.Container;
+  container: CharacterContainer;
   homeX: number;
   homeY: number;
   dir: number;
@@ -198,8 +220,13 @@ function paintTile(g: Phaser.GameObjects.Graphics, kind: TileKind, px: number, p
 
 export class CampusScene extends Phaser.Scene {
   private zone!: ZoneMap;
-  private player!: Phaser.GameObjects.Container;
-  private playerBody!: Phaser.GameObjects.Rectangle;
+  private player!: CharacterContainer;
+  private vx = 0;
+  private vy = 0;
+  private facing: Direction = "down";
+  private doorCooldown = 0;
+  /** Doors re-arm only after the player has stepped clear of the trigger. */
+  private doorArmed = false;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private npcs: NpcSprite[] = [];
@@ -331,11 +358,25 @@ export class CampusScene extends Phaser.Scene {
     }));
 
     this.player = this.makeCharacter(data.x * TILE + 16, data.y * TILE + 16, 0xa8543f, "You");
-    this.playerBody = this.player.getAt(1) as Phaser.GameObjects.Rectangle;
+    this.vx = 0;
+    this.vy = 0;
+    // Spawning inside a blocked tile would trap the player: nudge to the
+    // nearest walkable tile before the first frame.
+    if (!this.canStand(this.player.x, this.player.y)) {
+      const spot = this.nearestWalkable(data.x, data.y);
+      this.player.setPosition(spot.x * TILE + 16, spot.y * TILE + 16);
+    }
+    // Doors we spawn on should not immediately fire a transition back.
+    this.doorCooldown = 500;
+    this.doorArmed = false;
 
-    this.cameras.main.setBounds(0, 0, this.zone.width * TILE, this.zone.height * TILE);
-    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
-    this.cameras.main.setZoom(this.scale.width < 720 ? 1.5 : 1.8);
+    const cam = this.cameras.main;
+    cam.setBounds(0, 0, this.zone.width * TILE, this.zone.height * TILE);
+    cam.setZoom(this.scale.width < 720 ? 1.5 : 1.8);
+    cam.setRoundPixels(true);
+    cam.startFollow(this.player, true, 0.14, 0.14);
+    cam.setDeadzone(48, 36);
+    cam.setLerp(0.14, 0.14);
 
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
@@ -344,33 +385,60 @@ export class CampusScene extends Phaser.Scene {
     this.keys["M"]!.on("down", () => useCampusStore.getState().setMapOpen(true));
 
     useCampusStore.getState().setZone(this.zone.id);
+    useCampusStore
+      .getState()
+      .setPlayer(Math.round(this.player.x / TILE), Math.round(this.player.y / TILE), this.facing);
   }
 
   private makeCharacter(x: number, y: number, color: number, label: string) {
     const shadow = this.add.ellipse(0, 12, 20, 8, 0x000000, 0.18);
+    const legL = this.add.rectangle(-4, 10, 5, 8, 0x3b2c22);
+    const legR = this.add.rectangle(4, 10, 5, 8, 0x3b2c22);
+    const armL = this.add.rectangle(-9, 0, 4, 12, color).setStrokeStyle(1, 0x2b1e18, 0.4);
+    const armR = this.add.rectangle(9, 0, 4, 12, color).setStrokeStyle(1, 0x2b1e18, 0.4);
     const body = this.add.rectangle(0, 0, 16, 20, color).setStrokeStyle(1, 0x2b1e18, 0.5);
     const head = this.add.circle(0, -14, 7, 0xe8c9a0).setStrokeStyle(1, 0x2b1e18, 0.4);
     const hair = this.add.rectangle(0, -19, 14, 5, 0x4a3324);
+    const face = this.add.rectangle(0, -13, 8, 3, 0x2b1e18, 0.55);
     const name = this.add
       .text(0, -34, label, { fontFamily: "monospace", fontSize: "10px", color: "#f1e6d0" })
       .setOrigin(0.5)
       .setPadding(3, 1, 3, 1)
       .setBackgroundColor("#6d2f34aa");
-    const c = this.add.container(x, y, [shadow, body, head, hair, name]);
+    const c = this.add.container(x, y, [shadow, legL, legR, armL, armR, body, head, hair, face, name]);
     c.setDepth(10);
-    return c;
+    (c as CharacterContainer).parts = { shadow, legL, legR, armL, armR, body, head, hair, face };
+    return c as CharacterContainer;
+  }
+
+  /**
+   * Directional walk cycle: swinging legs and arms, a small body bob and a
+   * face marker that turns with the movement direction.
+   */
+  private animateCharacter(c: CharacterContainer, dir: Direction, phase: number, moving: boolean) {
+    const p = c.parts;
+    const swing = moving ? Math.sin(phase) : 0;
+    p.legL.y = 10 + swing * 2;
+    p.legR.y = 10 - swing * 2;
+    p.armL.y = swing * 2.5;
+    p.armR.y = -swing * 2.5;
+    p.body.y = moving ? Math.abs(Math.cos(phase)) * -1.2 : 0;
+    p.head.y = -14 + (moving ? Math.abs(Math.cos(phase)) * -1.2 : 0);
+    p.hair.y = p.head.y - 5;
+
+    const sideways = dir === "left" || dir === "right";
+    p.armL.setVisible(!sideways);
+    p.armR.setVisible(!sideways || dir === "right");
+    p.face.setVisible(dir !== "up");
+    p.face.x = dir === "left" ? -2 : dir === "right" ? 2 : 0;
+    p.face.y = p.head.y + 1;
+    p.hair.height = dir === "up" ? 9 : 5;
   }
 
   private canStand(px: number, py: number) {
-    const half = 7;
-    const pts = [
-      [px - half, py + 4],
-      [px + half, py + 4],
-      [px - half, py + 12],
-      [px + half, py + 12],
-    ] as const;
-    return pts.every(([x, y]) => !zoneIsSolidAt(this.zone, Math.floor(x / TILE), Math.floor(y / TILE)));
+    return canStandBox(this.zone, px, py);
   }
+
 
   private nearestInteraction() {
     const px = this.player.x / TILE;
@@ -401,40 +469,113 @@ export class CampusScene extends Phaser.Scene {
     }
   }
 
+  /** Breadth-first search for the closest walkable tile to a spawn point. */
+  private nearestWalkable(tx: number, ty: number) {
+    for (let r = 1; r < 12; r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          const x = tx + dx;
+          const y = ty + dy;
+          if (this.canStand(x * TILE + 16, y * TILE + 16)) return { x, y };
+        }
+      }
+    }
+    return { x: tx, y: ty };
+  }
+
+  /**
+   * Door trigger: standing on (or right beside) a travel interactable fades
+   * into the next zone without needing an explicit key press.
+   */
+  private checkDoorTrigger(delta: number) {
+    if (this.doorCooldown > 0) {
+      this.doorCooldown -= delta;
+      return;
+    }
+    const px = this.player.x / TILE;
+    const py = this.player.y / TILE;
+    let nearest: { d: number; i: Interactable } | null = null;
+    for (const i of this.zone.interactables) {
+      if (i.action.kind !== "travel") continue;
+      const d = Math.hypot(i.x + 0.5 - px, i.y + 0.5 - py);
+      if (!nearest || d < nearest.d) nearest = { d, i };
+    }
+    if (!nearest) return;
+    if (!this.doorArmed) {
+      if (nearest.d > 1.4) this.doorArmed = true;
+      return;
+    }
+    if (nearest.d > 0.62) return;
+    this.doorArmed = false;
+    this.doorCooldown = 1200;
+    this.game.events.emit("unify-door", nearest.i.action, nearest.i.label);
+  }
+
   override update(_time: number, delta: number) {
     const store = useCampusStore.getState();
     const blocked = !!(store.dialogue || store.reading || store.lessonOpen || store.mapOpen);
-    let vx = 0;
-    let vy = 0;
+    const dt = Math.min(delta, 50) / 1000;
+    let ix = 0;
+    let iy = 0;
     if (!blocked) {
-      if (this.cursors.left.isDown || this.keys["A"]!.isDown) vx -= 1;
-      if (this.cursors.right.isDown || this.keys["D"]!.isDown) vx += 1;
-      if (this.cursors.up.isDown || this.keys["W"]!.isDown) vy -= 1;
-      if (this.cursors.down.isDown || this.keys["S"]!.isDown) vy += 1;
-      vx += this.joystick.x;
-      vy += this.joystick.y;
+      if (this.cursors.left.isDown || this.keys["A"]!.isDown) ix -= 1;
+      if (this.cursors.right.isDown || this.keys["D"]!.isDown) ix += 1;
+      if (this.cursors.up.isDown || this.keys["W"]!.isDown) iy -= 1;
+      if (this.cursors.down.isDown || this.keys["S"]!.isDown) iy += 1;
+      ix += this.joystick.x;
+      iy += this.joystick.y;
     }
-    const len = Math.hypot(vx, vy);
-    if (len > 0) {
-      vx /= len;
-      vy /= len;
-      const step = (SPEED * delta) / 1000;
-      const nx = this.player.x + vx * step;
-      const ny = this.player.y + vy * step;
-      if (this.canStand(nx, this.player.y)) this.player.x = nx;
-      if (this.canStand(this.player.x, ny)) this.player.y = ny;
-      this.stepPhase += delta / 90;
-      this.playerBody.y = Math.sin(this.stepPhase) * 1.5;
-      const dir =
-        Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? "right" : "left") : vy > 0 ? "down" : "up";
-      this.playerBody.scaleX = dir === "left" ? -1 : 1;
+    const len = Math.hypot(ix, iy);
+    if (len > 1) {
+      ix /= len;
+      iy /= len;
+    }
+
+    // Accelerate toward the desired velocity, decelerate to a stop.
+    const targetVX = ix * SPEED;
+    const targetVY = iy * SPEED;
+    const approach = (v: number, target: number) => {
+      const rate = (target === 0 ? FRICTION : ACCEL) * dt;
+      if (v < target) return Math.min(v + rate, target);
+      if (v > target) return Math.max(v - rate, target);
+      return v;
+    };
+    this.vx = approach(this.vx, targetVX);
+    this.vy = approach(this.vy, targetVY);
+
+    // Axis-separated collision so sliding along a hedge or riverbank works.
+    const nx = this.player.x + this.vx * dt;
+    if (this.canStand(nx, this.player.y)) this.player.x = nx;
+    else this.vx = 0;
+    const ny = this.player.y + this.vy * dt;
+    if (this.canStand(this.player.x, ny)) this.player.y = ny;
+    else this.vy = 0;
+
+    const speed = Math.hypot(this.vx, this.vy);
+    const moving = speed > 6;
+    if (moving) {
+      this.facing =
+        Math.abs(this.vx) > Math.abs(this.vy)
+          ? this.vx > 0
+            ? "right"
+            : "left"
+          : this.vy > 0
+            ? "down"
+            : "up";
+      this.stepPhase += (delta / 1000) * (4 + (speed / SPEED) * 7);
+    } else {
+      this.stepPhase = 0;
+    }
+    this.animateCharacter(this.player, this.facing, this.stepPhase, moving);
+    if (moving) {
       store.setPlayer(
         Math.round(this.player.x / TILE),
         Math.round(this.player.y / TILE),
-        dir as "up" | "down" | "left" | "right",
+        this.facing,
       );
-    } else {
-      this.playerBody.y = 0;
+      this.checkDoorTrigger(delta);
+    } else if (this.doorCooldown > 0) {
+      this.doorCooldown -= delta;
     }
 
     // NPC behaviour
@@ -442,11 +583,20 @@ export class CampusScene extends Phaser.Scene {
       n.timer += delta;
       if (n.spawn.behavior === "walk") {
         const targetX = n.homeX + Math.sin(n.timer / 1400) * 48;
-        if (this.canStand(targetX, n.container.y)) n.container.x = targetX;
+        const walking = this.canStand(targetX, n.container.y);
+        if (walking) n.container.x = targetX;
+        this.animateCharacter(
+          n.container,
+          Math.cos(n.timer / 1400) > 0 ? "right" : "left",
+          n.timer / 130,
+          walking,
+        );
       } else if (n.spawn.behavior === "study" || n.spawn.behavior === "read") {
         n.container.y = n.homeY + Math.sin(n.timer / 600) * 1.2;
+        this.animateCharacter(n.container, "down", 0, false);
       }
     });
+
 
     // prompt + room tracking
     const hit = this.nearestInteraction();
