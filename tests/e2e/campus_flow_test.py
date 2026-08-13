@@ -85,14 +85,23 @@ async def main():
         #     flaky/skipped step fails loudly instead of silently drifting.
         await page.evaluate("() => { window.__unifyCampus.tour('algebra-204'); }")
         for i, step in enumerate(walk["steps"]):
-            banner = page.locator(f'[data-testid="tour-step"][data-step-index="{i}"]')
-            await banner.wait_for(state="attached", timeout=30000)
-            await expect(banner).to_be_visible()
-            assert await banner.get_attribute("data-step-label") == step["label"], (i, step)
-            assert await banner.get_attribute("data-step-total") == str(len(walk["steps"]))
-            assert step["label"] in (await banner.inner_text())
-            zone = await page.evaluate("() => window.__unifyCampus.state().zone")
-            assert zone in (step["zone"], walk["steps"][max(i - 1, 0)]["zone"]), (i, zone, step)
+            snap = await page.wait_for_function(
+                """(i) => { const el = document.querySelector('[data-testid="tour-step"]');
+                     if (!el || el.getAttribute('data-step-index') !== String(i)) return null;
+                     return { label: el.getAttribute('data-step-label'),
+                              total: el.getAttribute('data-step-total'),
+                              text: el.innerText,
+                              visible: el.getClientRects().length > 0,
+                              zone: window.__unifyCampus.state().zone }; }""",
+                arg=i,
+                timeout=30000,
+            )
+            snap = await snap.json_value()
+            assert snap["visible"], (i, snap)
+            assert snap["label"] == step["label"], (i, snap, step)
+            assert snap["total"] == str(len(walk["steps"])), (i, snap)
+            assert step["label"] in snap["text"], (i, snap)
+            assert snap["zone"] in (step["zone"], walk["steps"][max(i - 1, 0)]["zone"]), (i, snap)
             await page.screenshot(path=f"{SHOTS}/00-step-{i}-{step['zone']}.png")
 
         # 3. Talk to teacher (the tour ends by greeting Professor Maya Ellison)
