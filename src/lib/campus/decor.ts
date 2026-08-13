@@ -49,7 +49,7 @@ function hash(x: number, y: number, salt: number) {
  * block movement — they are pure set dressing above the baked ground layer.
  */
 export function decorFor(zone: ZoneMap): DecorPlacement[] {
-  if (zone.kind !== "outdoor") return [];
+  if (zone.kind !== "outdoor") return interiorDecorFor(zone);
   const blocked = new Set<string>();
   const reserve = (x: number, y: number, r = 1) => {
     for (let dy = -r; dy <= r; dy++)
