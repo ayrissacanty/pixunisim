@@ -274,6 +274,34 @@ export function useCampusRooms() {
   });
 }
 
+export interface AlleyLine {
+  id: string;
+  room_id: string | null;
+  trigger_context: "lesson_start" | "lesson_resume" | "completion";
+  grade_band: string;
+  text: string;
+  sort_order: number;
+}
+
+/** Short scripted teacher beats for a classroom (Layer 3 framing, not tutoring). */
+export function useAlleyDialogue(roomId?: string) {
+  return useQuery({
+    enabled: !!roomId,
+    queryKey: ["alley-dialogue", roomId],
+    queryFn: async (): Promise<AlleyLine[]> => {
+      const { data, error } = await supabase
+        .from("alley_dialogue")
+        .select("*")
+        .eq("room_id", roomId!)
+        .order("sort_order", { ascending: true });
+      if (error) return [];
+      return (data ?? []) as AlleyLine[];
+    },
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function progressFor(list: Progress[] | undefined, lessonId: string) {
   return list?.find((p) => p.lesson_id === lessonId);
 }
+
