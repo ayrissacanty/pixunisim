@@ -112,7 +112,6 @@ export function CharacterStage({
             const box = new THREE.Box3().setFromObject(model);
             const size = new THREE.Vector3();
             box.getSize(size);
-            console.log('[stage]', actor.character, size.x.toFixed(2), size.y.toFixed(2), size.z.toFixed(2));
             const unit = size.y > 0 ? 1.7 / size.y : 1;
             model.scale.setScalar(unit * (actor.scale ?? 1));
 
@@ -128,6 +127,12 @@ export function CharacterStage({
         );
 
         if (disposed) return;
+        const dbg = new THREE.Box3().setFromObject(root);
+        (window as unknown as Record<string, unknown>)["__stage"] = {
+          children: root.children.length,
+          min: dbg.min.toArray(),
+          max: dbg.max.toArray(),
+        };
         setReady(true);
 
         // Simple floor so the cast is grounded rather than floating.
