@@ -275,7 +275,10 @@ export function CampusView({
     gameRef.current.scene.stop("campus");
     gameRef.current.scene.start("campus", { zoneId: zone, x, y });
     sceneRef.current = gameRef.current.scene.getScene("campus") as CampusScene;
-    const t = window.setTimeout(() => useCampusStore.getState().endTransition(), 260);
+    const t = window.setTimeout(
+      () => useCampusStore.getState().endTransition(),
+      motionDuration(260),
+    );
     return () => window.clearTimeout(t);
   }, [pendingTravel, consumeTravel]);
 
