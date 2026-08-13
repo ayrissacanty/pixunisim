@@ -127,6 +127,7 @@ async def main():
         await shot(page, "5_math_hall")
 
         # --- Step 5: zone memory is recorded for the way back --------------------
+        print("state after tour", st)
         assert "welcome-plaza" in st["zoneMemory"], st["zoneMemory"]
 
         # --- Step 6: teacher dialogue -> attend class ----------------------------
