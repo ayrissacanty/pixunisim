@@ -348,29 +348,53 @@ export class CampusScene extends Phaser.Scene {
 
   private makeCharacter(x: number, y: number, color: number, label: string) {
     const shadow = this.add.ellipse(0, 12, 20, 8, 0x000000, 0.18);
+    const legL = this.add.rectangle(-4, 10, 5, 8, 0x3b2c22);
+    const legR = this.add.rectangle(4, 10, 5, 8, 0x3b2c22);
+    const armL = this.add.rectangle(-9, 0, 4, 12, color).setStrokeStyle(1, 0x2b1e18, 0.4);
+    const armR = this.add.rectangle(9, 0, 4, 12, color).setStrokeStyle(1, 0x2b1e18, 0.4);
     const body = this.add.rectangle(0, 0, 16, 20, color).setStrokeStyle(1, 0x2b1e18, 0.5);
     const head = this.add.circle(0, -14, 7, 0xe8c9a0).setStrokeStyle(1, 0x2b1e18, 0.4);
     const hair = this.add.rectangle(0, -19, 14, 5, 0x4a3324);
+    const face = this.add.rectangle(0, -13, 8, 3, 0x2b1e18, 0.55);
     const name = this.add
       .text(0, -34, label, { fontFamily: "monospace", fontSize: "10px", color: "#f1e6d0" })
       .setOrigin(0.5)
       .setPadding(3, 1, 3, 1)
       .setBackgroundColor("#6d2f34aa");
-    const c = this.add.container(x, y, [shadow, body, head, hair, name]);
+    const c = this.add.container(x, y, [shadow, legL, legR, armL, armR, body, head, hair, face, name]);
     c.setDepth(10);
-    return c;
+    (c as CharacterContainer).parts = { shadow, legL, legR, armL, armR, body, head, hair, face };
+    return c as CharacterContainer;
+  }
+
+  /**
+   * Directional walk cycle: swinging legs and arms, a small body bob and a
+   * face marker that turns with the movement direction.
+   */
+  private animateCharacter(c: CharacterContainer, dir: Direction, phase: number, moving: boolean) {
+    const p = c.parts;
+    const swing = moving ? Math.sin(phase) : 0;
+    p.legL.y = 10 + swing * 2;
+    p.legR.y = 10 - swing * 2;
+    p.armL.y = swing * 2.5;
+    p.armR.y = -swing * 2.5;
+    p.body.y = moving ? Math.abs(Math.cos(phase)) * -1.2 : 0;
+    p.head.y = -14 + (moving ? Math.abs(Math.cos(phase)) * -1.2 : 0);
+    p.hair.y = p.head.y - 5;
+
+    const sideways = dir === "left" || dir === "right";
+    p.armL.setVisible(!sideways);
+    p.armR.setVisible(!sideways || dir === "right");
+    p.face.setVisible(dir !== "up");
+    p.face.x = dir === "left" ? -2 : dir === "right" ? 2 : 0;
+    p.face.y = p.head.y + 1;
+    p.hair.height = dir === "up" ? 9 : 5;
   }
 
   private canStand(px: number, py: number) {
-    const half = 7;
-    const pts = [
-      [px - half, py + 4],
-      [px + half, py + 4],
-      [px - half, py + 12],
-      [px + half, py + 12],
-    ] as const;
-    return pts.every(([x, y]) => !zoneIsSolidAt(this.zone, Math.floor(x / TILE), Math.floor(y / TILE)));
+    return canStandBox(this.zone, px, py);
   }
+
 
   private nearestInteraction() {
     const px = this.player.x / TILE;
