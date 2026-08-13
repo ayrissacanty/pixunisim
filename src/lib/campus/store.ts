@@ -140,8 +140,17 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   closeReading: () => set({ reading: undefined }),
   setMapOpen: (open) => set({ mapOpen: open }),
   openLesson: (lessonId, courseId, roomId) =>
-    set({ lessonOpen: { lessonId, courseId, ...(roomId ? { roomId } : {}) }, dialogue: undefined }),
-  closeLesson: () => set({ lessonOpen: undefined }),
+    set({
+      lessonOpen: { lessonId, courseId, ...(roomId ? { roomId } : {}) },
+      dialogue: undefined,
+      layer: 4,
+    }),
+  closeLesson: () =>
+    set((s) => ({
+      lessonOpen: undefined,
+      layer: s.classroom ? 3 : 2,
+      classroom: s.classroom ? { ...s.classroom, phase: "dismiss" } : undefined,
+    })),
   discover: (id) =>
     set((s) => (s.discovered.includes(id) ? s : { discovered: [...s.discovered, id] })),
   travel: (zone, x, y) => set({ pendingTravel: { zone, x, y } }),
