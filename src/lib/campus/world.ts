@@ -8,7 +8,15 @@ export type InteractAction =
   | { kind: "study" }
   | { kind: "achievements" }
   | { kind: "workspace" }
-  | { kind: "library" };
+  | { kind: "library" }
+  | {
+      kind: "classroom";
+      roomId: string;
+      roomName: string;
+      lessonId: string;
+      courseId: string;
+      teacher: string;
+    };
 
 export interface Interactable {
   id: string;
