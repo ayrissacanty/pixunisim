@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useCampusStore } from "@/lib/campus/store";
-import { useLesson } from "@/lib/data";
+import { useAlleyDialogue, useLesson, useProgress, progressFor } from "@/lib/data";
+
 import { Button } from "@/components/ui/button";
 
 /**
@@ -14,6 +15,8 @@ export function ClassroomBeat() {
   const leaveClassroom = useCampusStore((s) => s.leaveClassroom);
   const lessonOpen = useCampusStore((s) => s.lessonOpen);
   const { data: lesson } = useLesson(classroom?.lessonId);
+  const { data: progress } = useProgress();
+  const { data: lines } = useAlleyDialogue(classroom?.roomId);
 
   const phase = classroom?.phase;
   useEffect(() => {
@@ -33,11 +36,18 @@ export function ClassroomBeat() {
 
   if (!classroom || lessonOpen) return null;
 
+  const seen = progressFor(progress, classroom.lessonId);
+  const context =
+    phase === "dismiss" ? "completion" : seen ? "lesson_resume" : "lesson_start";
+  const scripted = lines?.find((l) => l.trigger_context === context)?.text;
+
   const greeting =
-    phase === "dismiss"
+    scripted ??
+    (phase === "dismiss"
       ? "Great work today. Head back out whenever you're ready."
       : (lesson?.alley_greeting ??
-        `Let's pick up where we left off${lesson ? ` with ${lesson.title}` : ""}.`);
+        `Let's pick up where we left off${lesson ? ` with ${lesson.title}` : ""}.`));
+
 
   return (
     <div
