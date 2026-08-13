@@ -2,6 +2,15 @@ import Phaser from "phaser";
 import { TILE, TILE_COLORS, type TileKind } from "@/lib/campus/tiles";
 import { getZone, zoneIsSolidAt, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
 import { useCampusStore } from "@/lib/campus/store";
+import {
+  OVERLAY_TILES,
+  SCALE,
+  SRC_TILE,
+  TILESET_KEY,
+  TILESET_URL,
+  TILE_FRAMES,
+  variantFor,
+} from "@/lib/campus/tileset";
 
 const SPEED = 150;
 
@@ -202,17 +211,66 @@ export class CampusScene extends Phaser.Scene {
     super("campus");
   }
 
+  preload() {
+    if (!this.textures.exists(TILESET_KEY)) this.load.image(TILESET_KEY, TILESET_URL);
+  }
+
+  /**
+   * Bakes the whole outdoor ground layer into one canvas texture by blitting
+   * 16px source tiles at x2. Returns the texture key, or null when unavailable.
+   */
+  private bakeGround(zone: ZoneMap): string | null {
+    if (!this.textures.exists(TILESET_KEY)) return null;
+    const key = `ground-${zone.id}`;
+    if (this.textures.exists(key)) return key;
+    const src = this.textures.get(TILESET_KEY).getSourceImage() as HTMLImageElement;
+    const tex = this.textures.createCanvas(key, zone.width * TILE, zone.height * TILE);
+    if (!tex) return null;
+    const ctx = tex.context;
+    ctx.imageSmoothingEnabled = false;
+    let painted = false;
+
+    const blit = (frame: { x: number; y: number }, px: number, py: number) => {
+      ctx.drawImage(src, frame.x, frame.y, SRC_TILE, SRC_TILE, px, py, SRC_TILE * SCALE, SRC_TILE * SCALE);
+    };
+
+    for (let y = 0; y < zone.height; y++) {
+      for (let x = 0; x < zone.width; x++) {
+        const kind = zone.tiles[y]![x]!;
+        const frames = TILE_FRAMES[kind];
+        if (!frames || !frames.length) continue;
+        if (OVERLAY_TILES.has(kind)) {
+          const bed = TILE_FRAMES.grass!;
+          blit(bed[variantFor(x, y, bed.length)]!, x * TILE, y * TILE);
+        }
+        blit(frames[variantFor(x, y, frames.length)]!, x * TILE, y * TILE);
+        painted = true;
+      }
+    }
+    tex.refresh();
+    if (!painted) {
+      this.textures.remove(key);
+      return null;
+    }
+    return key;
+  }
+
   create(data: { zoneId: string; x: number; y: number }) {
     this.zone = getZone(data.zoneId);
     this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#5d7047" : "#cbb894");
 
+    const groundKey = this.zone.kind === "outdoor" ? this.bakeGround(this.zone) : null;
+
     const g = this.add.graphics();
     for (let y = 0; y < this.zone.height; y++) {
       for (let x = 0; x < this.zone.width; x++) {
-        paintTile(g, this.zone.tiles[y]![x]!, x * TILE, y * TILE);
+        const kind = this.zone.tiles[y]![x]!;
+        if (groundKey && TILE_FRAMES[kind]?.length) continue;
+        paintTile(g, kind, x * TILE, y * TILE);
       }
     }
     g.setDepth(0);
+    if (groundKey) this.add.image(0, 0, groundKey).setOrigin(0, 0).setDepth(-1);
 
     // room labels
     this.zone.rooms.forEach((room) => {
