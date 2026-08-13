@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { characterOf, type CharacterId } from "@/lib/characters";
+import { characterOf, CHARACTER_IDS, type CharacterId } from "@/lib/characters";
 
 export interface StageActor {
   character: CharacterId;
@@ -21,10 +21,24 @@ interface Props {
   className?: string;
   /** Slow idle turntable on the whole cast — used by the avatar picker. */
   turntable?: boolean;
+  /** Fires once every actor is on stage. */
+  onReady?: () => void;
 }
 
 /** Cache loaded FBX groups + textures so revisiting a classroom is instant. */
 const modelCache = new Map<string, Promise<unknown>>();
+
+/**
+ * Warm the character cache ahead of time so the Layer 3 classroom beat does not
+ * stall on a cold FBX download when the student walks through the door.
+ */
+export async function prefetchCharacters(ids: CharacterId[] = CHARACTER_IDS) {
+  const { FBXLoader } = await import("three/examples/jsm/loaders/FBXLoader.js");
+  for (const id of ids) {
+    const url = characterOf(id).model;
+    if (!modelCache.has(url)) modelCache.set(url, new FBXLoader().loadAsync(url));
+  }
+}
 
 /**
  * Shared Three.js stage that renders the uploaded FBX characters. Used by the
@@ -36,8 +50,11 @@ export function CharacterStage({
   background = 0x2b2118,
   className,
   turntable = false,
+  onReady,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const key = actors.map((a) => `${a.character}:${a.x ?? 0}:${a.z ?? 0}`).join("|");
@@ -131,6 +148,7 @@ export function CharacterStage({
 
         if (disposed) return;
         setReady(true);
+        onReadyRef.current?.();
 
         // Simple floor so the cast is grounded rather than floating.
         const floor = new THREE.Mesh(
