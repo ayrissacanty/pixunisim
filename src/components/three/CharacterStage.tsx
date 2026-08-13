@@ -112,6 +112,7 @@ export function CharacterStage({
             const box = new THREE.Box3().setFromObject(model);
             const size = new THREE.Vector3();
             box.getSize(size);
+            console.log('[stage]', actor.character, size.x.toFixed(2), size.y.toFixed(2), size.z.toFixed(2));
             const unit = size.y > 0 ? 1.7 / size.y : 1;
             model.scale.setScalar(unit * (actor.scale ?? 1));
 
