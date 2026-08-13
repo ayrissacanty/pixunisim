@@ -50,6 +50,7 @@ export function CharacterStage({
       try {
         const THREE = await import("three");
         const { FBXLoader } = await import("three/examples/jsm/loaders/FBXLoader.js");
+        const { clone: cloneSkinned } = await import("three/examples/jsm/utils/SkeletonUtils.js");
         const host = hostRef.current;
         if (disposed || !host) return;
 
@@ -96,7 +97,7 @@ export function CharacterStage({
             if (disposed) return;
             map.colorSpace = THREE.SRGBColorSpace;
             map.flipY = false;
-            const model = fbx.clone(true);
+            const model = cloneSkinned(fbx) as import("three").Group;
 
             model.traverse((child) => {
               const mesh = child as import("three").Mesh;
