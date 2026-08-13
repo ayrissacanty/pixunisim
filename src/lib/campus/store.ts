@@ -101,6 +101,23 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   mapOpen: false,
   discovered: ["welcome-plaza"],
   mobileAction: 0,
+  layer: 1,
+  zoneMemory: {},
+
+  setLayer: (layer) => set({ layer }),
+  beginTransition: (t) => set({ transition: t }),
+  endTransition: () => set((s) => ({ transition: undefined, layer: s.transition?.toLayer ?? s.layer })),
+  rememberPosition: (zone, x, y) =>
+    set((s) => ({ zoneMemory: { ...s.zoneMemory, [zone]: { x, y } } })),
+  enterClassroom: (c) =>
+    set({ classroom: { ...c, phase: "arrive" }, dialogue: undefined, layer: 3 }),
+  dismissClass: () =>
+    set((s) => ({
+      lessonOpen: undefined,
+      layer: 3,
+      classroom: s.classroom ? { ...s.classroom, phase: "dismiss" } : undefined,
+    })),
+  leaveClassroom: () => set({ classroom: undefined, lessonOpen: undefined, layer: 2 }),
 
   setZone: (zone) =>
     set((s) => ({
