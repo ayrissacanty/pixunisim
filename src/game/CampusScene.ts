@@ -4,6 +4,7 @@ import { getZone, type Interactable, type NpcSpawn, type ZoneMap } from "@/lib/c
 import { canStandBox } from "@/lib/campus/walkable";
 import { npcPalette, type NpcPalette } from "@/lib/campus/npc-cast";
 import { useCampusStore } from "@/lib/campus/store";
+import { bobScale, cameraLerp, useMotionStore } from "@/lib/a11y/motion";
 import { DECOR_KEY, DECOR_URL, decorFor, frameRect } from "@/lib/campus/decor";
 import {
   OVERLAY_TILES,
@@ -228,6 +229,7 @@ export class CampusScene extends Phaser.Scene {
   private doorCooldown = 0;
   /** Doors re-arm only after the player has stepped clear of the trigger. */
   private doorArmed = false;
+  private motionUnsub?: (() => void) | undefined;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private npcs: NpcSprite[] = [];
@@ -380,9 +382,21 @@ export class CampusScene extends Phaser.Scene {
     cam.setBounds(0, 0, this.zone.width * TILE, this.zone.height * TILE);
     cam.setZoom(this.scale.width < 720 ? 1.5 : 1.8);
     cam.setRoundPixels(true);
-    cam.startFollow(this.player, true, 0.14, 0.14);
+    const lerp = cameraLerp();
+    cam.startFollow(this.player, true, lerp, lerp);
     cam.setDeadzone(48, 36);
-    cam.setLerp(0.14, 0.14);
+    cam.setLerp(lerp, lerp);
+    // Live-apply the accessibility motion setting without needing a reload.
+    this.motionUnsub?.();
+    this.motionUnsub = useMotionStore.subscribe((s) => {
+      const l = cameraLerp(s.setting);
+      this.cameras.main.setLerp(l, l);
+    });
+    this.events.once("shutdown", () => {
+      this.motionUnsub?.();
+      this.motionUnsub = undefined;
+    });
+
 
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
@@ -424,13 +438,16 @@ export class CampusScene extends Phaser.Scene {
    */
   private animateCharacter(c: CharacterContainer, dir: Direction, phase: number, moving: boolean) {
     const p = c.parts;
-    const swing = moving ? Math.sin(phase) : 0;
+    // Accessibility: reduced motion damps (or removes) the walk bob and swing.
+    const amp = bobScale();
+    const swing = moving ? Math.sin(phase) * amp : 0;
+    const bob = moving ? Math.abs(Math.cos(phase)) * -1.2 * amp : 0;
     p.legL.y = 10 + swing * 2;
     p.legR.y = 10 - swing * 2;
     p.armL.y = swing * 2.5;
     p.armR.y = -swing * 2.5;
-    p.body.y = moving ? Math.abs(Math.cos(phase)) * -1.2 : 0;
-    p.head.y = -14 + (moving ? Math.abs(Math.cos(phase)) * -1.2 : 0);
+    p.body.y = bob;
+    p.head.y = -14 + bob;
     p.hair.y = p.head.y - 5;
 
     const sideways = dir === "left" || dir === "right";
