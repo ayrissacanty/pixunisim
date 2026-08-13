@@ -56,27 +56,17 @@ export function ClassroomBeat() {
       data-room={classroom.roomId}
       className="absolute inset-0 z-40 flex flex-col justify-end bg-[#2b2118]"
     >
-      {/* Room backdrop: board, teacher, seated students, desks. */}
+      {/* Room backdrop: board, then the 3D cast standing in the room. */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-2/5 bg-[#7c6a52]" />
-        <div className="absolute inset-x-0 bottom-0 h-3/5 bg-[#8a6a45]" />
         <div className="absolute left-1/2 top-8 h-24 w-64 -translate-x-1/2 rounded-sm border-4 border-[#5a4630] bg-[#31462f] shadow-inner" />
-        <div
-          data-testid="beat-teacher"
-          className="absolute left-1/2 top-36 -translate-x-1/2 text-center"
-        >
-          <div className="mx-auto size-10 rounded-sm bg-[#e3c39b]" />
-          <div className="mx-auto h-12 w-8 bg-[#8c2f39]" />
-          <p className="mt-1 font-display text-xs text-sidebar-foreground">{classroom.teacher}</p>
-        </div>
-        <div className="absolute inset-x-0 bottom-40 flex justify-center gap-6">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="text-center">
-              <div className="mx-auto size-6 rounded-sm bg-[#d9b48a]" />
-              <div className="mx-auto h-7 w-6 bg-[#4d6b8a]" />
-              <div className="mx-auto mt-1 h-3 w-12 bg-[#6b4a2f]" />
-            </div>
-          ))}
+        <div data-testid="beat-teacher" className="absolute inset-x-0 bottom-0 top-1/4">
+          <CharacterStage
+            actors={cast}
+            height={420}
+            background={0x8a6a45}
+            className="h-full w-full overflow-hidden"
+          />
         </div>
       </div>
 
