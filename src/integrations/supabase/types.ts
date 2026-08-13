@@ -14,11 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      alley_dialogue: {
+        Row: {
+          created_at: string
+          grade_band: string
+          id: string
+          room_id: string | null
+          sort_order: number
+          text: string
+          trigger_context: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          grade_band?: string
+          id?: string
+          room_id?: string | null
+          sort_order?: number
+          text: string
+          trigger_context: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          grade_band?: string
+          id?: string
+          room_id?: string | null
+          sort_order?: number
+          text?: string
+          trigger_context?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alley_dialogue_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "campus_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campus_buildings: {
         Row: {
           departments: Json
           description: string
+          entrance_position: Json | null
           id: string
+          interior_map_asset_url: string | null
           map_x: number
           map_y: number
           name: string
@@ -27,7 +70,9 @@ export type Database = {
         Insert: {
           departments?: Json
           description: string
+          entrance_position?: Json | null
           id: string
+          interior_map_asset_url?: string | null
           map_x?: number
           map_y?: number
           name: string
@@ -36,7 +81,9 @@ export type Database = {
         Update: {
           departments?: Json
           description?: string
+          entrance_position?: Json | null
           id?: string
+          interior_map_asset_url?: string | null
           map_x?: number
           map_y?: number
           name?: string
@@ -110,6 +157,8 @@ export type Database = {
         Row: {
           building_id: string
           course_id: string | null
+          door_position: Json | null
+          faculty_character: string
           id: string
           kind: string
           lesson_id: string | null
@@ -119,6 +168,8 @@ export type Database = {
         Insert: {
           building_id: string
           course_id?: string | null
+          door_position?: Json | null
+          faculty_character?: string
           id: string
           kind?: string
           lesson_id?: string | null
@@ -128,6 +179,8 @@ export type Database = {
         Update: {
           building_id?: string
           course_id?: string | null
+          door_position?: Json | null
+          faculty_character?: string
           id?: string
           kind?: string
           lesson_id?: string | null
@@ -161,21 +214,30 @@ export type Database = {
       campus_zones: {
         Row: {
           description: string
+          grade_band: string
           id: string
+          map_asset_url: string | null
           name: string
           sort_order: number
+          subject: string | null
         }
         Insert: {
           description: string
+          grade_band?: string
           id: string
+          map_asset_url?: string | null
           name: string
           sort_order?: number
+          subject?: string | null
         }
         Update: {
           description?: string
+          grade_band?: string
           id?: string
+          map_asset_url?: string | null
           name?: string
           sort_order?: number
+          subject?: string | null
         }
         Relationships: []
       }
@@ -207,30 +269,45 @@ export type Database = {
         Row: {
           alley_greeting: string | null
           course_id: string
+          curriculum_source: string
+          grade: number | null
           id: string
+          render_config: Json | null
           render_mode: string
           sections: Json
           sort_order: number
+          standard_code: string | null
+          subject: string | null
           summary: string
           title: string
         }
         Insert: {
           alley_greeting?: string | null
           course_id: string
+          curriculum_source?: string
+          grade?: number | null
           id: string
+          render_config?: Json | null
           render_mode?: string
           sections?: Json
           sort_order?: number
+          standard_code?: string | null
+          subject?: string | null
           summary: string
           title: string
         }
         Update: {
           alley_greeting?: string | null
           course_id?: string
+          curriculum_source?: string
+          grade?: number | null
           id?: string
+          render_config?: Json | null
           render_mode?: string
           sections?: Json
           sort_order?: number
+          standard_code?: string | null
+          subject?: string | null
           summary?: string
           title?: string
         }
@@ -326,8 +403,10 @@ export type Database = {
       }
       student_progress: {
         Row: {
+          completed_at: string | null
           course_id: string
           id: string
+          last_position: Json | null
           lesson_id: string
           score: number | null
           sections_read: number
@@ -336,8 +415,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          completed_at?: string | null
           course_id: string
           id?: string
+          last_position?: Json | null
           lesson_id: string
           score?: number | null
           sections_read?: number
@@ -346,8 +427,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          completed_at?: string | null
           course_id?: string
           id?: string
+          last_position?: Json | null
           lesson_id?: string
           score?: number | null
           sections_read?: number
