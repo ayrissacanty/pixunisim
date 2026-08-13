@@ -1,7 +1,7 @@
 import envAtlas from "@/assets/env_props.png.asset.json";
 import atlasIndex from "./env-atlas.json";
 import type { ZoneMap } from "./world";
-import { TILE } from "./tiles";
+import { TILE, type TileKind } from "./tiles";
 
 /** CDN url for the packed 100px environment prop atlas. */
 export const DECOR_URL = envAtlas.url;
@@ -23,6 +23,37 @@ const STRUCTURE = ["06", "13", "14", "19", "41", "43", "45", "51", "52", "54", "
 /** Props that read as furnishings once they are indoors. */
 const INDOOR = ["21", "22", "29", "30", "35", "39", "40"];
 const INDOOR_WALL = ["23", "31", "33", "34"];
+
+/**
+ * Educational interiors (academic halls, the library) are furnished from the
+ * uploaded prop pack rather than flat coloured tiles: every furniture tile is
+ * dressed with a matching sprite, and free floor picks up lecterns, bookcases
+ * and study clutter. `solid` mirrors the physical footprint so the walkability
+ * mask blocks exactly what is drawn.
+ */
+const FURNISH: Partial<Record<TileKind, { frames: string[]; scale: number; solid: boolean }>> = {
+  desk: { frames: ["21", "22", "30"], scale: 0.52, solid: true },
+  table: { frames: ["22", "35", "39"], scale: 0.56, solid: true },
+  counter: { frames: ["30", "39", "40"], scale: 0.56, solid: true },
+  computer: { frames: ["35", "36", "38"], scale: 0.46, solid: true },
+  shelf: { frames: ["31", "33", "34"], scale: 0.62, solid: true },
+  board: { frames: ["23", "31"], scale: 0.6, solid: true },
+  bed: { frames: ["29", "30"], scale: 0.58, solid: true },
+  plant: { frames: ["03", "09", "24"], scale: 0.5, solid: true },
+  // Chairs stay walkable so students can slide into a seat.
+  chair: { frames: ["25", "26", "37"], scale: 0.38, solid: false },
+  rug: { frames: ["44", "48"], scale: 0.7, solid: false },
+};
+
+/** Free-standing pieces dropped into the clear floor of a classroom. */
+const CLASSROOM_EXTRA = ["21", "29", "35", "39", "40"];
+
+export function isEducationalInterior(zone: ZoneMap): boolean {
+  return (
+    zone.kind === "interior" &&
+    (zone.id.endsWith("-hall") || zone.id === "arts-center" || zone.id === "university-library")
+  );
+}
 
 export interface DecorPlacement {
   frame: string;
@@ -133,6 +164,50 @@ function interiorDecorFor(zone: ZoneMap): DecorPlacement[] {
 
   const out: DecorPlacement[] = [];
   const seed = zone.id.length * 17 + zone.height;
+
+  // Pass 1 — dress every furniture tile of an educational interior with the
+  // matching prop sprite, so classrooms and the library read as furnished.
+  if (isEducationalInterior(zone)) {
+    for (let y = 0; y < zone.height; y++) {
+      for (let x = 0; x < zone.width; x++) {
+        const kind = zone.tiles[y]?.[x];
+        if (!kind) continue;
+        const spec = FURNISH[kind];
+        if (!spec) continue;
+        const frame = spec.frames[Math.floor(hash(x, y, seed + 3) * spec.frames.length) % spec.frames.length]!;
+        out.push({
+          frame,
+          px: x * TILE + TILE / 2,
+          py: (y + 1) * TILE,
+          scale: spec.scale,
+          solid: spec.solid,
+        });
+        reserve(x, y, 1);
+      }
+    }
+
+    // Pass 2 — a few free-standing pieces (lecterns, bookcases, study carts)
+    // in the clear floor of each room, always leaving the doorway lane open.
+    zone.rooms.forEach((room, ri) => {
+      for (let i = 0; i < 2; i++) {
+        const rx = room.x + 1 + Math.floor(hash(room.x + i, room.y, seed + 21 + ri) * Math.max(1, room.w - 2));
+        const ry = room.y + 1 + Math.floor(hash(room.x, room.y + i, seed + 29 + ri) * Math.max(1, room.h - 2));
+        const kind = zone.tiles[ry]?.[rx];
+        if (kind !== "floor" && kind !== "floorAlt") continue;
+        if (blocked.has(`${rx},${ry}`)) continue;
+        const frame =
+          CLASSROOM_EXTRA[Math.floor(hash(rx, ry, seed + 41) * CLASSROOM_EXTRA.length) % CLASSROOM_EXTRA.length]!;
+        out.push({
+          frame,
+          px: rx * TILE + TILE / 2,
+          py: (ry + 1) * TILE,
+          scale: 0.5,
+          solid: true,
+        });
+        reserve(rx, ry, 1);
+      }
+    });
+  }
 
   for (let y = 1; y < zone.height - 1; y++) {
     for (let x = 1; x < zone.width - 1; x++) {
