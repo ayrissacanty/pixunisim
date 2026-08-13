@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type Phaser from "phaser";
 import { useCampusStore } from "@/lib/campus/store";
+import { motionDuration } from "@/lib/a11y/motion";
 import { getZone, ZONE_LABELS, type InteractAction, type NpcSpawn } from "@/lib/campus/world";
 import { WALKTHROUGHS, buildWalkthrough } from "@/lib/campus/walkthrough";
 import { isWalkableTile } from "@/lib/campus/walkable";
@@ -98,7 +99,7 @@ export function CampusView({
             : `Stepping outside — ${ZONE_LABELS[zoneId] ?? target.name}`,
           toLayer: indoors ? 2 : 1,
         });
-        window.setTimeout(() => store.travel(zoneId, spawnX, spawnY), 340);
+        window.setTimeout(() => store.travel(zoneId, spawnX, spawnY), motionDuration(340));
       };
 
       /** Layer 2 -> Layer 3: the classroom beat. */
@@ -113,7 +114,7 @@ export function CampusView({
         window.setTimeout(() => {
           store.endTransition();
           store.enterClassroom(c);
-        }, 420);
+        }, motionDuration(420));
       };
 
       const runAction = (action: InteractAction, label: string) => {
