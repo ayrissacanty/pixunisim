@@ -213,17 +213,78 @@ export class CampusScene extends Phaser.Scene {
     super("campus");
   }
 
+  preload() {
+    if (!this.textures.exists(TILESET_KEY)) this.load.image(TILESET_KEY, TILESET_URL);
+  }
+
+  /** Upscales the 16px source sheet x2 once, then registers the picked tiles as frames. */
+  private prepareTileset(): boolean {
+    if (!this.textures.exists(TILESET_KEY)) return false;
+    if (this.textures.exists(TILESET_SCALED_KEY)) return true;
+    const src = this.textures.get(TILESET_KEY).getSourceImage() as HTMLImageElement;
+    const canvasTex = this.textures.createCanvas(
+      TILESET_SCALED_KEY,
+      src.width * SCALE,
+      src.height * SCALE,
+    );
+    if (!canvasTex) return false;
+    const ctx = canvasTex.context;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(src, 0, 0, src.width * SCALE, src.height * SCALE);
+    canvasTex.refresh();
+    Object.entries(TILE_FRAMES).forEach(([kind, frames]) => {
+      (frames ?? []).forEach((f, i) => {
+        canvasTex.add(
+          frameName(kind as TileKind, i),
+          0,
+          f.x * SCALE,
+          f.y * SCALE,
+          SRC_TILE * SCALE,
+          SRC_TILE * SCALE,
+        );
+      });
+    });
+    return true;
+  }
+
   create(data: { zoneId: string; x: number; y: number }) {
     this.zone = getZone(data.zoneId);
     this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#5d7047" : "#cbb894");
 
+    const useSprites = this.zone.kind === "outdoor" && this.prepareTileset();
+
     const g = this.add.graphics();
+    const rt = useSprites
+      ? this.add.renderTexture(0, 0, this.zone.width * TILE, this.zone.height * TILE).setOrigin(0, 0)
+      : null;
+
     for (let y = 0; y < this.zone.height; y++) {
       for (let x = 0; x < this.zone.width; x++) {
-        paintTile(g, this.zone.tiles[y]![x]!, x * TILE, y * TILE);
+        const kind = this.zone.tiles[y]![x]!;
+        const frames = useSprites ? TILE_FRAMES[kind] : undefined;
+        if (rt && frames && frames.length) {
+          if (OVERLAY_TILES.has(kind)) {
+            const bed = TILE_FRAMES.grass!;
+            rt.drawFrame(
+              TILESET_SCALED_KEY,
+              frameName("grass", variantFor(x, y, bed.length)),
+              x * TILE,
+              y * TILE,
+            );
+          }
+          rt.drawFrame(
+            TILESET_SCALED_KEY,
+            frameName(kind, variantFor(x, y, frames.length)),
+            x * TILE,
+            y * TILE,
+          );
+        } else {
+          paintTile(g, kind, x * TILE, y * TILE);
+        }
       }
     }
     g.setDepth(0);
+    rt?.setDepth(0);
 
     // room labels
     this.zone.rooms.forEach((room) => {
