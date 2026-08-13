@@ -780,6 +780,20 @@ function academicHall(opts: {
     },
   });
 
+  // Every hall keeps a student aide by the entrance who can point at the rooms.
+  npcs.push({
+    id: `${opts.id}-aide`,
+    x: exitX + 2,
+    y: height - 3,
+    name: HALL_AIDES[opts.id]?.name ?? "Hall Aide",
+    role: "Student Aide",
+    behavior: "walk",
+    lines: HALL_AIDES[opts.id]?.lines ?? [
+      "Rooms are signposted along the corridor — read a sign to see who teaches there.",
+      "Speak to an instructor inside a room to attend that class.",
+    ],
+  });
+
   if (opts.extraNpc) npcs.push(opts.extraNpc);
 
   return {
@@ -852,6 +866,32 @@ function libraryZone(): ZoneMap {
         ],
         route: "/workspace",
         routeLabel: "BROWSE RESOURCES",
+      },
+      {
+        id: "library-aide-samir",
+        x: 12,
+        y: 10,
+        name: "Samir Haddad",
+        role: "Library Aide",
+        behavior: "walk",
+        lines: [
+          "Reading Room tables are free — most students work through knowledge checks here.",
+          "If a lesson is giving you trouble, reopen it in the Workspace; your progress carries over either way.",
+        ],
+        route: "/workspace",
+        routeLabel: "OPEN WORKSPACE",
+      },
+      {
+        id: "archivist-elke",
+        x: 24,
+        y: 16,
+        name: "Elke Brandt",
+        role: "Archivist",
+        behavior: "read",
+        lines: [
+          "The archives hold the course records — same identifiers you see on your transcript.",
+          "Nothing in here is a copy. One catalogue, two rooms.",
+        ],
       },
     ],
     interactables: [
@@ -956,6 +996,32 @@ function studentCenterZone(): ZoneMap {
         behavior: "idle",
         lines: ["The club board is by the door. Chess, robotics, choir, and a family study circle."],
       },
+      {
+        id: "barista-noor",
+        x: 20,
+        y: 3,
+        name: "Noor Haleem",
+        role: "Cafe Steward",
+        behavior: "idle",
+        lines: [
+          "Coffee, tea, and a quiet corner — the cafeteria stays open between classes.",
+          "Kofi and the study group usually claim the long table after Algebra.",
+        ],
+      },
+      {
+        id: "peer-mentor-drew",
+        x: 12,
+        y: 12,
+        name: "Drew Alvarez",
+        role: "Peer Mentor",
+        behavior: "sit",
+        lines: [
+          "I mentor first-term students. Stuck on a unit? Bring it here and we will work it through.",
+          "Your next objective always shows in the campus HUD — follow it and you will not drift.",
+        ],
+        route: "/workspace",
+        routeLabel: "REVIEW MY COURSES",
+      },
     ],
     interactables: [
       {
@@ -1031,6 +1097,32 @@ function careerCenterZone(): ZoneMap {
         ],
         route: "/campus/career",
         routeLabel: "EXPLORE CAREERS",
+      },
+      {
+        id: "career-coach-ines",
+        x: 6,
+        y: 9,
+        name: "Ines Duarte",
+        role: "Career Coach",
+        behavior: "walk",
+        lines: [
+          "We build a plan from what you have already completed, not from a guess.",
+          "Finish a unit and the pathway boards update with the roles it opens.",
+        ],
+        route: "/workspace/plan",
+        routeLabel: "SEE MY PLAN",
+      },
+      {
+        id: "employer-rep-hal",
+        x: 19,
+        y: 9,
+        name: "Hal Whitmore",
+        role: "Employer Liaison",
+        behavior: "idle",
+        lines: [
+          "Local employers post apprenticeships on the boards behind me every term.",
+          "Trades, healthcare, and technology take the most students from UNIFY.",
+        ],
       },
     ],
     interactables: [
@@ -1125,6 +1217,18 @@ function administrationZone(): ZoneMap {
         role: "Family Services",
         behavior: "idle",
         lines: ["Families learn together here. Ask me about adding a learner to your household."],
+      },
+      {
+        id: "front-desk-marta",
+        x: 13,
+        y: 12,
+        name: "Marta Kelleher",
+        role: "Front Desk",
+        behavior: "idle",
+        lines: [
+          "Four offices along the front: Admissions, Registrar, Advising, and Family Services.",
+          "Knock on any door — everyone here is expecting students.",
+        ],
       },
     ],
     interactables: [
