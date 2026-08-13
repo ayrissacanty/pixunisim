@@ -157,6 +157,15 @@ export function LessonPlayer({
           </p>
         </div>
 
+        {lesson.render_mode === "3d" && (
+          <div className="mb-4">
+            <Lesson3DStage
+              shape={lesson.course_id === "intro-life-science" ? "cell" : "polyhedron"}
+              label={`3D manipulative — ${lesson.title}`}
+            />
+          </div>
+        )}
+
         {!onQuiz && section && (
           <article className="rounded-md border border-border bg-card p-5">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-accent">
