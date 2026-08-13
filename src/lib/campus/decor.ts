@@ -15,10 +15,14 @@ const FRAMES = atlasIndex as unknown as Record<string, Rect>;
  * structures that read as campus grounds. The fantasy/creature pieces are
  * deliberately left out so the academic palette still leads.
  */
-const GARDEN = ["03", "04", "09", "16", "21", "24", "29", "32", "40", "48"];
-const WATER_SIDE = ["11", "17", "27", "57", "59"];
-const GROVE = ["07", "08", "37", "49", "56", "58"];
-const STRUCTURE = ["13", "14", "52", "54", "60"];
+const GARDEN = ["03", "04", "09", "15", "16", "21", "23", "24", "29", "32", "40", "42", "44", "48"];
+const WATER_SIDE = ["11", "17", "27", "28", "57", "59"];
+const GROVE = ["07", "08", "37", "47", "49", "56", "58"];
+const STRUCTURE = ["06", "13", "14", "19", "41", "43", "45", "51", "52", "54", "60"];
+
+/** Props that read as furnishings once they are indoors. */
+const INDOOR = ["21", "22", "29", "30", "35", "39", "40"];
+const INDOOR_WALL = ["23", "31", "33", "34"];
 
 export interface DecorPlacement {
   frame: string;
