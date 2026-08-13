@@ -438,13 +438,16 @@ export class CampusScene extends Phaser.Scene {
    */
   private animateCharacter(c: CharacterContainer, dir: Direction, phase: number, moving: boolean) {
     const p = c.parts;
-    const swing = moving ? Math.sin(phase) : 0;
+    // Accessibility: reduced motion damps (or removes) the walk bob and swing.
+    const amp = bobScale();
+    const swing = moving ? Math.sin(phase) * amp : 0;
+    const bob = moving ? Math.abs(Math.cos(phase)) * -1.2 * amp : 0;
     p.legL.y = 10 + swing * 2;
     p.legR.y = 10 - swing * 2;
     p.armL.y = swing * 2.5;
     p.armR.y = -swing * 2.5;
-    p.body.y = moving ? Math.abs(Math.cos(phase)) * -1.2 : 0;
-    p.head.y = -14 + (moving ? Math.abs(Math.cos(phase)) * -1.2 : 0);
+    p.body.y = bob;
+    p.head.y = -14 + bob;
     p.hair.y = p.head.y - 5;
 
     const sideways = dir === "left" || dir === "right";
