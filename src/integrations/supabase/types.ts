@@ -205,24 +205,30 @@ export type Database = {
       }
       lessons: {
         Row: {
+          alley_greeting: string | null
           course_id: string
           id: string
+          render_mode: string
           sections: Json
           sort_order: number
           summary: string
           title: string
         }
         Insert: {
+          alley_greeting?: string | null
           course_id: string
           id: string
+          render_mode?: string
           sections?: Json
           sort_order?: number
           summary: string
           title: string
         }
         Update: {
+          alley_greeting?: string | null
           course_id?: string
           id?: string
+          render_mode?: string
           sections?: Json
           sort_order?: number
           summary?: string

@@ -63,8 +63,9 @@ async def main():
 
         await sign_in(page)
 
-        # 1. Scripted route: Welcome Plaza -> Mathematics Hall -> Algebra 204
-        await page.goto(f"{BASE}/campus?tour=algebra-204", wait_until="domcontentloaded")
+        # 1. Load the campus, then drive the scripted route step by step so each
+        #    banner step can be asserted instead of racing an auto-playing tour.
+        await page.goto(f"{BASE}/campus", wait_until="domcontentloaded")
         await page.wait_for_function("() => !!window.__unifyCampus", timeout=30000)
 
         # 2. The classroom must carry the shared course_id / lesson_id
@@ -80,7 +81,31 @@ async def main():
             "math-tech-hall",
         ], walk
 
+        # 2b. Every banner step is asserted in the DOM and screenshotted, so a
+        #     flaky/skipped step fails loudly instead of silently drifting.
+        await page.evaluate("() => { window.__unifyCampus.tour('algebra-204'); }")
+        for i, step in enumerate(walk["steps"]):
+            snap = await page.wait_for_function(
+                """(i) => { const el = document.querySelector('[data-testid="tour-step"]');
+                     if (!el || el.getAttribute('data-step-index') !== String(i)) return null;
+                     return { label: el.getAttribute('data-step-label'),
+                              total: el.getAttribute('data-step-total'),
+                              text: el.innerText,
+                              visible: el.getClientRects().length > 0,
+                              zone: window.__unifyCampus.state().zone }; }""",
+                arg=i,
+                timeout=30000,
+            )
+            snap = await snap.json_value()
+            assert snap["visible"], (i, snap)
+            assert snap["label"] == step["label"], (i, snap, step)
+            assert snap["total"] == str(len(walk["steps"])), (i, snap)
+            assert step["label"] in snap["text"], (i, snap)
+            assert snap["zone"] in (step["zone"], walk["steps"][max(i - 1, 0)]["zone"]), (i, snap)
+            await page.screenshot(path=f"{SHOTS}/00-step-{i}-{step['zone']}.png")
+
         # 3. Talk to teacher (the tour ends by greeting Professor Maya Ellison)
+        await expect(page.locator('[data-testid="tour-step"]')).to_have_count(0, timeout=30000)
         dialogue = page.get_by_text(walk["teacher"], exact=False)
         await expect(dialogue.first).to_be_visible(timeout=30000)
         await page.screenshot(path=f"{SHOTS}/01-teacher.png")
@@ -90,9 +115,19 @@ async def main():
             await cont.first.click()
             await page.wait_for_timeout(150)
 
-        # 4. Attend class
+        # 4. Attend class — Layer 3 classroom beat, then Layer 4 lesson mode
         await page.get_by_role("button", name=re.compile("attend the lesson", re.I)).click()
+        beat = page.locator('[data-testid="classroom-beat"]')
+        await beat.wait_for(timeout=15000)
+        assert await beat.get_attribute("data-phase") == "arrive"
+        assert await beat.get_attribute("data-room") == "algebra-204"
+        await expect(page.locator('[data-testid="beat-teacher"]')).to_be_visible()
+        await page.screenshot(path=f"{SHOTS}/01b-classroom-beat.png")
+
         await expect(page.get_by_text("In class")).to_be_visible(timeout=15000)
+        await expect(page.locator('[data-testid="campus-root"][data-layer="4"]')).to_have_count(
+            1, timeout=10000
+        )
         state = await page.evaluate("() => window.__unifyCampus.state()")
         assert state["lessonOpen"]["lessonId"] == "algebra-lesson-2", state
         assert state["lessonOpen"]["courseId"] == "foundations-algebra", state
@@ -133,6 +168,17 @@ async def main():
             ).click()
         assert (await saved.value).status in (200, 201), await (await saved.value).text()
         await expect(page.get_by_text("In class")).to_be_hidden(timeout=15000)
+
+        # Layer 4 -> Layer 3 dismissal beat -> back out to Layer 2 (never Layer 1)
+        dismissed = page.locator('[data-testid="classroom-beat"][data-phase="dismiss"]')
+        try:
+            await dismissed.wait_for(timeout=4000)
+            await page.screenshot(path=f"{SHOTS}/03b-dismissed.png")
+        except Exception:
+            pass
+        await expect(page.locator('[data-testid="campus-root"][data-layer="2"]')).to_have_count(
+            1, timeout=15000
+        )
 
         # The save is in flight when the overlay closes — wait for the campus
         # objective to advance before navigating away.

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress as ProgressBar } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { AiTeacher } from "@/components/lesson/AiTeacher";
+import { Lesson3DStage } from "@/components/lesson/Lesson3DStage";
 import {
   useLesson,
   useQuestions,
@@ -156,6 +157,15 @@ export function LessonPlayer({
             Step {step + 1} of {totalSteps}
           </p>
         </div>
+
+        {lesson.render_mode === "3d" && (
+          <div className="mb-4">
+            <Lesson3DStage
+              shape={lesson.course_id === "intro-life-science" ? "cell" : "polyhedron"}
+              label={`3D manipulative — ${lesson.title}`}
+            />
+          </div>
+        )}
 
         {!onQuiz && section && (
           <article className="rounded-md border border-border bg-card p-5">

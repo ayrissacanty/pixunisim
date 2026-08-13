@@ -8,7 +8,15 @@ export type InteractAction =
   | { kind: "study" }
   | { kind: "achievements" }
   | { kind: "workspace" }
-  | { kind: "library" };
+  | { kind: "library" }
+  | {
+      kind: "classroom";
+      roomId: string;
+      roomName: string;
+      lessonId: string;
+      courseId: string;
+      teacher: string;
+    };
 
 export interface Interactable {
   id: string;
@@ -716,6 +724,23 @@ function academicHall(opts: {
         ...(spec.lessonId ? { lessonId: spec.lessonId } : {}),
         ...(spec.courseId ? { courseId: spec.courseId } : {}),
 
+      });
+    }
+    if (spec.teacher && spec.lessonId && spec.courseId) {
+      interactables.push({
+        id: `${spec.id}-door`,
+        x: doorX,
+        y: y + h,
+        verb: "ENTER",
+        label: spec.name,
+        action: {
+          kind: "classroom",
+          roomId: spec.id,
+          roomName: spec.name,
+          lessonId: spec.lessonId,
+          courseId: spec.courseId,
+          teacher: spec.teacher.name,
+        },
       });
     }
     interactables.push({

@@ -25,7 +25,31 @@ export interface PromptState {
   id: string;
 }
 
+/** Layer 1 campus · Layer 2 building interior · Layer 3 classroom beat · Layer 4 lesson. */
+export type CampusLayer = 1 | 2 | 3 | 4;
+
+export interface TransitionState {
+  kind: "door" | "fade" | "wipe";
+  label: string;
+  toLayer: CampusLayer;
+}
+
+export interface ClassroomState {
+  roomId: string;
+  roomName: string;
+  lessonId: string;
+  courseId: string;
+  teacher: string;
+  /** "arrive" plays the greeting, "dismiss" plays the goodbye beat. */
+  phase: "arrive" | "dismiss";
+}
+
 interface CampusState {
+  layer: CampusLayer;
+  transition?: TransitionState | undefined;
+  classroom?: ClassroomState | undefined;
+  /** Last standing position per zone so backing out never loses your place. */
+  zoneMemory: Record<string, { x: number; y: number }>;
   currentZone: string;
   currentBuilding?: string | undefined;
   currentRoom?: string | undefined;
@@ -60,6 +84,14 @@ interface CampusState {
   consumeTravel: () => void;
   setObjective: (text?: string | undefined, zone?: string | undefined) => void;
   triggerMobileAction: () => void;
+
+  setLayer: (layer: CampusLayer) => void;
+  beginTransition: (t: TransitionState) => void;
+  endTransition: () => void;
+  rememberPosition: (zone: string, x: number, y: number) => void;
+  enterClassroom: (c: Omit<ClassroomState, "phase">) => void;
+  dismissClass: () => void;
+  leaveClassroom: () => void;
 }
 
 export const useCampusStore = create<CampusState>((set, get) => ({
@@ -69,6 +101,23 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   mapOpen: false,
   discovered: ["welcome-plaza"],
   mobileAction: 0,
+  layer: 1,
+  zoneMemory: {},
+
+  setLayer: (layer) => set({ layer }),
+  beginTransition: (t) => set({ transition: t }),
+  endTransition: () => set((s) => ({ transition: undefined, layer: s.transition?.toLayer ?? s.layer })),
+  rememberPosition: (zone, x, y) =>
+    set((s) => ({ zoneMemory: { ...s.zoneMemory, [zone]: { x, y } } })),
+  enterClassroom: (c) =>
+    set({ classroom: { ...c, phase: "arrive" }, dialogue: undefined, layer: 3 }),
+  dismissClass: () =>
+    set((s) => ({
+      lessonOpen: undefined,
+      layer: 3,
+      classroom: s.classroom ? { ...s.classroom, phase: "dismiss" } : undefined,
+    })),
+  leaveClassroom: () => set({ classroom: undefined, lessonOpen: undefined, layer: 2 }),
 
   setZone: (zone) =>
     set((s) => ({
@@ -91,8 +140,17 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   closeReading: () => set({ reading: undefined }),
   setMapOpen: (open) => set({ mapOpen: open }),
   openLesson: (lessonId, courseId, roomId) =>
-    set({ lessonOpen: { lessonId, courseId, ...(roomId ? { roomId } : {}) }, dialogue: undefined }),
-  closeLesson: () => set({ lessonOpen: undefined }),
+    set({
+      lessonOpen: { lessonId, courseId, ...(roomId ? { roomId } : {}) },
+      dialogue: undefined,
+      layer: 4,
+    }),
+  closeLesson: () =>
+    set((s) => ({
+      lessonOpen: undefined,
+      layer: s.classroom ? 3 : 2,
+      classroom: s.classroom ? { ...s.classroom, phase: "dismiss" } : undefined,
+    })),
   discover: (id) =>
     set((s) => (s.discovered.includes(id) ? s : { discovered: [...s.discovered, id] })),
   travel: (zone, x, y) => set({ pendingTravel: { zone, x, y } }),

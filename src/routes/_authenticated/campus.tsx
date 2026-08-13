@@ -2,9 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CampusView } from "@/components/campus/CampusView";
 
 export const Route = createFileRoute("/_authenticated/campus")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    tour: typeof search["tour"] === "string" ? (search["tour"] as string) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { tour?: string } =>
+    typeof search["tour"] === "string" ? { tour: search["tour"] as string } : {},
   head: () => ({
     meta: [
       { title: "Campus World — Unify University" },
