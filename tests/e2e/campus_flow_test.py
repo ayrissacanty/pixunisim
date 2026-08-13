@@ -160,6 +160,17 @@ async def main():
         assert (await saved.value).status in (200, 201), await (await saved.value).text()
         await expect(page.get_by_text("In class")).to_be_hidden(timeout=15000)
 
+        # Layer 4 -> Layer 3 dismissal beat -> back out to Layer 2 (never Layer 1)
+        dismissed = page.locator('[data-testid="classroom-beat"][data-phase="dismiss"]')
+        try:
+            await dismissed.wait_for(timeout=4000)
+            await page.screenshot(path=f"{SHOTS}/03b-dismissed.png")
+        except Exception:
+            pass
+        await expect(page.locator('[data-testid="campus-root"][data-layer="2"]')).to_have_count(
+            1, timeout=15000
+        )
+
         # The save is in flight when the overlay closes — wait for the campus
         # objective to advance before navigating away.
         await page.wait_for_function(
