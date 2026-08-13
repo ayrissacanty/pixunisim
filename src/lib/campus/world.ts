@@ -726,6 +726,23 @@ function academicHall(opts: {
 
       });
     }
+    if (spec.teacher && spec.lessonId && spec.courseId) {
+      interactables.push({
+        id: `${spec.id}-door`,
+        x: doorX,
+        y: y + h,
+        verb: "ENTER",
+        label: spec.name,
+        action: {
+          kind: "classroom",
+          roomId: spec.id,
+          roomName: spec.name,
+          lessonId: spec.lessonId,
+          courseId: spec.courseId,
+          teacher: spec.teacher.name,
+        },
+      });
+    }
     interactables.push({
       id: `${spec.id}-sign`,
       x: doorX,
