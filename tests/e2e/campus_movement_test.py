@@ -104,8 +104,9 @@ async def main():
         await page.evaluate("() => window.__unifyCampus.tour('algebra-204')")
 
         seen = []
-        for _ in range(60):
-            banner = page.locator("[data-testid='tour-step']")
+        banner = page.locator("[data-testid='tour-step']")
+        reached = False
+        for _ in range(300):
             if await banner.count():
                 label = await banner.get_attribute("data-step-label")
                 if label and (not seen or seen[-1] != label):
@@ -113,8 +114,11 @@ async def main():
                     await shot(page, f"4_tour_{len(seen)}_{re.sub(r'[^a-z0-9]+','-',label.lower())[:28]}")
             st = await campus_state(page)
             if st["zone"] == walk["zoneId"]:
+                reached = True
+            # Keep sampling until the guided route finishes (banner clears).
+            if reached and not await banner.count():
                 break
-            await page.wait_for_timeout(400)
+            await page.wait_for_timeout(120)
 
         st = await campus_state(page)
         assert st["zone"] == walk["zoneId"], f"never reached {walk['zoneId']}: {st}"
