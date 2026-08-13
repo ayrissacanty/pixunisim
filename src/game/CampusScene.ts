@@ -217,78 +217,62 @@ export class CampusScene extends Phaser.Scene {
     if (!this.textures.exists(TILESET_KEY)) this.load.image(TILESET_KEY, TILESET_URL);
   }
 
-  /** Upscales the 16px source sheet x2 once, then registers the picked tiles as frames. */
-  private prepareTileset(): boolean {
-    if (!this.textures.exists(TILESET_KEY)) return false;
-    if (this.textures.exists(TILESET_SCALED_KEY)) return true;
+  /**
+   * Bakes the whole outdoor ground layer into one canvas texture by blitting
+   * 16px source tiles at x2. Returns the texture key, or null when unavailable.
+   */
+  private bakeGround(zone: ZoneMap): string | null {
+    if (!this.textures.exists(TILESET_KEY)) return null;
+    const key = `ground-${zone.id}`;
+    if (this.textures.exists(key)) return key;
     const src = this.textures.get(TILESET_KEY).getSourceImage() as HTMLImageElement;
-    const canvasTex = this.textures.createCanvas(
-      TILESET_SCALED_KEY,
-      src.width * SCALE,
-      src.height * SCALE,
-    );
-    if (!canvasTex) return false;
-    const ctx = canvasTex.context;
+    const tex = this.textures.createCanvas(key, zone.width * TILE, zone.height * TILE);
+    if (!tex) return null;
+    const ctx = tex.context;
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(src, 0, 0, src.width * SCALE, src.height * SCALE);
-    canvasTex.refresh();
-    Object.entries(TILE_FRAMES).forEach(([kind, frames]) => {
-      (frames ?? []).forEach((f, i) => {
-        canvasTex.add(
-          frameName(kind as TileKind, i),
-          0,
-          f.x * SCALE,
-          f.y * SCALE,
-          SRC_TILE * SCALE,
-          SRC_TILE * SCALE,
-        );
-      });
-    });
-    return true;
+    let painted = false;
+
+    const blit = (frame: { x: number; y: number }, px: number, py: number) => {
+      ctx.drawImage(src, frame.x, frame.y, SRC_TILE, SRC_TILE, px, py, SRC_TILE * SCALE, SRC_TILE * SCALE);
+    };
+
+    for (let y = 0; y < zone.height; y++) {
+      for (let x = 0; x < zone.width; x++) {
+        const kind = zone.tiles[y]![x]!;
+        const frames = TILE_FRAMES[kind];
+        if (!frames || !frames.length) continue;
+        if (OVERLAY_TILES.has(kind)) {
+          const bed = TILE_FRAMES.grass!;
+          blit(bed[variantFor(x, y, bed.length)]!, x * TILE, y * TILE);
+        }
+        blit(frames[variantFor(x, y, frames.length)]!, x * TILE, y * TILE);
+        painted = true;
+      }
+    }
+    tex.refresh();
+    if (!painted) {
+      this.textures.remove(key);
+      return null;
+    }
+    return key;
   }
 
   create(data: { zoneId: string; x: number; y: number }) {
     this.zone = getZone(data.zoneId);
     this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#5d7047" : "#cbb894");
 
-    const useSprites = this.zone.kind === "outdoor" && this.prepareTileset();
-    console.log("[tiles] useSprites", useSprites, this.textures.exists(TILESET_KEY), this.textures.exists(TILESET_SCALED_KEY));
+    const groundKey = this.zone.kind === "outdoor" ? this.bakeGround(this.zone) : null;
 
     const g = this.add.graphics();
-    const rt = useSprites
-      ? this.add.renderTexture(0, 0, this.zone.width * TILE, this.zone.height * TILE).setOrigin(0, 0)
-      : null;
-
     for (let y = 0; y < this.zone.height; y++) {
       for (let x = 0; x < this.zone.width; x++) {
         const kind = this.zone.tiles[y]![x]!;
-        const frames = useSprites ? TILE_FRAMES[kind] : undefined;
-        if (rt && frames && frames.length) {
-          const stampCfg = { originX: 0, originY: 0 };
-          if (OVERLAY_TILES.has(kind)) {
-            const bed = TILE_FRAMES.grass!;
-            rt.stamp(
-              TILESET_SCALED_KEY,
-              frameName("grass", variantFor(x, y, bed.length)),
-              x * TILE,
-              y * TILE,
-              stampCfg,
-            );
-          }
-          rt.stamp(
-            TILESET_SCALED_KEY,
-            frameName(kind, variantFor(x, y, frames.length)),
-            x * TILE,
-            y * TILE,
-            stampCfg,
-          );
-        } else {
-          paintTile(g, kind, x * TILE, y * TILE);
-        }
+        if (groundKey && TILE_FRAMES[kind]?.length) continue;
+        paintTile(g, kind, x * TILE, y * TILE);
       }
     }
     g.setDepth(0);
-    rt?.setDepth(0);
+    if (groundKey) this.add.image(0, 0, groundKey).setOrigin(0, 0).setDepth(-1);
 
     // room labels
     this.zone.rooms.forEach((room) => {
