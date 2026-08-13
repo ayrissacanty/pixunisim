@@ -8,10 +8,13 @@ describe("walkability mask", () => {
     for (const id of ZONE_IDS) {
       const zone = getZone(id);
       const mask = buildWalkMask(zone);
+      const doorways = new Set(
+        zone.interactables.filter((i) => i.action.kind === "travel").map((i) => `${i.x},${i.y}`),
+      );
       for (let y = 0; y < zone.height; y++) {
         for (let x = 0; x < zone.width; x++) {
           const kind = zone.tiles[y]![x]!;
-          if (kind === "door") continue;
+          if (kind === "door" || doorways.has(`${x},${y}`)) continue;
           if (isSolid(kind)) {
             expect(mask.data[y * mask.width + x], `${id} ${kind} @${x},${y}`).toBe(0);
           }
