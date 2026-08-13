@@ -1,7 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useCampusStore } from "@/lib/campus/store";
 import { useAlleyDialogue, useLesson, useProgress, progressFor } from "@/lib/data";
-
+import { CharacterStage, type StageActor } from "@/components/three/CharacterStage";
+import { classmatesFor, TEACHER_CHARACTER } from "@/lib/characters";
+import { useAvatar } from "@/lib/profile";
 import { Button } from "@/components/ui/button";
 
 /**
