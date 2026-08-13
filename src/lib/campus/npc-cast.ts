@@ -57,8 +57,10 @@ const CAST: Record<string, Portrait> = {
   "career-coach-ines": { skin: "caramel", eyes: "green", hair: "mousse", clothes: "lollipop" },
   "employer-rep-hal": { skin: "vanilla", eyes: "grey", hair: "mousey", clothes: "sunny_sea" },
   "front-desk-marta": { skin: "caramel", eyes: "brown", hair: "honey", clothes: "lollipop" },
-  "math-tutor-oso": { skin: "chocolate", eyes: "brown", hair: "mousse", clothes: "sunny_sea" },
-  "lab-tech-ivy": { skin: "vanilla", eyes: "green", hair: "mousey", clothes: "lollipop" },
+  "math-tech-hall-aide": { skin: "chocolate", eyes: "brown", hair: "mousse", clothes: "sunny_sea" },
+  "science-hall-aide": { skin: "vanilla", eyes: "green", hair: "mousey", clothes: "lollipop" },
+  "humanities-hall-aide": { skin: "caramel", eyes: "brown", hair: "honey", clothes: "lollipop" },
+  "arts-center-aide": { skin: "caramel", eyes: "grey", hair: "mousse", clothes: "sunny_sea" },
 };
 
 function hash(value: string) {
