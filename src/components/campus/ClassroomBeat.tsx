@@ -19,6 +19,19 @@ export function ClassroomBeat() {
   const { data: lesson } = useLesson(classroom?.lessonId);
   const { data: progress } = useProgress();
   const { data: lines } = useAlleyDialogue(classroom?.roomId);
+  const avatar = useAvatar();
+
+  const roomId = classroom?.roomId;
+  // Alley at the board, the student front-and-centre, classmates either side.
+  const cast = useMemo<StageActor[]>(() => {
+    const mates = classmatesFor(roomId ?? "room", 2, avatar);
+    return [
+      { character: TEACHER_CHARACTER, x: 0, z: -2.4, rotation: Math.PI, scale: 1.02 },
+      { character: avatar, x: 0, z: 0.6, rotation: 0.1 },
+      { character: mates[0]!, x: -1.5, z: -0.4, rotation: 0.5, scale: 0.97 },
+      { character: mates[1]!, x: 1.5, z: -0.4, rotation: -0.5, scale: 0.97 },
+    ];
+  }, [roomId, avatar]);
 
   const phase = classroom?.phase;
   useEffect(() => {
