@@ -327,18 +327,21 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          portrait: Json
         }
         Insert: {
           avatar?: string
           created_at?: string
           display_name?: string
           id: string
+          portrait?: Json
         }
         Update: {
           avatar?: string
           created_at?: string
           display_name?: string
           id?: string
+          portrait?: Json
         }
         Relationships: []
       }

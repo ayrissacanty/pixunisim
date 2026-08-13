@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { TILE, TILE_COLORS, type TileKind } from "@/lib/campus/tiles";
 import { getZone, zoneIsSolidAt, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
 import { useCampusStore } from "@/lib/campus/store";
+import { DECOR_KEY, DECOR_URL, decorFor, frameRect } from "@/lib/campus/decor";
 import {
   OVERLAY_TILES,
   SCALE,
@@ -213,6 +214,28 @@ export class CampusScene extends Phaser.Scene {
 
   preload() {
     if (!this.textures.exists(TILESET_KEY)) this.load.image(TILESET_KEY, TILESET_URL);
+    if (!this.textures.exists(DECOR_KEY)) this.load.image(DECOR_KEY, DECOR_URL);
+  }
+
+  /**
+   * Scatters pixel-art environment props across the outdoor grounds. Props are
+   * decoration only — they sit above the ground bake and below the cast.
+   */
+  private addDecor(zone: ZoneMap) {
+    if (!this.textures.exists(DECOR_KEY)) return;
+    const texture = this.textures.get(DECOR_KEY);
+    for (const placement of decorFor(zone)) {
+      const rect = frameRect(placement.frame);
+      if (!rect) continue;
+      if (!texture.has(placement.frame)) {
+        texture.add(placement.frame, 0, rect[0], rect[1], rect[2], rect[3]);
+      }
+      this.add
+        .image(placement.px, placement.py, DECOR_KEY, placement.frame)
+        .setOrigin(0.5, 1)
+        .setScale(placement.scale)
+        .setDepth(5);
+    }
   }
 
   /**
@@ -271,6 +294,8 @@ export class CampusScene extends Phaser.Scene {
     }
     g.setDepth(0);
     if (groundKey) this.add.image(0, 0, groundKey).setOrigin(0, 0).setDepth(-1);
+
+    this.addDecor(this.zone);
 
     // room labels
     this.zone.rooms.forEach((room) => {

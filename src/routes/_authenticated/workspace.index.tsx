@@ -45,6 +45,9 @@ function WorkspaceHome() {
             <Link to="/workspace/avatar">Your character</Link>
           </Button>
           <Button asChild variant="outline">
+            <Link to="/workspace/room">Your room</Link>
+          </Button>
+          <Button asChild variant="outline">
             <Link to="/workspace/achievements">Achievements</Link>
           </Button>
           <Button asChild>

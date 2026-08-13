@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_AVATAR, type CharacterId } from "@/lib/characters";
+import { DEFAULT_PORTRAIT, normalizePortrait, type Portrait } from "@/lib/portrait";
 
 export interface Profile {
   id: string;
   display_name: string;
   avatar: CharacterId;
+  portrait: Portrait;
 }
 
 export function useProfile() {
@@ -17,7 +19,7 @@ export function useProfile() {
       if (!uid) return null;
       const { data } = await supabase
         .from("profiles")
-        .select("id, display_name, avatar")
+        .select("id, display_name, avatar, portrait")
         .eq("id", uid)
         .maybeSingle();
       if (!data) return null;
@@ -25,6 +27,7 @@ export function useProfile() {
         id: data.id,
         display_name: data.display_name,
         avatar: (data.avatar as CharacterId) ?? DEFAULT_AVATAR,
+        portrait: normalizePortrait(data.portrait),
       };
     },
   });
@@ -34,6 +37,27 @@ export function useProfile() {
 export function useAvatar(): CharacterId {
   const { data } = useProfile();
   return data?.avatar ?? DEFAULT_AVATAR;
+}
+
+/** The student's 2D dialogue portrait selection. */
+export function usePortrait(): Portrait {
+  const { data } = useProfile();
+  return data?.portrait ?? DEFAULT_PORTRAIT;
+}
+
+export function useSavePortrait() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (portrait: Portrait) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      if (!uid) throw new Error("Not signed in");
+      const { error } = await supabase.from("profiles").update({ portrait }).eq("id", uid);
+      if (error) throw error;
+      return portrait;
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["profile"] }),
+  });
 }
 
 export function useSaveAvatar() {

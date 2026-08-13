@@ -3,6 +3,7 @@ import { Compass, LayoutDashboard, Map } from "lucide-react";
 import { useCampusStore } from "@/lib/campus/store";
 import { ZONE_LABELS } from "@/lib/campus/world";
 import { Button } from "@/components/ui/button";
+import { Minimap } from "@/components/campus/Minimap";
 
 function DPad({ onMove }: { onMove: (x: number, y: number) => void }) {
   const btn =
@@ -73,6 +74,12 @@ export function CampusHud({
           </div>
         )}
       </div>
+
+      {!busy && (
+        <div className="pointer-events-auto absolute bottom-3 right-3 hidden md:block">
+          <Minimap />
+        </div>
+      )}
 
       <div className="pointer-events-auto absolute right-3 top-3 flex gap-2">
         <Button size="sm" variant="secondary" onClick={() => setMapOpen(true)}>
