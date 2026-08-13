@@ -81,7 +81,22 @@ async def main():
             "math-tech-hall",
         ], walk
 
+        # 2b. Every banner step is asserted in the DOM and screenshotted, so a
+        #     flaky/skipped step fails loudly instead of silently drifting.
+        await page.evaluate("() => { window.__unifyCampus.tour('algebra-204'); }")
+        for i, step in enumerate(walk["steps"]):
+            banner = page.locator(f'[data-testid="tour-step"][data-step-index="{i}"]')
+            await banner.wait_for(state="attached", timeout=30000)
+            await expect(banner).to_be_visible()
+            assert await banner.get_attribute("data-step-label") == step["label"], (i, step)
+            assert await banner.get_attribute("data-step-total") == str(len(walk["steps"]))
+            assert step["label"] in (await banner.inner_text())
+            zone = await page.evaluate("() => window.__unifyCampus.state().zone")
+            assert zone in (step["zone"], walk["steps"][max(i - 1, 0)]["zone"]), (i, zone, step)
+            await page.screenshot(path=f"{SHOTS}/00-step-{i}-{step['zone']}.png")
+
         # 3. Talk to teacher (the tour ends by greeting Professor Maya Ellison)
+        await expect(page.locator('[data-testid="tour-step"]')).to_have_count(0, timeout=30000)
         dialogue = page.get_by_text(walk["teacher"], exact=False)
         await expect(dialogue.first).to_be_visible(timeout=30000)
         await page.screenshot(path=f"{SHOTS}/01-teacher.png")
@@ -91,9 +106,19 @@ async def main():
             await cont.first.click()
             await page.wait_for_timeout(150)
 
-        # 4. Attend class
+        # 4. Attend class — Layer 3 classroom beat, then Layer 4 lesson mode
         await page.get_by_role("button", name=re.compile("attend the lesson", re.I)).click()
+        beat = page.locator('[data-testid="classroom-beat"]')
+        await beat.wait_for(timeout=15000)
+        assert await beat.get_attribute("data-phase") == "arrive"
+        assert await beat.get_attribute("data-room") == "algebra-204"
+        await expect(page.locator('[data-testid="beat-teacher"]')).to_be_visible()
+        await page.screenshot(path=f"{SHOTS}/01b-classroom-beat.png")
+
         await expect(page.get_by_text("In class")).to_be_visible(timeout=15000)
+        await expect(page.locator('[data-testid="campus-root"][data-layer="4"]')).to_have_count(
+            1, timeout=10000
+        )
         state = await page.evaluate("() => window.__unifyCampus.state()")
         assert state["lessonOpen"]["lessonId"] == "algebra-lesson-2", state
         assert state["lessonOpen"]["courseId"] == "foundations-algebra", state
