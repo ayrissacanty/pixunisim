@@ -16,6 +16,7 @@ import { Route as AuthenticatedCampusRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedWorkspaceIndexRouteImport } from './routes/_authenticated/workspace.index'
 import { Route as AuthenticatedWorkspaceAchievementsRouteImport } from './routes/_authenticated/workspace.achievements'
 import { Route as AuthenticatedWorkspaceAvatarRouteImport } from './routes/_authenticated/workspace.avatar'
+import { Route as AuthenticatedWorkspaceRoomRouteImport } from './routes/_authenticated/workspace.room'
 import { Route as AuthenticatedWorkspaceLessonLessonIdRouteImport } from './routes/_authenticated/workspace.lesson.$lessonId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -55,6 +56,12 @@ const AuthenticatedWorkspaceAvatarRoute =
     path: '/workspace/avatar',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedWorkspaceRoomRoute =
+  AuthenticatedWorkspaceRoomRouteImport.update({
+    id: '/workspace/room',
+    path: '/workspace/room',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedWorkspaceLessonLessonIdRoute =
   AuthenticatedWorkspaceLessonLessonIdRouteImport.update({
     id: '/workspace/lesson/$lessonId',
@@ -68,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/campus': typeof AuthenticatedCampusRoute
   '/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
+  '/workspace/room': typeof AuthenticatedWorkspaceRoomRoute
   '/workspace/': typeof AuthenticatedWorkspaceIndexRoute
   '/workspace/lesson/$lessonId': typeof AuthenticatedWorkspaceLessonLessonIdRoute
 }
@@ -77,6 +85,7 @@ export interface FileRoutesByTo {
   '/campus': typeof AuthenticatedCampusRoute
   '/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
+  '/workspace/room': typeof AuthenticatedWorkspaceRoomRoute
   '/workspace': typeof AuthenticatedWorkspaceIndexRoute
   '/workspace/lesson/$lessonId': typeof AuthenticatedWorkspaceLessonLessonIdRoute
 }
@@ -88,6 +97,7 @@ export interface FileRoutesById {
   '/_authenticated/campus': typeof AuthenticatedCampusRoute
   '/_authenticated/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/_authenticated/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
+  '/_authenticated/workspace/room': typeof AuthenticatedWorkspaceRoomRoute
   '/_authenticated/workspace/': typeof AuthenticatedWorkspaceIndexRoute
   '/_authenticated/workspace/lesson/$lessonId': typeof AuthenticatedWorkspaceLessonLessonIdRoute
 }
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/campus'
     | '/workspace/achievements'
     | '/workspace/avatar'
+    | '/workspace/room'
     | '/workspace/'
     | '/workspace/lesson/$lessonId'
   fileRoutesByTo: FileRoutesByTo
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/campus'
     | '/workspace/achievements'
     | '/workspace/avatar'
+    | '/workspace/room'
     | '/workspace'
     | '/workspace/lesson/$lessonId'
   id:
@@ -118,6 +130,7 @@ export interface FileRouteTypes {
     | '/_authenticated/campus'
     | '/_authenticated/workspace/achievements'
     | '/_authenticated/workspace/avatar'
+    | '/_authenticated/workspace/room'
     | '/_authenticated/workspace/'
     | '/_authenticated/workspace/lesson/$lessonId'
   fileRoutesById: FileRoutesById
@@ -179,6 +192,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWorkspaceAvatarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/workspace/room': {
+      id: '/_authenticated/workspace/room'
+      path: '/workspace/room'
+      fullPath: '/workspace/room'
+      preLoaderRoute: typeof AuthenticatedWorkspaceRoomRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/workspace/lesson/$lessonId': {
       id: '/_authenticated/workspace/lesson/$lessonId'
       path: '/workspace/lesson/$lessonId'
@@ -193,6 +213,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCampusRoute: typeof AuthenticatedCampusRoute
   AuthenticatedWorkspaceAchievementsRoute: typeof AuthenticatedWorkspaceAchievementsRoute
   AuthenticatedWorkspaceAvatarRoute: typeof AuthenticatedWorkspaceAvatarRoute
+  AuthenticatedWorkspaceRoomRoute: typeof AuthenticatedWorkspaceRoomRoute
   AuthenticatedWorkspaceIndexRoute: typeof AuthenticatedWorkspaceIndexRoute
   AuthenticatedWorkspaceLessonLessonIdRoute: typeof AuthenticatedWorkspaceLessonLessonIdRoute
 }
@@ -202,6 +223,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedWorkspaceAchievementsRoute:
     AuthenticatedWorkspaceAchievementsRoute,
   AuthenticatedWorkspaceAvatarRoute: AuthenticatedWorkspaceAvatarRoute,
+  AuthenticatedWorkspaceRoomRoute: AuthenticatedWorkspaceRoomRoute,
   AuthenticatedWorkspaceIndexRoute: AuthenticatedWorkspaceIndexRoute,
   AuthenticatedWorkspaceLessonLessonIdRoute:
     AuthenticatedWorkspaceLessonLessonIdRoute,

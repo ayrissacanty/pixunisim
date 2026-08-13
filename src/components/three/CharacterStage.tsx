@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { characterOf, CHARACTER_IDS, type CharacterId } from "@/lib/characters";
+import { PROP_MODELS, PROP_PALETTE_URL, type PropPlacement } from "@/lib/props3d";
 
 export interface StageActor {
   character: CharacterId;
@@ -23,6 +24,11 @@ interface Props {
   turntable?: boolean;
   /** Fires once every actor is on stage. */
   onReady?: () => void;
+  /** Low-poly furniture placed around the cast. */
+  props?: PropPlacement[];
+  /** Pull the camera back / raise it for furnished rooms. */
+  camera?: { x?: number; y?: number; z?: number; lookY?: number; fov?: number };
+  floorColor?: number;
 }
 
 /** Cache loaded FBX groups + textures so revisiting a classroom is instant. */
@@ -51,6 +57,9 @@ export function CharacterStage({
   className,
   turntable = false,
   onReady,
+  props: sceneProps,
+  camera: cameraOpts,
+  floorColor = 0x6b4a2f,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const onReadyRef = useRef(onReady);
@@ -58,6 +67,8 @@ export function CharacterStage({
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const key = actors.map((a) => `${a.character}:${a.x ?? 0}:${a.z ?? 0}`).join("|");
+  const propKey = (sceneProps ?? []).map((p) => `${p.model}:${p.x ?? 0}:${p.z ?? 0}`).join("|");
+  const camKey = JSON.stringify(cameraOpts ?? {});
 
   useEffect(() => {
     let disposed = false;
@@ -74,9 +85,13 @@ export function CharacterStage({
         const width = host.clientWidth || 480;
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(background);
-        const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 200);
-        camera.position.set(0, 1.55, 4.4);
-        camera.lookAt(0, 1, 0);
+        const camera = new THREE.PerspectiveCamera(cameraOpts?.fov ?? 38, width / height, 0.1, 200);
+        camera.position.set(
+          cameraOpts?.x ?? 0,
+          cameraOpts?.y ?? 1.55,
+          cameraOpts?.z ?? 4.4,
+        );
+        camera.lookAt(0, cameraOpts?.lookY ?? 1, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -147,6 +162,50 @@ export function CharacterStage({
           }),
         );
 
+        // Furniture lives outside `root` so it stays still while the cast breathes.
+        if (sceneProps?.length) {
+          const paletteTex = await texLoader.loadAsync(PROP_PALETTE_URL);
+          paletteTex.colorSpace = THREE.SRGBColorSpace;
+          paletteTex.flipY = true;
+          const set = new THREE.Group();
+          scene.add(set);
+          await Promise.all(
+            sceneProps.map(async (placement) => {
+              try {
+                const fbx = await load(PROP_MODELS[placement.model]);
+                if (disposed) return;
+                const model = fbx.clone(true);
+                model.traverse((child) => {
+                  const mesh = child as import("three").Mesh;
+                  if (!mesh.isMesh) return;
+                  mesh.material = new THREE.MeshStandardMaterial({
+                    map: paletteTex,
+                    roughness: 0.85,
+                    metalness: 0,
+                  });
+                });
+                const box = new THREE.Box3().setFromObject(model);
+                const size = new THREE.Vector3();
+                box.getSize(size);
+                // Source props are authored in centimetres.
+                const unit = Math.max(size.x, size.y, size.z) > 12 ? 0.01 : 1;
+                model.scale.setScalar(unit * (placement.scale ?? 1));
+
+                const scaled = new THREE.Box3().setFromObject(model);
+                const centre = new THREE.Vector3();
+                scaled.getCenter(centre);
+                model.position.x += (placement.x ?? 0) - centre.x;
+                model.position.z += (placement.z ?? 0) - centre.z;
+                model.position.y += (placement.y ?? 0) - scaled.min.y;
+                model.rotation.y = placement.rotation ?? 0;
+                set.add(model);
+              } catch (err) {
+                console.error("Failed to load prop:", placement.model, err);
+              }
+            }),
+          );
+        }
+
         if (disposed) return;
         setReady(true);
         onReadyRef.current?.();
@@ -154,7 +213,7 @@ export function CharacterStage({
         // Simple floor so the cast is grounded rather than floating.
         const floor = new THREE.Mesh(
           new THREE.PlaneGeometry(40, 40),
-          new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: 1 }),
+          new THREE.MeshStandardMaterial({ color: floorColor, roughness: 1 }),
         );
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
@@ -194,7 +253,8 @@ export function CharacterStage({
       disposed = true;
       cleanup();
     };
-  }, [key, height, background, turntable]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, propKey, camKey, height, background, turntable, floorColor]);
 
   return (
     <div

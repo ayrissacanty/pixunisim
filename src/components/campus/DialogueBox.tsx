@@ -1,17 +1,24 @@
 import { useCampusStore } from "@/lib/campus/store";
 import { Button } from "@/components/ui/button";
+import { PortraitView } from "@/components/campus/PortraitView";
+import { usePortrait } from "@/lib/profile";
 
 export function DialogueBox() {
   const dialogue = useCampusStore((s) => s.dialogue);
   const advance = useCampusStore((s) => s.advanceDialogue);
   const close = useCampusStore((s) => s.closeDialogue);
+  const portrait = usePortrait();
   if (!dialogue) return null;
 
   const last = dialogue.lineIndex >= dialogue.lines.length - 1;
 
   return (
     <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 p-3 sm:p-5">
-      <div className="mx-auto max-w-3xl rounded-md border-2 border-accent bg-sidebar/95 p-4 shadow-xl backdrop-blur">
+      <div className="mx-auto flex max-w-3xl items-end gap-3">
+        <div className="hidden w-24 shrink-0 sm:block">
+          <PortraitView portrait={portrait} alt="Your portrait" />
+        </div>
+        <div className="flex-1 rounded-md border-2 border-accent bg-sidebar/95 p-4 shadow-xl backdrop-blur">
         <div className="flex items-baseline gap-2">
           <span className="font-display text-base font-bold text-accent">{dialogue.speaker}</span>
           {dialogue.role && (
@@ -45,6 +52,7 @@ export function DialogueBox() {
               </Button>
             </>
           )}
+        </div>
         </div>
       </div>
     </div>

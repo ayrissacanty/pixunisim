@@ -1,8 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { CHARACTER_IDS, CHARACTERS, type CharacterId } from "@/lib/characters";
-import { useAvatar, useSaveAvatar } from "@/lib/profile";
+import { useAvatar, usePortrait, useSaveAvatar, useSavePortrait } from "@/lib/profile";
 import { CharacterStage } from "@/components/three/CharacterStage";
+import { PortraitView } from "@/components/campus/PortraitView";
+import {
+  PORTRAIT_LAYERS,
+  PORTRAIT_LAYER_ORDER,
+  type Portrait,
+  type PortraitLayer,
+} from "@/lib/portrait";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -92,6 +99,83 @@ function AvatarPicker() {
           </Button>
         </div>
       </div>
+
+      <PortraitCustomizer />
     </main>
+  );
+}
+
+const LAYER_LABELS: Record<PortraitLayer, string> = {
+  skin: "Skin",
+  clothes: "Outfit",
+  eyes: "Eyes",
+  hair: "Hair",
+};
+
+/** 2D paper-doll portrait used by campus dialogue, alongside the 3D model. */
+function PortraitCustomizer() {
+  const savedPortrait = usePortrait();
+  const [draft, setDraft] = useState<Portrait | null>(null);
+  const portrait = draft ?? savedPortrait;
+  const save = useSavePortrait();
+  const dirty = PORTRAIT_LAYER_ORDER.some((l) => portrait[l] !== savedPortrait[l]);
+
+  return (
+    <section className="mt-10 border-t border-border pt-8">
+      <h2 className="text-2xl font-bold">Your dialogue portrait</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        This 2D portrait appears when you speak with faculty and staff around campus.
+      </p>
+
+      <div className="mt-6 grid gap-6 md:grid-cols-[220px_1fr]">
+        <div className="rounded-md border border-border bg-card p-3">
+          <PortraitView portrait={portrait} />
+        </div>
+
+        <div className="space-y-4">
+          {PORTRAIT_LAYER_ORDER.map((layer) => (
+            <div key={layer}>
+              <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+                {LAYER_LABELS[layer]}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {PORTRAIT_LAYERS[layer].map((option) => {
+                  const active = portrait[layer] === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      data-testid={`portrait-${layer}-${option.id}`}
+                      data-active={active}
+                      onClick={() => setDraft({ ...portrait, [layer]: option.id })}
+                      className={`rounded-md border px-3 py-1.5 text-xs transition ${
+                        active
+                          ? "border-accent bg-accent/10 text-foreground"
+                          : "border-border bg-card text-muted-foreground hover:border-accent/60"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          <Button
+            data-testid="save-portrait"
+            disabled={save.isPending || !dirty}
+            onClick={() =>
+              save.mutate(portrait, {
+                onSuccess: () => toast.success("Portrait saved."),
+                onError: () => toast.error("Could not save your portrait."),
+              })
+            }
+          >
+            {dirty ? "Save portrait" : "Saved"}
+          </Button>
+        </div>
+      </div>
+    </section>
   );
 }

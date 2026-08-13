@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { AiTeacher } from "@/components/lesson/AiTeacher";
 import { Lesson3DStage } from "@/components/lesson/Lesson3DStage";
 import { CharacterStage } from "@/components/three/CharacterStage";
+import { LESSON_DESK_PROPS } from "@/lib/props3d";
 import { TEACHER_CHARACTER } from "@/lib/characters";
 import { useAvatar } from "@/lib/profile";
 import {
@@ -174,6 +175,9 @@ export function LessonPlayer({
                   { character: TEACHER_CHARACTER, x: -0.85, z: -0.6, rotation: 0.35 },
                   { character: avatar, x: 0.85, z: 0, rotation: -0.3 },
                 ]}
+                props={LESSON_DESK_PROPS}
+                camera={{ y: 1.8, z: 5.2, lookY: 1, fov: 40 }}
+                floorColor={0x3d3227}
                 height={220}
                 background={0x1d2a24}
                 className="overflow-hidden"
