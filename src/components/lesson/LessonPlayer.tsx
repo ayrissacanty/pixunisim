@@ -5,6 +5,9 @@ import { Progress as ProgressBar } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { AiTeacher } from "@/components/lesson/AiTeacher";
 import { Lesson3DStage } from "@/components/lesson/Lesson3DStage";
+import { CharacterStage } from "@/components/three/CharacterStage";
+import { TEACHER_CHARACTER } from "@/lib/characters";
+import { useAvatar } from "@/lib/profile";
 import {
   useLesson,
   useQuestions,
@@ -90,6 +93,7 @@ export function LessonPlayer({
   const { data: questions } = useQuestions(lessonId);
   const { data: progress } = useProgress();
   const save = useSaveProgress();
+  const avatar = useAvatar();
   const [step, setStep] = useState(0);
   const [results, setResults] = useState<Record<string, boolean>>({});
   const [tutorOpen, setTutorOpen] = useState(false);
@@ -159,11 +163,25 @@ export function LessonPlayer({
         </div>
 
         {lesson.render_mode === "3d" && (
-          <div className="mb-4">
+          <div className="mb-4 grid gap-3 sm:grid-cols-2">
             <Lesson3DStage
               shape={lesson.course_id === "intro-life-science" ? "cell" : "polyhedron"}
               label={`3D manipulative — ${lesson.title}`}
             />
+            <figure className="overflow-hidden rounded-md border border-border bg-card">
+              <CharacterStage
+                actors={[
+                  { character: TEACHER_CHARACTER, x: -0.85, z: -0.6, rotation: 0.35 },
+                  { character: avatar, x: 0.85, z: 0, rotation: -0.3 },
+                ]}
+                height={220}
+                background={0x1d2a24}
+                className="overflow-hidden"
+              />
+              <figcaption className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
+                Alley works through this one with you.
+              </figcaption>
+            </figure>
           </div>
         )}
 

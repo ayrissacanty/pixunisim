@@ -14,6 +14,7 @@ import { ClassroomBeat } from "@/components/campus/ClassroomBeat";
 import { LayerTransition } from "@/components/campus/LayerTransition";
 import { useCampusObjectives } from "@/lib/campus/objectives";
 import { useOfflineSync } from "@/lib/data";
+import { prefetchCharacters } from "@/components/three/CharacterStage";
 
 export function CampusView({
   initialZone = "welcome-plaza",
@@ -26,6 +27,10 @@ export function CampusView({
   const gameRef = useRef<Phaser.Game | null>(null);
   const sceneRef = useRef<CampusScene | null>(null);
   const navigate = useNavigate();
+  // Warm the 3D cast while the student is still walking around outside.
+  useEffect(() => {
+    void prefetchCharacters();
+  }, []);
   const [ready, setReady] = useState(false);
   const [tourStep, setTourStep] = useState<{ label: string; index: number; total: number } | null>(
     null,
