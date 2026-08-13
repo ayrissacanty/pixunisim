@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useCampusStore } from "@/lib/campus/store";
-import { useLesson } from "@/lib/data";
+import { useAlleyDialogue, useLesson, useProgress, progressFor } from "@/lib/data";
+
 import { Button } from "@/components/ui/button";
 
 /**
