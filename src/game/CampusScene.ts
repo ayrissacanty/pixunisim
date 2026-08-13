@@ -380,9 +380,21 @@ export class CampusScene extends Phaser.Scene {
     cam.setBounds(0, 0, this.zone.width * TILE, this.zone.height * TILE);
     cam.setZoom(this.scale.width < 720 ? 1.5 : 1.8);
     cam.setRoundPixels(true);
-    cam.startFollow(this.player, true, 0.14, 0.14);
+    const lerp = cameraLerp();
+    cam.startFollow(this.player, true, lerp, lerp);
     cam.setDeadzone(48, 36);
-    cam.setLerp(0.14, 0.14);
+    cam.setLerp(lerp, lerp);
+    // Live-apply the accessibility motion setting without needing a reload.
+    this.motionUnsub?.();
+    this.motionUnsub = useMotionStore.subscribe((s) => {
+      const l = cameraLerp(s.setting);
+      this.cameras.main.setLerp(l, l);
+    });
+    this.events.once("shutdown", () => {
+      this.motionUnsub?.();
+      this.motionUnsub = undefined;
+    });
+
 
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
