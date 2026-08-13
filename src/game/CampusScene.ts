@@ -252,6 +252,7 @@ export class CampusScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#5d7047" : "#cbb894");
 
     const useSprites = this.zone.kind === "outdoor" && this.prepareTileset();
+    console.log("[tiles] useSprites", useSprites, this.textures.exists(TILESET_KEY), this.textures.exists(TILESET_SCALED_KEY));
 
     const g = this.add.graphics();
     const rt = useSprites
