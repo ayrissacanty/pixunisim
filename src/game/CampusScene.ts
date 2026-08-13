@@ -385,6 +385,9 @@ export class CampusScene extends Phaser.Scene {
     this.keys["M"]!.on("down", () => useCampusStore.getState().setMapOpen(true));
 
     useCampusStore.getState().setZone(this.zone.id);
+    useCampusStore
+      .getState()
+      .setPlayer(Math.round(this.player.x / TILE), Math.round(this.player.y / TILE), this.facing);
   }
 
   private makeCharacter(x: number, y: number, color: number, label: string) {
