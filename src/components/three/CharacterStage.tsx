@@ -103,7 +103,11 @@ export function CharacterStage({
               const mesh = child as import("three").Mesh;
               if (!mesh.isMesh) return;
               mesh.frustumCulled = false;
-              mesh.material = new THREE.MeshBasicMaterial({ map, color: 0xff0000 });
+              mesh.material = new THREE.MeshStandardMaterial({
+                map,
+                roughness: 0.8,
+                metalness: 0,
+              });
             });
 
             // Normalise: models are authored in centimetres and off-origin.
@@ -119,33 +123,13 @@ export function CharacterStage({
             model.position.x += (actor.x ?? 0) - centre.x;
             model.position.z += (actor.z ?? 0) - centre.z;
             model.position.y -= scaled.min.y;
-            model.rotation.y = actor.rotation ?? 0;
+            // Source models face away from the camera by default.
+            model.rotation.y = Math.PI + (actor.rotation ?? 0);
             root.add(model);
           }),
         );
 
         if (disposed) return;
-        const dbg = new THREE.Box3().setFromObject(root);
-        const meshes: unknown[] = [];
-        root.traverse((o) => {
-          const m = o as import("three").Mesh;
-          if (!m.isMesh) return;
-          const pos = m.geometry.getAttribute("position");
-          meshes.push({
-            name: m.name,
-            type: m.type,
-            visible: m.visible,
-            count: pos ? pos.count : 0,
-            first: pos ? [pos.getX(0), pos.getY(0), pos.getZ(0)] : null,
-            scale: m.getWorldScale(new THREE.Vector3()).toArray(),
-          });
-        });
-        (window as unknown as Record<string, unknown>)["__stage"] = {
-          children: root.children.length,
-          min: dbg.min.toArray(),
-          max: dbg.max.toArray(),
-          meshes,
-        };
         setReady(true);
 
         // Simple floor so the cast is grounded rather than floating.
