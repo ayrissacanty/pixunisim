@@ -4,6 +4,7 @@ import type Phaser from "phaser";
 import { useCampusStore } from "@/lib/campus/store";
 import { getZone, ZONE_LABELS, type InteractAction, type NpcSpawn } from "@/lib/campus/world";
 import { WALKTHROUGHS, buildWalkthrough } from "@/lib/campus/walkthrough";
+import { isWalkableTile } from "@/lib/campus/walkable";
 
 import type { CampusScene } from "@/game/CampusScene";
 import { CampusHud } from "@/components/campus/CampusHud";
@@ -225,10 +226,13 @@ export function CampusView({
             steps: w.steps,
           };
         },
+        walkable: (zoneId: string, x: number, y: number) => isWalkableTile(getZone(zoneId), x, y),
         state: () => {
           const s = useCampusStore.getState();
           return {
             zone: s.currentZone,
+            player: s.playerPosition,
+            zoneMemory: s.zoneMemory,
             room: s.currentRoom,
             objective: s.currentObjective,
             lessonOpen: s.lessonOpen,
