@@ -2,6 +2,17 @@ import Phaser from "phaser";
 import { TILE, TILE_COLORS, type TileKind } from "@/lib/campus/tiles";
 import { getZone, zoneIsSolidAt, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
 import { useCampusStore } from "@/lib/campus/store";
+import {
+  OVERLAY_TILES,
+  SCALE,
+  SRC_TILE,
+  TILESET_KEY,
+  TILESET_SCALED_KEY,
+  TILESET_URL,
+  TILE_FRAMES,
+  frameName,
+  variantFor,
+} from "@/lib/campus/tileset";
 
 const SPEED = 150;
 
