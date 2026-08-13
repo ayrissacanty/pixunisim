@@ -26,6 +26,10 @@ export interface Lesson {
   summary: string;
   sort_order: number;
   sections: LessonSection[];
+  /** Which Layer 4 presentation the lesson uses; authored in the database. */
+  render_mode?: "2d" | "3d";
+  /** Alley's opening line in the Layer 3 classroom beat. */
+  alley_greeting?: string | null;
 }
 
 export interface Question {
