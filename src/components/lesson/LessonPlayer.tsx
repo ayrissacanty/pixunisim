@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress as ProgressBar } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { AiTeacher } from "@/components/lesson/AiTeacher";
+import { Lesson3DStage } from "@/components/lesson/Lesson3DStage";
 import {
   useLesson,
   useQuestions,
