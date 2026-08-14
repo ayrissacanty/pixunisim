@@ -88,6 +88,19 @@ export function CampusHud({
           <Accessibility className="size-3.5" aria-hidden="true" />
           {MOTION_LABELS[motion]}
         </button>
+        <button
+          type="button"
+          onClick={toggleAssist}
+          data-testid="assist-toggle"
+          data-assist={assist ? "on" : "off"}
+          aria-pressed={assist}
+          aria-label={`${ASSIST_LABEL(assist)} — widens door, chair and rug tolerances to reduce accidental bumping`}
+          title="Widen interaction tolerances around doors, rugs and chair edges"
+          className="flex items-center gap-1.5 self-start rounded-md border border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-semibold text-foreground shadow hover:bg-accent hover:text-accent-foreground"
+        >
+          <MoveDiagonal className="size-3.5" aria-hidden="true" />
+          {ASSIST_LABEL(assist)}
+        </button>
       </div>
 
       {!busy && (
