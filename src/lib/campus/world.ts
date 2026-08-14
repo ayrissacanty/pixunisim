@@ -789,6 +789,78 @@ function academicHall(opts: {
           : `${spec.name}. Open to all students.`,
       },
     });
+
+    // Furniture inside a teaching room is interactable: the board starts the
+    // lesson, desks let you study it in place, the computer opens the same
+    // lesson in the Traditional Workspace, and shelves hold the reading.
+    if (spec.teacher && spec.lessonId && spec.courseId) {
+      const classroom: InteractAction = {
+        kind: "classroom",
+        roomId: spec.id,
+        roomName: spec.name,
+        lessonId: spec.lessonId,
+        courseId: spec.courseId,
+        teacher: spec.teacher.name,
+      };
+      const findTile = (kinds: TileKind[]) => {
+        for (let ty = y + 1; ty < y + h; ty++)
+          for (let tx = x + 1; tx < x + w - 1; tx++)
+            if (kinds.includes(g.get(tx, ty))) return { x: tx, y: ty };
+        return null;
+      };
+      const props: Array<{
+        suffix: string;
+        kinds: TileKind[];
+        verb: string;
+        label: string;
+        action: InteractAction;
+      }> = [
+        {
+          suffix: "board",
+          kinds: ["board"],
+          verb: "START",
+          label: `${spec.name} board`,
+          action: classroom,
+        },
+        {
+          suffix: "desk",
+          kinds: ["desk", "table", "counter"],
+          verb: "STUDY",
+          label: `Study desk — ${spec.name}`,
+          action: classroom,
+        },
+        {
+          suffix: "computer",
+          kinds: ["computer"],
+          verb: "OPEN",
+          label: "Lab computer — open in Workspace",
+          action: { kind: "route", to: `/workspace/lesson/${spec.lessonId}` },
+        },
+        {
+          suffix: "shelf",
+          kinds: ["shelf"],
+          verb: "READ",
+          label: `${spec.name} shelf`,
+          action: {
+            kind: "read",
+            title: `${spec.name} — course shelf`,
+            body: `Course materials for ${spec.name}, taught by ${spec.teacher.name}. The same readings and knowledge checks appear in your Workspace under this course.`,
+          },
+        },
+      ];
+      for (const prop of props) {
+        const spot = findTile(prop.kinds);
+        if (!spot) continue;
+        interactables.push({
+          id: `${spec.id}-${prop.suffix}`,
+          x: spot.x,
+          y: spot.y,
+          verb: prop.verb,
+          label: prop.label,
+          action: prop.action,
+        });
+      }
+    }
   });
 
   const exitX = Math.floor(width / 2);

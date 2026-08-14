@@ -92,3 +92,77 @@ export function canStandBox(
   ];
   return corners.every(([x, y]) => isWalkableTile(zone, Math.floor(x / TILE), Math.floor(y / TILE)));
 }
+
+/* --------------------------- reachability checks -------------------------- */
+
+export interface ReachabilityReport {
+  zoneId: string;
+  reachable: number;
+  ok: boolean;
+  /** Targets that the player can never walk to from the zone spawn. */
+  unreachable: Array<{ kind: "door" | "interactable" | "npc" | "room"; id: string; x: number; y: number }>;
+}
+
+/** Flood fill of every tile walkable from `start`, ignoring the feet box. */
+export function floodFill(zone: ZoneMap, start: { x: number; y: number }): Set<string> {
+  const seen = new Set<string>();
+  const queue: Array<[number, number]> = [];
+  const push = (x: number, y: number) => {
+    const key = `${x},${y}`;
+    if (seen.has(key) || !isWalkableTile(zone, x, y)) return;
+    seen.add(key);
+    queue.push([x, y]);
+  };
+  push(start.x, start.y);
+  // A spawn tile that is itself blocked should still seed from its neighbours.
+  if (!seen.size) {
+    push(start.x + 1, start.y);
+    push(start.x - 1, start.y);
+    push(start.x, start.y + 1);
+    push(start.x, start.y - 1);
+  }
+  while (queue.length) {
+    const [x, y] = queue.shift()!;
+    push(x + 1, y);
+    push(x - 1, y);
+    push(x, y + 1);
+    push(x, y - 1);
+  }
+  return seen;
+}
+
+/**
+ * Confirms that every doorway, interactable, NPC and room in a zone can still
+ * be walked to once decor prop collision is baked into the mask.
+ */
+export function reachabilityReport(zone: ZoneMap): ReachabilityReport {
+  const seen = floodFill(zone, zone.defaultSpawn);
+  const unreachable: ReachabilityReport["unreachable"] = [];
+  const near = (x: number, y: number) =>
+    seen.has(`${x},${y}`) ||
+    seen.has(`${x + 1},${y}`) ||
+    seen.has(`${x - 1},${y}`) ||
+    seen.has(`${x},${y + 1}`) ||
+    seen.has(`${x},${y - 1}`);
+
+  for (let y = 0; y < zone.height; y++) {
+    for (let x = 0; x < zone.width; x++) {
+      if (zone.tiles[y]![x] !== "door") continue;
+      if (!near(x, y)) unreachable.push({ kind: "door", id: `door-${x}-${y}`, x, y });
+    }
+  }
+  for (const i of zone.interactables) {
+    if (!near(i.x, i.y)) unreachable.push({ kind: "interactable", id: i.id, x: i.x, y: i.y });
+  }
+  for (const n of zone.npcs) {
+    if (!near(n.x, n.y)) unreachable.push({ kind: "npc", id: n.id, x: n.x, y: n.y });
+  }
+  for (const r of zone.rooms) {
+    let found = false;
+    for (let y = r.y; y < r.y + r.h && !found; y++)
+      for (let x = r.x; x < r.x + r.w && !found; x++) if (seen.has(`${x},${y}`)) found = true;
+    if (!found) unreachable.push({ kind: "room", id: r.id, x: r.x, y: r.y });
+  }
+
+  return { zoneId: zone.id, reachable: seen.size, ok: unreachable.length === 0, unreachable };
+}

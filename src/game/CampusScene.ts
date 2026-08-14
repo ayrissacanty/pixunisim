@@ -6,7 +6,14 @@ import { interactRadius, doorTriggerRadius } from "@/lib/a11y/assist";
 import { npcPalette, type NpcPalette } from "@/lib/campus/npc-cast";
 import { useCampusStore } from "@/lib/campus/store";
 import { bobScale, cameraLerp, useMotionStore } from "@/lib/a11y/motion";
-import { DECOR_KEY, DECOR_URL, decorFor, frameRect } from "@/lib/campus/decor";
+import {
+  DECOR_KEY,
+  DECOR_URL,
+  decorFor,
+  frameRect,
+  type DecorPlacement,
+} from "@/lib/campus/decor";
+import { isWalkableTile, reachabilityReport } from "@/lib/campus/walkable";
 import {
   OVERLAY_TILES,
   SCALE,
@@ -237,6 +244,13 @@ export class CampusScene extends Phaser.Scene {
   private stepPhase = 0;
   private lastPromptId: string | null = null;
   private lastRoomId: string | null = null;
+  /** Interior prop streaming: placements are baked once, sprites come and go. */
+  private decorPlacements: DecorPlacement[] = [];
+  private decorSprites = new Map<number, Phaser.GameObjects.Image>();
+  private decorStreamed = false;
+  private decorTimer = 0;
+  private debugGraphics?: Phaser.GameObjects.Graphics | undefined;
+  private debugOn = false;
   joystick: { x: number; y: number } = { x: 0, y: 0 };
 
   constructor() {
@@ -254,19 +268,91 @@ export class CampusScene extends Phaser.Scene {
    */
   private addDecor(zone: ZoneMap) {
     if (!this.textures.exists(DECOR_KEY)) return;
+    this.decorPlacements = decorFor(zone);
+    this.decorSprites.clear();
+    // Furnished interiors can hold hundreds of props; stream only the ones
+    // near the player (current room + adjacent doors) and recycle the rest.
+    this.decorStreamed = zone.kind === "interior";
+    // Streaming waits for the player: the first pass runs from their spawn.
+    if (this.decorStreamed) return;
+    this.decorPlacements.forEach((_, index) => this.spawnDecor(index));
+  }
+
+  private spawnDecor(index: number) {
+    const placement = this.decorPlacements[index];
+    if (!placement || this.decorSprites.has(index)) return;
     const texture = this.textures.get(DECOR_KEY);
-    for (const placement of decorFor(zone)) {
-      const rect = frameRect(placement.frame);
-      if (!rect) continue;
-      if (!texture.has(placement.frame)) {
-        texture.add(placement.frame, 0, rect[0], rect[1], rect[2], rect[3]);
-      }
-      this.add
-        .image(placement.px, placement.py, DECOR_KEY, placement.frame)
-        .setOrigin(0.5, 1)
-        .setScale(placement.scale)
-        .setDepth(5);
+    const rect = frameRect(placement.frame);
+    if (!rect) return;
+    if (!texture.has(placement.frame)) {
+      texture.add(placement.frame, 0, rect[0], rect[1], rect[2], rect[3]);
     }
+    const image = this.add
+      .image(placement.px, placement.py, DECOR_KEY, placement.frame)
+      .setOrigin(0.5, 1)
+      .setScale(placement.scale)
+      .setDepth(5);
+    this.decorSprites.set(index, image);
+  }
+
+  /** Creates props inside the stream radius and destroys those well outside. */
+  private streamDecor(force = false) {
+    if (!this.decorStreamed || !this.textures.exists(DECOR_KEY)) return;
+    const px = this.player?.x ?? this.cameras.main.scrollX;
+    const py = this.player?.y ?? this.cameras.main.scrollY;
+    const inner = 15 * TILE;
+    const outer = 21 * TILE;
+    this.decorPlacements.forEach((placement, index) => {
+      const d = Math.hypot(placement.px - px, placement.py - py);
+      const live = this.decorSprites.get(index);
+      if (d <= inner) {
+        if (!live) this.spawnDecor(index);
+      } else if (live && (force || d > outer)) {
+        live.destroy();
+        this.decorSprites.delete(index);
+      }
+    });
+  }
+
+  /** Debug overlay: red = blocked tile, amber = interactable, cyan = doorway. */
+  setCollisionDebug(on: boolean) {
+    this.debugOn = on;
+    if (!on) {
+      this.debugGraphics?.destroy();
+      this.debugGraphics = undefined;
+      return;
+    }
+    const g = this.debugGraphics ?? this.add.graphics().setDepth(40);
+    this.debugGraphics = g;
+    g.clear();
+    for (let y = 0; y < this.zone.height; y++) {
+      for (let x = 0; x < this.zone.width; x++) {
+        if (isWalkableTile(this.zone, x, y)) continue;
+        g.fillStyle(0xff3b30, 0.28);
+        g.fillRect(x * TILE, y * TILE, TILE, TILE);
+        g.lineStyle(1, 0xff3b30, 0.5);
+        g.strokeRect(x * TILE + 0.5, y * TILE + 0.5, TILE - 1, TILE - 1);
+      }
+    }
+    for (const i of this.zone.interactables) {
+      const cyan = i.action.kind === "travel";
+      g.lineStyle(2, cyan ? 0x35d0ff : 0xd9a441, 0.9);
+      g.strokeRect(i.x * TILE + 2, i.y * TILE + 2, TILE - 4, TILE - 4);
+    }
+    // Anything the reachability pass cannot walk to is ringed in magenta.
+    for (const bad of reachabilityReport(this.zone).unreachable) {
+      g.lineStyle(2, 0xff00ff, 1);
+      g.strokeRect(bad.x * TILE - 2, bad.y * TILE - 2, TILE + 4, TILE + 4);
+    }
+  }
+
+  collisionDebugEnabled() {
+    return this.debugOn;
+  }
+
+  /** Reachability audit for the current zone, used by tests and the overlay. */
+  reachability() {
+    return reachabilityReport(this.zone);
   }
 
   /**
@@ -375,6 +461,7 @@ export class CampusScene extends Phaser.Scene {
       const spot = this.nearestWalkable(data.x, data.y);
       this.player.setPosition(spot.x * TILE + 16, spot.y * TILE + 16);
     }
+    this.streamDecor(true);
     // Doors we spawn on should not immediately fire a transition back.
     this.doorCooldown = 500;
     this.doorArmed = false;
@@ -396,14 +483,20 @@ export class CampusScene extends Phaser.Scene {
     this.events.once("shutdown", () => {
       this.motionUnsub?.();
       this.motionUnsub = undefined;
+      this.decorSprites.forEach((sprite) => sprite.destroy());
+      this.decorSprites.clear();
+      this.decorPlacements = [];
+      this.debugGraphics?.destroy();
+      this.debugGraphics = undefined;
     });
 
 
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
-    this.keys = kb.addKeys("W,A,S,D,E,M") as Record<string, Phaser.Input.Keyboard.Key>;
+    this.keys = kb.addKeys("W,A,S,D,E,M,C") as Record<string, Phaser.Input.Keyboard.Key>;
     this.keys["E"]!.on("down", () => this.interact());
     this.keys["M"]!.on("down", () => useCampusStore.getState().setMapOpen(true));
+    this.keys["C"]!.on("down", () => this.setCollisionDebug(!this.debugOn));
 
     useCampusStore.getState().setZone(this.zone.id);
     useCampusStore
@@ -624,6 +717,15 @@ export class CampusScene extends Phaser.Scene {
       }
     });
 
+
+    // Interior prop streaming runs on a timer, not every frame.
+    if (this.decorStreamed) {
+      this.decorTimer += delta;
+      if (this.decorTimer > 140) {
+        this.decorTimer = 0;
+        this.streamDecor();
+      }
+    }
 
     // prompt + room tracking
     const hit = this.nearestInteraction();
