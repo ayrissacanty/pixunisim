@@ -1,5 +1,6 @@
 import { TILE, isSolid } from "./tiles";
 import { decorFor } from "./decor";
+import { collisionBox } from "@/lib/a11y/assist";
 import type { ZoneMap } from "./world";
 
 /**
