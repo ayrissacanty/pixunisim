@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { Accessibility, Compass, LayoutDashboard, Map } from "lucide-react";
+import { Accessibility, Compass, LayoutDashboard, Map, MoveDiagonal } from "lucide-react";
 import { useCampusStore } from "@/lib/campus/store";
 import { ZONE_LABELS } from "@/lib/campus/world";
 import { Button } from "@/components/ui/button";
 import { Minimap } from "@/components/campus/Minimap";
 import { MOTION_LABELS, useMotionStore } from "@/lib/a11y/motion";
+import { ASSIST_LABEL, useAssistStore } from "@/lib/a11y/assist";
 
 function DPad({ onMove }: { onMove: (x: number, y: number) => void }) {
   const btn =
@@ -56,6 +57,8 @@ export function CampusHud({
   const busy = useCampusStore((s) => !!(s.dialogue || s.reading || s.lessonOpen || s.mapOpen));
   const motion = useMotionStore((s) => s.setting);
   const cycleMotion = useMotionStore((s) => s.cycle);
+  const assist = useAssistStore((s) => s.assist);
+  const toggleAssist = useAssistStore((s) => s.toggle);
 
   return (
     <div className="pointer-events-none absolute inset-0 z-20">
@@ -87,6 +90,19 @@ export function CampusHud({
         >
           <Accessibility className="size-3.5" aria-hidden="true" />
           {MOTION_LABELS[motion]}
+        </button>
+        <button
+          type="button"
+          onClick={toggleAssist}
+          data-testid="assist-toggle"
+          data-assist={assist ? "on" : "off"}
+          aria-pressed={assist}
+          aria-label={`${ASSIST_LABEL(assist)} — widens door, chair and rug tolerances to reduce accidental bumping`}
+          title="Widen interaction tolerances around doors, rugs and chair edges"
+          className="flex items-center gap-1.5 self-start rounded-md border border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-semibold text-foreground shadow hover:bg-accent hover:text-accent-foreground"
+        >
+          <MoveDiagonal className="size-3.5" aria-hidden="true" />
+          {ASSIST_LABEL(assist)}
         </button>
       </div>
 

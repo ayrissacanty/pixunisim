@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { TILE, TILE_COLORS, type TileKind } from "@/lib/campus/tiles";
 import { getZone, type Interactable, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
 import { canStandBox } from "@/lib/campus/walkable";
+import { interactRadius, doorTriggerRadius } from "@/lib/a11y/assist";
 import { npcPalette, type NpcPalette } from "@/lib/campus/npc-cast";
 import { useCampusStore } from "@/lib/campus/store";
 import { bobScale, cameraLerp, useMotionStore } from "@/lib/a11y/motion";
@@ -470,11 +471,13 @@ export class CampusScene extends Phaser.Scene {
     let best: { dist: number; kind: "object" | "npc"; index: number } | null = null;
     this.zone.interactables.forEach((i, index) => {
       const d = Math.hypot(i.x + 0.5 - px, i.y + 0.5 - py);
-      if (d < 1.6 && (!best || d < best.dist)) best = { dist: d, kind: "object", index };
+      if (d < interactRadius("object") && (!best || d < best.dist))
+        best = { dist: d, kind: "object", index };
     });
     this.npcs.forEach((n, index) => {
       const d = Math.hypot(n.container.x / TILE - px, n.container.y / TILE - py);
-      if (d < 1.8 && (!best || d < best.dist)) best = { dist: d, kind: "npc", index };
+      if (d < interactRadius("npc") && (!best || d < best.dist))
+        best = { dist: d, kind: "npc", index };
     });
     return best as { dist: number; kind: "object" | "npc"; index: number } | null;
   }
@@ -526,10 +529,10 @@ export class CampusScene extends Phaser.Scene {
     }
     if (!nearest) return;
     if (!this.doorArmed) {
-      if (nearest.d > 1.4) this.doorArmed = true;
+      if (nearest.d > doorTriggerRadius() + 0.8) this.doorArmed = true;
       return;
     }
-    if (nearest.d > 0.62) return;
+    if (nearest.d > doorTriggerRadius()) return;
     this.doorArmed = false;
     this.doorCooldown = 1200;
     this.game.events.emit("unify-door", nearest.i.action, nearest.i.label);
