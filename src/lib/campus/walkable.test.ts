@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getZone, ZONE_IDS } from "./world";
-import { buildWalkMask, isWalkableTile } from "./walkable";
+import { buildWalkMask, isWalkableTile, reachabilityReport } from "./walkable";
 import { isSolid } from "./tiles";
 
 describe("walkability mask", () => {
@@ -46,6 +46,18 @@ describe("walkability mask", () => {
         isWalkableTile(zone, zone.defaultSpawn.x, zone.defaultSpawn.y),
         `${id} spawn`,
       ).toBe(true);
+    }
+  });
+});
+
+describe("reachability with prop collision", () => {
+  it("every door, interactable, NPC and room is reachable from the spawn", () => {
+    for (const id of ZONE_IDS) {
+      const report = reachabilityReport(getZone(id));
+      expect(
+        report.unreachable.map((u) => `${u.kind}:${u.id}@${u.x},${u.y}`),
+        `${id} unreachable`,
+      ).toEqual([]);
     }
   });
 });
