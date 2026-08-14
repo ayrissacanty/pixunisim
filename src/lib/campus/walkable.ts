@@ -67,14 +67,27 @@ export function isWalkableTile(zone: ZoneMap, tx: number, ty: number): boolean {
 
 /**
  * Box test used for movement: the character's feet box (in pixels) must be
- * clear on all four corners before the move is committed.
+ * clear on all four corners before the move is committed. The default box
+ * comes from the accessibility assist setting, which slims it down so chair
+ * edges, rug corners and door jambs stop catching the player.
  */
-export function canStandBox(zone: ZoneMap, px: number, py: number, halfW = 7, top = 4, bottom = 12) {
+export function canStandBox(
+  zone: ZoneMap,
+  px: number,
+  py: number,
+  halfW?: number,
+  top?: number,
+  bottom?: number,
+) {
+  const box = collisionBox();
+  const hw = halfW ?? box.halfW;
+  const t = top ?? box.top;
+  const b = bottom ?? box.bottom;
   const corners: Array<[number, number]> = [
-    [px - halfW, py + top],
-    [px + halfW, py + top],
-    [px - halfW, py + bottom],
-    [px + halfW, py + bottom],
+    [px - hw, py + t],
+    [px + hw, py + t],
+    [px - hw, py + b],
+    [px + hw, py + b],
   ];
   return corners.every(([x, y]) => isWalkableTile(zone, Math.floor(x / TILE), Math.floor(y / TILE)));
 }
