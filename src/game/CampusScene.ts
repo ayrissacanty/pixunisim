@@ -273,10 +273,8 @@ export class CampusScene extends Phaser.Scene {
     // Furnished interiors can hold hundreds of props; stream only the ones
     // near the player (current room + adjacent doors) and recycle the rest.
     this.decorStreamed = zone.kind === "interior";
-    if (this.decorStreamed) {
-      this.streamDecor(true);
-      return;
-    }
+    // Streaming waits for the player: the first pass runs from their spawn.
+    if (this.decorStreamed) return;
     this.decorPlacements.forEach((_, index) => this.spawnDecor(index));
   }
 
@@ -463,6 +461,7 @@ export class CampusScene extends Phaser.Scene {
       const spot = this.nearestWalkable(data.x, data.y);
       this.player.setPosition(spot.x * TILE + 16, spot.y * TILE + 16);
     }
+    this.streamDecor(true);
     // Doors we spawn on should not immediately fire a transition back.
     this.doorCooldown = 500;
     this.doorArmed = false;

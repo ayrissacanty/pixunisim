@@ -5,7 +5,7 @@ import { useCampusStore } from "@/lib/campus/store";
 import { motionDuration } from "@/lib/a11y/motion";
 import { getZone, ZONE_LABELS, type InteractAction, type NpcSpawn } from "@/lib/campus/world";
 import { WALKTHROUGHS, buildWalkthrough } from "@/lib/campus/walkthrough";
-import { isWalkableTile } from "@/lib/campus/walkable";
+import { isWalkableTile, reachabilityReport } from "@/lib/campus/walkable";
 
 import type { CampusScene } from "@/game/CampusScene";
 import { CampusHud } from "@/components/campus/CampusHud";
@@ -234,6 +234,9 @@ export function CampusView({
           };
         },
         walkable: (zoneId: string, x: number, y: number) => isWalkableTile(getZone(zoneId), x, y),
+        reachability: (zoneId?: string) =>
+          reachabilityReport(getZone(zoneId ?? useCampusStore.getState().currentZone)),
+        collisionDebug: (on: boolean) => sceneRef.current?.setCollisionDebug(on),
         state: () => {
           const s = useCampusStore.getState();
           return {
