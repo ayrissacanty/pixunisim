@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { Accessibility, Compass, LayoutDashboard, Map } from "lucide-react";
+import { Accessibility, Compass, LayoutDashboard, Map, MoveDiagonal } from "lucide-react";
 import { useCampusStore } from "@/lib/campus/store";
 import { ZONE_LABELS } from "@/lib/campus/world";
 import { Button } from "@/components/ui/button";
 import { Minimap } from "@/components/campus/Minimap";
 import { MOTION_LABELS, useMotionStore } from "@/lib/a11y/motion";
+import { ASSIST_LABEL, useAssistStore } from "@/lib/a11y/assist";
 
 function DPad({ onMove }: { onMove: (x: number, y: number) => void }) {
   const btn =
@@ -56,6 +57,8 @@ export function CampusHud({
   const busy = useCampusStore((s) => !!(s.dialogue || s.reading || s.lessonOpen || s.mapOpen));
   const motion = useMotionStore((s) => s.setting);
   const cycleMotion = useMotionStore((s) => s.cycle);
+  const assist = useAssistStore((s) => s.assist);
+  const toggleAssist = useAssistStore((s) => s.toggle);
 
   return (
     <div className="pointer-events-none absolute inset-0 z-20">
