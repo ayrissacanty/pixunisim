@@ -199,3 +199,87 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   setObjective: (text, zone) => set({ currentObjective: text, objectiveTargetZone: zone }),
   triggerMobileAction: () => set((s) => ({ mobileAction: s.mobileAction + 1 })),
 }));
+
+/* ------------------------- exploration persistence ------------------------- */
+
+const PERSIST_KEY = "unify-campus-exploration";
+
+export interface PersistedCampus {
+  currentZone: string;
+  playerPosition: { x: number; y: number };
+  playerDirection: CampusState["playerDirection"];
+  currentRoom?: string | undefined;
+  currentRoomName?: string | undefined;
+  lastDoor?: string | undefined;
+  zoneMemory: Record<string, { x: number; y: number }>;
+  discovered: string[];
+  events: TrackerEvent[];
+}
+
+/** Reads the saved exploration snapshot, if the student has one. */
+export function readCampusSnapshot(): PersistedCampus | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PERSIST_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedCampus;
+    if (!parsed?.currentZone || !parsed.playerPosition) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/** Restores last zone, position, room, door and activity feed after a refresh. */
+export function hydrateCampus(): PersistedCampus | null {
+  const snap = readCampusSnapshot();
+  if (!snap) return null;
+  useCampusStore.setState({
+    currentZone: snap.currentZone,
+    playerPosition: snap.playerPosition,
+    playerDirection: snap.playerDirection ?? "down",
+    currentRoom: snap.currentRoom,
+    currentRoomName: snap.currentRoomName,
+    lastDoor: snap.lastDoor,
+    zoneMemory: snap.zoneMemory ?? {},
+    discovered: snap.discovered?.length ? snap.discovered : ["welcome-plaza"],
+    events: snap.events ?? [],
+  });
+  return snap;
+}
+
+let writeTimer: number | undefined;
+
+/** Throttled writer: movement fires constantly, storage should not. */
+export function startCampusPersistence(): () => void {
+  if (typeof window === "undefined") return () => undefined;
+  const unsub = useCampusStore.subscribe((s) => {
+    if (writeTimer) return;
+    writeTimer = window.setTimeout(() => {
+      writeTimer = undefined;
+      const cur = useCampusStore.getState();
+      const snapshot: PersistedCampus = {
+        currentZone: cur.currentZone,
+        playerPosition: cur.playerPosition,
+        playerDirection: cur.playerDirection,
+        currentRoom: cur.currentRoom,
+        currentRoomName: cur.currentRoomName,
+        lastDoor: cur.lastDoor,
+        zoneMemory: cur.zoneMemory,
+        discovered: cur.discovered,
+        events: cur.events,
+      };
+      try {
+        window.localStorage.setItem(PERSIST_KEY, JSON.stringify(snapshot));
+      } catch {
+        /* storage full or blocked — exploration state is best-effort */
+      }
+    }, 600);
+    void s;
+  });
+  return () => {
+    unsub();
+    if (writeTimer) window.clearTimeout(writeTimer);
+    writeTimer = undefined;
+  };
+}
