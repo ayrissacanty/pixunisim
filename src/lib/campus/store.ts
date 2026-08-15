@@ -119,6 +119,19 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   mobileAction: 0,
   layer: 1,
   zoneMemory: {},
+  events: [],
+  perfOpen: false,
+
+  logEvent: (kind, text) =>
+    set((s) => {
+      const last = s.events[0];
+      if (last && last.text === text) return s;
+      const entry: TrackerEvent = { id: (last?.id ?? 0) + 1, kind, text, at: Date.now() };
+      return { events: [entry, ...s.events].slice(0, 8) };
+    }),
+  setLastDoor: (label) => set({ lastDoor: label }),
+  setPerfOpen: (open) => set({ perfOpen: open }),
+
 
   setLayer: (layer) => set({ layer }),
   beginTransition: (t) => set({ transition: t }),
