@@ -155,7 +155,7 @@ export function useProgress() {
       if (!userId) return [];
       const { data, error } = await supabase
         .from("student_progress")
-        .select("lesson_id, course_id, status, score, sections_read");
+        .select(PROGRESS_COLUMNS);
       if (error || !data) {
         const cached = await local?.progress.where("user_id").equals(userId).toArray();
         return (cached ?? []) as Progress[];
@@ -185,7 +185,7 @@ export function useSaveProgress() {
 
       const { data: remote } = await supabase
         .from("student_progress")
-        .select("lesson_id, course_id, status, score, sections_read")
+        .select(PROGRESS_COLUMNS)
         .eq("lesson_id", input.lesson_id)
         .maybeSingle();
 
@@ -226,7 +226,7 @@ export function useOfflineSync() {
       for (const item of queued) {
         const { data: remote, error: readError } = await supabase
           .from("student_progress")
-          .select("lesson_id, course_id, status, score, sections_read")
+          .select(PROGRESS_COLUMNS)
           .eq("lesson_id", item.payload.lesson_id)
           .maybeSingle();
         if (readError) continue;
