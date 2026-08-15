@@ -71,14 +71,20 @@ export function CampusHud({
             {roomName ?? "Unify University"}
           </p>
         </div>
-        {objective && (
-          <div className="max-w-56 rounded-md border border-border bg-card/95 px-3 py-2 text-xs shadow">
-            <p className="font-semibold uppercase tracking-widest text-[10px] text-accent">
-              Objective
-            </p>
-            <p className="mt-0.5 text-foreground">{objective}</p>
-          </div>
-        )}
+        <ObjectiveTracker />
+        <button
+          type="button"
+          onClick={() => setPerfOpen(!perfOpen)}
+          data-testid="perf-toggle"
+          data-perf={perfOpen ? "on" : "off"}
+          aria-pressed={perfOpen}
+          aria-label="Toggle the campus performance profiling overlay"
+          title="Show streamed prop counts and frame-time spikes"
+          className="flex items-center gap-1.5 self-start rounded-md border border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-semibold text-foreground shadow hover:bg-accent hover:text-accent-foreground"
+        >
+          <Gauge className="size-3.5" aria-hidden="true" />
+          Profiler {perfOpen ? "on" : "off"}
+        </button>
         <button
           type="button"
           onClick={cycleMotion}
