@@ -173,12 +173,14 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   openReading: (r) => set({ reading: r }),
   closeReading: () => set({ reading: undefined }),
   setMapOpen: (open) => set({ mapOpen: open }),
-  openLesson: (lessonId, courseId, roomId) =>
+  openLesson: (lessonId, courseId, roomId) => {
+    get().logEvent("lesson", `Lesson opened — ${lessonId}`);
     set({
       lessonOpen: { lessonId, courseId, ...(roomId ? { roomId } : {}) },
       dialogue: undefined,
       layer: 4,
-    }),
+    });
+  },
   closeLesson: () =>
     set((s) => ({
       lessonOpen: undefined,
