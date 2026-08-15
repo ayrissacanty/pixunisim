@@ -157,7 +157,10 @@ export const useCampusStore = create<CampusState>((set, get) => ({
       currentRoomName: undefined,
       discovered: s.discovered.includes(zone) ? s.discovered : [...s.discovered, zone],
     })),
-  setRoom: (roomId, roomName) => set({ currentRoom: roomId, currentRoomName: roomName }),
+  setRoom: (roomId, roomName) => {
+    if (roomName && roomId !== get().currentRoom) get().logEvent("room", `Entered ${roomName}`);
+    set({ currentRoom: roomId, currentRoomName: roomName });
+  },
   setPlayer: (x, y, dir) => set({ playerPosition: { x, y }, playerDirection: dir }),
   setPrompt: (p) => set({ interactionTarget: p }),
   openDialogue: (d) => set({ dialogue: { ...d, lineIndex: 0 } }),
