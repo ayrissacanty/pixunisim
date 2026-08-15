@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { Accessibility, Compass, LayoutDashboard, Map, MoveDiagonal } from "lucide-react";
+import { Accessibility, Compass, Gauge, LayoutDashboard, Map, MoveDiagonal } from "lucide-react";
 import { useCampusStore } from "@/lib/campus/store";
 import { ZONE_LABELS } from "@/lib/campus/world";
 import { Button } from "@/components/ui/button";
 import { Minimap } from "@/components/campus/Minimap";
+import { ObjectiveTracker } from "@/components/campus/ObjectiveTracker";
 import { MOTION_LABELS, useMotionStore } from "@/lib/a11y/motion";
 import { ASSIST_LABEL, useAssistStore } from "@/lib/a11y/assist";
 
@@ -52,7 +53,8 @@ export function CampusHud({
   const zone = useCampusStore((s) => s.currentZone);
   const roomName = useCampusStore((s) => s.currentRoomName);
   const prompt = useCampusStore((s) => s.interactionTarget);
-  const objective = useCampusStore((s) => s.currentObjective);
+  const perfOpen = useCampusStore((s) => s.perfOpen);
+  const setPerfOpen = useCampusStore((s) => s.setPerfOpen);
   const setMapOpen = useCampusStore((s) => s.setMapOpen);
   const busy = useCampusStore((s) => !!(s.dialogue || s.reading || s.lessonOpen || s.mapOpen));
   const motion = useMotionStore((s) => s.setting);
