@@ -251,6 +251,42 @@ export class CampusScene extends Phaser.Scene {
   private decorTimer = 0;
   private debugGraphics?: Phaser.GameObjects.Graphics | undefined;
   private debugOn = false;
+  /** Profiling counters surfaced by the campus performance overlay. */
+  private perfSpikes = 0;
+  private perfWorst = 0;
+  private perfFrames = 0;
+  private perfTotal = 0;
+  private perfSpawns = 0;
+  private perfDestroys = 0;
+
+  /** Snapshot for the on-screen profiler: streaming + frame-time health. */
+  perfStats() {
+    const avg = this.perfFrames ? this.perfTotal / this.perfFrames : 0;
+    return {
+      zone: this.zone?.id ?? "—",
+      streaming: this.decorStreamed,
+      placements: this.decorPlacements.length,
+      liveProps: this.decorSprites.size,
+      propSpawns: this.perfSpawns,
+      propRecycles: this.perfDestroys,
+      rooms: this.zone?.rooms.length ?? 0,
+      doors: (this.zone?.interactables ?? []).filter((i) => i.action.kind === "travel").length,
+      npcs: this.npcs.length,
+      avgFrameMs: Math.round(avg * 10) / 10,
+      worstFrameMs: Math.round(this.perfWorst * 10) / 10,
+      spikes: this.perfSpikes,
+      fps: avg > 0 ? Math.round(1000 / avg) : 0,
+    };
+  }
+
+  resetPerfStats() {
+    this.perfSpikes = 0;
+    this.perfWorst = 0;
+    this.perfFrames = 0;
+    this.perfTotal = 0;
+    this.perfSpawns = 0;
+    this.perfDestroys = 0;
+  }
   joystick: { x: number; y: number } = { x: 0, y: 0 };
 
   constructor() {
