@@ -7,41 +7,8 @@ import { Minimap } from "@/components/campus/Minimap";
 import { ObjectiveTracker } from "@/components/campus/ObjectiveTracker";
 import { MOTION_LABELS, useMotionStore } from "@/lib/a11y/motion";
 import { ASSIST_LABEL, useAssistStore } from "@/lib/a11y/assist";
-
-function DPad({ onMove }: { onMove: (x: number, y: number) => void }) {
-  const btn =
-    "pointer-events-auto flex size-14 items-center justify-center rounded-md border-2 border-accent/70 bg-sidebar/80 text-lg font-bold text-sidebar-foreground active:bg-accent active:text-accent-foreground";
-  const bind = (x: number, y: number) => ({
-    onPointerDown: (e: React.PointerEvent) => {
-      e.preventDefault();
-      onMove(x, y);
-    },
-    onPointerUp: () => onMove(0, 0),
-    onPointerLeave: () => onMove(0, 0),
-    onPointerCancel: () => onMove(0, 0),
-  });
-  return (
-    <div className="grid grid-cols-3 grid-rows-3 gap-1">
-      <span />
-      <button className={btn} aria-label="Move up" {...bind(0, -1)}>
-        ▲
-      </button>
-      <span />
-      <button className={btn} aria-label="Move left" {...bind(-1, 0)}>
-        ◀
-      </button>
-      <span />
-      <button className={btn} aria-label="Move right" {...bind(1, 0)}>
-        ▶
-      </button>
-      <span />
-      <button className={btn} aria-label="Move down" {...bind(0, 1)}>
-        ▼
-      </button>
-      <span />
-    </div>
-  );
-}
+import { useDebugMode } from "@/lib/debug";
+import { TouchControls } from "@/components/campus/TouchControls";
 
 export function CampusHud({
   onMove,
@@ -61,6 +28,7 @@ export function CampusHud({
   const cycleMotion = useMotionStore((s) => s.cycle);
   const assist = useAssistStore((s) => s.assist);
   const toggleAssist = useAssistStore((s) => s.toggle);
+  const debug = useDebugMode();
 
   return (
     <div className="pointer-events-none absolute inset-0 z-20">
@@ -74,6 +42,8 @@ export function CampusHud({
           </p>
         </div>
         <ObjectiveTracker />
+        {debug && (
+          <>
         <button
           type="button"
           onClick={() => setPerfOpen(!perfOpen)}
@@ -112,6 +82,8 @@ export function CampusHud({
           <MoveDiagonal className="size-3.5" aria-hidden="true" />
           {ASSIST_LABEL(assist)}
         </button>
+          </>
+        )}
       </div>
 
       {!busy && (
@@ -140,19 +112,7 @@ export function CampusHud({
         </div>
       )}
 
-      {!busy && (
-        <>
-          <div className="absolute bottom-4 left-3 md:hidden">
-            <DPad onMove={onMove} />
-          </div>
-          <button
-            onClick={onAction}
-            className="pointer-events-auto absolute bottom-10 right-4 size-16 rounded-full border-2 border-accent bg-primary text-sm font-bold text-primary-foreground shadow-lg active:scale-95 md:hidden"
-          >
-            ACT
-          </button>
-        </>
-      )}
+      {!busy && <TouchControls onMove={onMove} onAction={onAction} />}
 
       <div className="absolute bottom-3 left-1/2 hidden -translate-x-1/2 items-center gap-3 rounded-md bg-sidebar/80 px-3 py-1.5 text-[11px] text-sidebar-foreground/90 md:flex">
         <Compass className="size-3.5" />

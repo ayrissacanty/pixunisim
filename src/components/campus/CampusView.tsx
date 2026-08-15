@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import type Phaser from "phaser";
 import { useCampusStore, hydrateCampus, startCampusPersistence } from "@/lib/campus/store";
 import { motionDuration } from "@/lib/a11y/motion";
+import { debugEnabled } from "@/lib/debug";
 import { getZone, ZONE_LABELS, type InteractAction, type NpcSpawn } from "@/lib/campus/world";
 import { WALKTHROUGHS, buildWalkthrough } from "@/lib/campus/walkthrough";
 import { isWalkableTile, reachabilityReport } from "@/lib/campus/walkable";
@@ -48,6 +49,7 @@ export function CampusView({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() !== "p" || e.metaKey || e.ctrlKey) return;
+      if (!debugEnabled()) return;
       const s = useCampusStore.getState();
       if (s.dialogue || s.reading || s.lessonOpen) return;
       s.setPerfOpen(!s.perfOpen);

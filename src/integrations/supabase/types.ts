@@ -265,6 +265,27 @@ export type Database = {
         }
         Relationships: []
       }
+      families: {
+        Row: {
+          created_at: string
+          family_code: string
+          family_name: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          family_code?: string
+          family_name: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          family_code?: string
+          family_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
       lessons: {
         Row: {
           alley_greeting: string | null
@@ -326,6 +347,8 @@ export type Database = {
           avatar: string
           created_at: string
           display_name: string
+          family_id: string | null
+          family_role: string | null
           id: string
           portrait: Json
         }
@@ -333,6 +356,8 @@ export type Database = {
           avatar?: string
           created_at?: string
           display_name?: string
+          family_id?: string | null
+          family_role?: string | null
           id: string
           portrait?: Json
         }
@@ -340,10 +365,20 @@ export type Database = {
           avatar?: string
           created_at?: string
           display_name?: string
+          family_id?: string | null
+          family_role?: string | null
           id?: string
           portrait?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       questions: {
         Row: {
@@ -469,6 +504,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_family_id: { Args: never; Returns: string }
+      generate_family_code: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useCampusStore } from "@/lib/campus/store";
+import { useDebugMode } from "@/lib/debug";
 
 export interface CampusPerfStats {
   zone: string;
@@ -28,7 +29,8 @@ export function PerfOverlay({
   getStats: () => CampusPerfStats | undefined;
   onReset: () => void;
 }) {
-  const open = useCampusStore((s) => s.perfOpen);
+  const debug = useDebugMode();
+  const open = useCampusStore((s) => s.perfOpen) && debug;
   const setOpen = useCampusStore((s) => s.setPerfOpen);
   const [stats, setStats] = useState<CampusPerfStats | undefined>(undefined);
 
