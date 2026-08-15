@@ -138,8 +138,10 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   endTransition: () => set((s) => ({ transition: undefined, layer: s.transition?.toLayer ?? s.layer })),
   rememberPosition: (zone, x, y) =>
     set((s) => ({ zoneMemory: { ...s.zoneMemory, [zone]: { x, y } } })),
-  enterClassroom: (c) =>
-    set({ classroom: { ...c, phase: "arrive" }, dialogue: undefined, layer: 3 }),
+  enterClassroom: (c) => {
+    get().logEvent("room", `Class started in ${c.roomName}`);
+    set({ classroom: { ...c, phase: "arrive" }, dialogue: undefined, layer: 3 });
+  },
   dismissClass: () =>
     set((s) => ({
       lessonOpen: undefined,
