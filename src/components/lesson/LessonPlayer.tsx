@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, ChevronLeft, ChevronRight, GraduationCap, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress as ProgressBar } from "@/components/ui/progress";
@@ -9,6 +9,7 @@ import { CharacterStage } from "@/components/three/CharacterStage";
 import { LESSON_DESK_PROPS } from "@/lib/props3d";
 import { TEACHER_CHARACTER } from "@/lib/characters";
 import { useAvatar } from "@/lib/profile";
+import { useCampusStore } from "@/lib/campus/store";
 import {
   useLesson,
   useQuestions,
@@ -98,8 +99,19 @@ export function LessonPlayer({
   const [step, setStep] = useState(0);
   const [results, setResults] = useState<Record<string, boolean>>({});
   const [tutorOpen, setTutorOpen] = useState(false);
+  const resumed = useRef(false);
 
   const existing = progressFor(progress, lessonId);
+
+  // Seamless resume: the saved bookmark (shared by campus + Workspace) decides
+  // the opening step the first time progress arrives.
+  useEffect(() => {
+    if (resumed.current || !progress || !lesson) return;
+    resumed.current = true;
+    const saved = existing?.last_position?.step ?? (existing ? existing.sections_read - 1 : -1);
+    const max = (lesson.sections?.length ?? 0) + 1;
+    if (saved > 0) setStep(Math.min(saved, Math.max(max - 1, 0)));
+  }, [progress, lesson, existing]);
   const sections = lesson?.sections ?? [];
   const checks = useMemo(() => (questions ?? []).filter((q) => q.kind === "check"), [questions]);
   const practice = useMemo(
@@ -118,25 +130,35 @@ export function LessonPlayer({
   const allAnswered = checks.length > 0 && answeredChecks.length === checks.length;
   const score = checks.length ? Math.round((correct / checks.length) * 100) : null;
 
-  const persist = (status: "in_progress" | "completed", sectionsRead: number) =>
+  const persist = (status: "in_progress" | "completed", sectionsRead: number, atStep: number) =>
     save.mutateAsync({
       lesson_id: lesson.id,
       course_id: lesson.course_id,
       status,
       score: status === "completed" ? score : (existing?.score ?? null),
       sections_read: Math.max(sectionsRead, existing?.sections_read ?? 0),
+      last_position: { step: atStep },
     });
 
   const next = () => {
     const target = Math.min(step + 1, totalSteps - 1);
     setStep(target);
-    void persist("in_progress", Math.min(target + 1, sections.length));
+    void persist("in_progress", Math.min(target + 1, sections.length), target);
+  };
+
+  const back = () => {
+    const target = Math.max(0, step - 1);
+    setStep(target);
+    void persist("in_progress", Math.min(target + 1, sections.length), target);
   };
 
   // Wait for the save to settle before closing, so leaving the classroom can
   // never cancel the in-flight completion write.
   const finish = async () => {
-    await persist("completed", sections.length);
+    await persist("completed", sections.length, Math.max(totalSteps - 1, 0));
+    useCampusStore
+      .getState()
+      .logEvent("assessment", `Assessment recorded — ${lesson.title}${score === null ? "" : ` (${score}%)`}`);
     onComplete?.();
   };
 
@@ -240,7 +262,7 @@ export function LessonPlayer({
         <div className="mt-5 flex items-center gap-2">
           <Button
             variant="outline"
-            onClick={() => setStep((s) => Math.max(0, s - 1))}
+            onClick={back}
             disabled={step === 0}
           >
             <ChevronLeft className="size-4" /> Back

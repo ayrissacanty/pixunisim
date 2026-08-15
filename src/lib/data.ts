@@ -49,7 +49,11 @@ export interface Progress {
   status: "in_progress" | "completed";
   score: number | null;
   sections_read: number;
+  /** Resume bookmark shared by the campus lesson overlay and the Workspace. */
+  last_position?: { step: number } | null;
 }
+
+const PROGRESS_COLUMNS = "lesson_id, course_id, status, score, sections_read, last_position";
 
 /* --------------------------------- reads ---------------------------------- */
 
@@ -151,7 +155,7 @@ export function useProgress() {
       if (!userId) return [];
       const { data, error } = await supabase
         .from("student_progress")
-        .select("lesson_id, course_id, status, score, sections_read");
+        .select(PROGRESS_COLUMNS);
       if (error || !data) {
         const cached = await local?.progress.where("user_id").equals(userId).toArray();
         return (cached ?? []) as Progress[];
@@ -181,7 +185,7 @@ export function useSaveProgress() {
 
       const { data: remote } = await supabase
         .from("student_progress")
-        .select("lesson_id, course_id, status, score, sections_read")
+        .select(PROGRESS_COLUMNS)
         .eq("lesson_id", input.lesson_id)
         .maybeSingle();
 
@@ -222,7 +226,7 @@ export function useOfflineSync() {
       for (const item of queued) {
         const { data: remote, error: readError } = await supabase
           .from("student_progress")
-          .select("lesson_id, course_id, status, score, sections_read")
+          .select(PROGRESS_COLUMNS)
           .eq("lesson_id", item.payload.lesson_id)
           .maybeSingle();
         if (readError) continue;

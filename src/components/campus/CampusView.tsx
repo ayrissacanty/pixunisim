@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type Phaser from "phaser";
-import { useCampusStore } from "@/lib/campus/store";
+import { useCampusStore, hydrateCampus, startCampusPersistence } from "@/lib/campus/store";
 import { motionDuration } from "@/lib/a11y/motion";
 import { getZone, ZONE_LABELS, type InteractAction, type NpcSpawn } from "@/lib/campus/world";
 import { WALKTHROUGHS, buildWalkthrough } from "@/lib/campus/walkthrough";
@@ -14,6 +14,7 @@ import { CampusMapOverlay } from "@/components/campus/CampusMapOverlay";
 import { LessonOverlay } from "@/components/campus/LessonOverlay";
 import { ClassroomBeat } from "@/components/campus/ClassroomBeat";
 import { LayerTransition } from "@/components/campus/LayerTransition";
+import { PerfOverlay, type CampusPerfStats } from "@/components/campus/PerfOverlay";
 import { useCampusObjectives } from "@/lib/campus/objectives";
 import { useOfflineSync } from "@/lib/data";
 import { prefetchCharacters } from "@/components/three/CharacterStage";
@@ -40,6 +41,21 @@ export function CampusView({
   useCampusObjectives();
   useOfflineSync();
 
+  // Exploration state survives refresh/relogin: restore before Phaser boots and
+  // keep writing a throttled snapshot afterwards.
+  useEffect(() => startCampusPersistence(), []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "p" || e.metaKey || e.ctrlKey) return;
+      const s = useCampusStore.getState();
+      if (s.dialogue || s.reading || s.lessonOpen) return;
+      s.setPerfOpen(!s.perfOpen);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
 
 
   useEffect(() => {
@@ -52,7 +68,11 @@ export function CampusView({
       ]);
       if (disposed || !containerRef.current) return;
 
-      const zone = getZone(initialZone);
+      const saved = hydrateCampus();
+      const zone = getZone(saved?.currentZone ?? initialZone);
+      const spawn = saved?.currentZone
+        ? (saved.playerPosition ?? zone.defaultSpawn)
+        : zone.defaultSpawn;
       const game = new PhaserLib.Game({
         type: PhaserLib.AUTO,
         parent: containerRef.current,
@@ -69,8 +89,8 @@ export function CampusView({
       useCampusStore.getState().setZone(zone.id);
       game.scene.start("campus", {
         zoneId: zone.id,
-        x: zone.defaultSpawn.x,
-        y: zone.defaultSpawn.y,
+        x: spawn.x,
+        y: spawn.y,
       });
       sceneRef.current = game.scene.getScene("campus") as CampusScene;
       setReady(true);
@@ -163,6 +183,8 @@ export function CampusView({
         if (action.kind !== "travel") return;
         const s = useCampusStore.getState();
         if (s.dialogue || s.reading || s.lessonOpen || s.mapOpen || s.transition) return;
+        s.setLastDoor(ZONE_LABELS[action.zone] ?? action.zone);
+        s.logEvent("travel", `Through the door into ${ZONE_LABELS[action.zone] ?? action.zone}`);
         enterZone(action.zone, action.spawnX, action.spawnY);
       });
 
@@ -237,6 +259,8 @@ export function CampusView({
         reachability: (zoneId?: string) =>
           reachabilityReport(getZone(zoneId ?? useCampusStore.getState().currentZone)),
         collisionDebug: (on: boolean) => sceneRef.current?.setCollisionDebug(on),
+        perf: () => sceneRef.current?.perfStats(),
+        perfOverlay: (on: boolean) => useCampusStore.getState().setPerfOpen(on),
         state: () => {
           const s = useCampusStore.getState();
           return {
@@ -247,6 +271,8 @@ export function CampusView({
             objective: s.currentObjective,
             lessonOpen: s.lessonOpen,
             layer: s.layer,
+            lastDoor: s.lastDoor,
+            events: s.events,
             classroom: s.classroom,
             transition: s.transition,
           };
@@ -323,6 +349,10 @@ export function CampusView({
       <ClassroomBeat />
       <LessonOverlay />
       <LayerTransition />
+      <PerfOverlay
+        getStats={() => sceneRef.current?.perfStats() as CampusPerfStats | undefined}
+        onReset={() => sceneRef.current?.resetPerfStats()}
+      />
     </div>
   );
 }

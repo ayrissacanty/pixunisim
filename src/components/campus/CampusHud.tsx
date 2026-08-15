@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { Accessibility, Compass, LayoutDashboard, Map, MoveDiagonal } from "lucide-react";
+import { Accessibility, Compass, Gauge, LayoutDashboard, Map, MoveDiagonal } from "lucide-react";
 import { useCampusStore } from "@/lib/campus/store";
 import { ZONE_LABELS } from "@/lib/campus/world";
 import { Button } from "@/components/ui/button";
 import { Minimap } from "@/components/campus/Minimap";
+import { ObjectiveTracker } from "@/components/campus/ObjectiveTracker";
 import { MOTION_LABELS, useMotionStore } from "@/lib/a11y/motion";
 import { ASSIST_LABEL, useAssistStore } from "@/lib/a11y/assist";
 
@@ -52,7 +53,8 @@ export function CampusHud({
   const zone = useCampusStore((s) => s.currentZone);
   const roomName = useCampusStore((s) => s.currentRoomName);
   const prompt = useCampusStore((s) => s.interactionTarget);
-  const objective = useCampusStore((s) => s.currentObjective);
+  const perfOpen = useCampusStore((s) => s.perfOpen);
+  const setPerfOpen = useCampusStore((s) => s.setPerfOpen);
   const setMapOpen = useCampusStore((s) => s.setMapOpen);
   const busy = useCampusStore((s) => !!(s.dialogue || s.reading || s.lessonOpen || s.mapOpen));
   const motion = useMotionStore((s) => s.setting);
@@ -71,14 +73,20 @@ export function CampusHud({
             {roomName ?? "Unify University"}
           </p>
         </div>
-        {objective && (
-          <div className="max-w-56 rounded-md border border-border bg-card/95 px-3 py-2 text-xs shadow">
-            <p className="font-semibold uppercase tracking-widest text-[10px] text-accent">
-              Objective
-            </p>
-            <p className="mt-0.5 text-foreground">{objective}</p>
-          </div>
-        )}
+        <ObjectiveTracker />
+        <button
+          type="button"
+          onClick={() => setPerfOpen(!perfOpen)}
+          data-testid="perf-toggle"
+          data-perf={perfOpen ? "on" : "off"}
+          aria-pressed={perfOpen}
+          aria-label="Toggle the campus performance profiling overlay"
+          title="Show streamed prop counts and frame-time spikes"
+          className="flex items-center gap-1.5 self-start rounded-md border border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-semibold text-foreground shadow hover:bg-accent hover:text-accent-foreground"
+        >
+          <Gauge className="size-3.5" aria-hidden="true" />
+          Profiler {perfOpen ? "on" : "off"}
+        </button>
         <button
           type="button"
           onClick={cycleMotion}

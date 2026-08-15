@@ -46,7 +46,21 @@ export interface ClassroomState {
   phase: "arrive" | "dismiss";
 }
 
+/** One line in the on-screen objective tracker's activity feed. */
+export interface TrackerEvent {
+  id: number;
+  kind: "room" | "lesson" | "assessment" | "travel";
+  text: string;
+  at: number;
+}
+
 interface CampusState {
+  events: TrackerEvent[];
+  lastDoor?: string | undefined;
+  perfOpen: boolean;
+  logEvent: (kind: TrackerEvent["kind"], text: string) => void;
+  setLastDoor: (label?: string | undefined) => void;
+  setPerfOpen: (open: boolean) => void;
   layer: CampusLayer;
   transition?: TransitionState | undefined;
   classroom?: ClassroomState | undefined;
@@ -105,14 +119,29 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   mobileAction: 0,
   layer: 1,
   zoneMemory: {},
+  events: [],
+  perfOpen: false,
+
+  logEvent: (kind, text) =>
+    set((s) => {
+      const last = s.events[0];
+      if (last && last.text === text) return s;
+      const entry: TrackerEvent = { id: (last?.id ?? 0) + 1, kind, text, at: Date.now() };
+      return { events: [entry, ...s.events].slice(0, 8) };
+    }),
+  setLastDoor: (label) => set({ lastDoor: label }),
+  setPerfOpen: (open) => set({ perfOpen: open }),
+
 
   setLayer: (layer) => set({ layer }),
   beginTransition: (t) => set({ transition: t }),
   endTransition: () => set((s) => ({ transition: undefined, layer: s.transition?.toLayer ?? s.layer })),
   rememberPosition: (zone, x, y) =>
     set((s) => ({ zoneMemory: { ...s.zoneMemory, [zone]: { x, y } } })),
-  enterClassroom: (c) =>
-    set({ classroom: { ...c, phase: "arrive" }, dialogue: undefined, layer: 3 }),
+  enterClassroom: (c) => {
+    get().logEvent("room", `Class started in ${c.roomName}`);
+    set({ classroom: { ...c, phase: "arrive" }, dialogue: undefined, layer: 3 });
+  },
   dismissClass: () =>
     set((s) => ({
       lessonOpen: undefined,
@@ -128,7 +157,10 @@ export const useCampusStore = create<CampusState>((set, get) => ({
       currentRoomName: undefined,
       discovered: s.discovered.includes(zone) ? s.discovered : [...s.discovered, zone],
     })),
-  setRoom: (roomId, roomName) => set({ currentRoom: roomId, currentRoomName: roomName }),
+  setRoom: (roomId, roomName) => {
+    if (roomName && roomId !== get().currentRoom) get().logEvent("room", `Entered ${roomName}`);
+    set({ currentRoom: roomId, currentRoomName: roomName });
+  },
   setPlayer: (x, y, dir) => set({ playerPosition: { x, y }, playerDirection: dir }),
   setPrompt: (p) => set({ interactionTarget: p }),
   openDialogue: (d) => set({ dialogue: { ...d, lineIndex: 0 } }),
@@ -141,12 +173,14 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   openReading: (r) => set({ reading: r }),
   closeReading: () => set({ reading: undefined }),
   setMapOpen: (open) => set({ mapOpen: open }),
-  openLesson: (lessonId, courseId, roomId) =>
+  openLesson: (lessonId, courseId, roomId) => {
+    get().logEvent("lesson", `Lesson opened — ${lessonId}`);
     set({
       lessonOpen: { lessonId, courseId, ...(roomId ? { roomId } : {}) },
       dialogue: undefined,
       layer: 4,
-    }),
+    });
+  },
   closeLesson: () =>
     set((s) => ({
       lessonOpen: undefined,
@@ -165,3 +199,87 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   setObjective: (text, zone) => set({ currentObjective: text, objectiveTargetZone: zone }),
   triggerMobileAction: () => set((s) => ({ mobileAction: s.mobileAction + 1 })),
 }));
+
+/* ------------------------- exploration persistence ------------------------- */
+
+const PERSIST_KEY = "unify-campus-exploration";
+
+export interface PersistedCampus {
+  currentZone: string;
+  playerPosition: { x: number; y: number };
+  playerDirection: CampusState["playerDirection"];
+  currentRoom?: string | undefined;
+  currentRoomName?: string | undefined;
+  lastDoor?: string | undefined;
+  zoneMemory: Record<string, { x: number; y: number }>;
+  discovered: string[];
+  events: TrackerEvent[];
+}
+
+/** Reads the saved exploration snapshot, if the student has one. */
+export function readCampusSnapshot(): PersistedCampus | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PERSIST_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedCampus;
+    if (!parsed?.currentZone || !parsed.playerPosition) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/** Restores last zone, position, room, door and activity feed after a refresh. */
+export function hydrateCampus(): PersistedCampus | null {
+  const snap = readCampusSnapshot();
+  if (!snap) return null;
+  useCampusStore.setState({
+    currentZone: snap.currentZone,
+    playerPosition: snap.playerPosition,
+    playerDirection: snap.playerDirection ?? "down",
+    currentRoom: snap.currentRoom,
+    currentRoomName: snap.currentRoomName,
+    lastDoor: snap.lastDoor,
+    zoneMemory: snap.zoneMemory ?? {},
+    discovered: snap.discovered?.length ? snap.discovered : ["welcome-plaza"],
+    events: snap.events ?? [],
+  });
+  return snap;
+}
+
+let writeTimer: number | undefined;
+
+/** Throttled writer: movement fires constantly, storage should not. */
+export function startCampusPersistence(): () => void {
+  if (typeof window === "undefined") return () => undefined;
+  const unsub = useCampusStore.subscribe((s) => {
+    if (writeTimer) return;
+    writeTimer = window.setTimeout(() => {
+      writeTimer = undefined;
+      const cur = useCampusStore.getState();
+      const snapshot: PersistedCampus = {
+        currentZone: cur.currentZone,
+        playerPosition: cur.playerPosition,
+        playerDirection: cur.playerDirection,
+        currentRoom: cur.currentRoom,
+        currentRoomName: cur.currentRoomName,
+        lastDoor: cur.lastDoor,
+        zoneMemory: cur.zoneMemory,
+        discovered: cur.discovered,
+        events: cur.events,
+      };
+      try {
+        window.localStorage.setItem(PERSIST_KEY, JSON.stringify(snapshot));
+      } catch {
+        /* storage full or blocked — exploration state is best-effort */
+      }
+    }, 600);
+    void s;
+  });
+  return () => {
+    unsub();
+    if (writeTimer) window.clearTimeout(writeTimer);
+    writeTimer = undefined;
+  };
+}
