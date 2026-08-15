@@ -49,7 +49,11 @@ export interface Progress {
   status: "in_progress" | "completed";
   score: number | null;
   sections_read: number;
+  /** Resume bookmark shared by the campus lesson overlay and the Workspace. */
+  last_position?: { step: number } | null;
 }
+
+const PROGRESS_COLUMNS = "lesson_id, course_id, status, score, sections_read, last_position";
 
 /* --------------------------------- reads ---------------------------------- */
 
