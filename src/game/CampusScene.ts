@@ -329,6 +329,7 @@ export class CampusScene extends Phaser.Scene {
       .setScale(placement.scale)
       .setDepth(5);
     this.decorSprites.set(index, image);
+    this.perfSpawns += 1;
   }
 
   /** Creates props inside the stream radius and destroys those well outside. */
@@ -346,6 +347,7 @@ export class CampusScene extends Phaser.Scene {
       } else if (live && (force || d > outer)) {
         live.destroy();
         this.decorSprites.delete(index);
+        this.perfDestroys += 1;
       }
     });
   }
@@ -668,6 +670,15 @@ export class CampusScene extends Phaser.Scene {
   }
 
   override update(_time: number, delta: number) {
+    // Frame-time profiling (a "spike" is any frame over ~33ms / 30fps).
+    this.perfFrames += 1;
+    this.perfTotal += delta;
+    if (delta > this.perfWorst) this.perfWorst = delta;
+    if (delta > 33) this.perfSpikes += 1;
+    if (this.perfFrames > 600) {
+      this.perfFrames = 1;
+      this.perfTotal = delta;
+    }
     const store = useCampusStore.getState();
     const blocked = !!(store.dialogue || store.reading || store.lessonOpen || store.mapOpen);
     const dt = Math.min(delta, 50) / 1000;
