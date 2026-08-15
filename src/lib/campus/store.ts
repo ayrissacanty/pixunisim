@@ -46,7 +46,21 @@ export interface ClassroomState {
   phase: "arrive" | "dismiss";
 }
 
+/** One line in the on-screen objective tracker's activity feed. */
+export interface TrackerEvent {
+  id: number;
+  kind: "room" | "lesson" | "assessment" | "travel";
+  text: string;
+  at: number;
+}
+
 interface CampusState {
+  events: TrackerEvent[];
+  lastDoor?: string | undefined;
+  perfOpen: boolean;
+  logEvent: (kind: TrackerEvent["kind"], text: string) => void;
+  setLastDoor: (label?: string | undefined) => void;
+  setPerfOpen: (open: boolean) => void;
   layer: CampusLayer;
   transition?: TransitionState | undefined;
   classroom?: ClassroomState | undefined;
