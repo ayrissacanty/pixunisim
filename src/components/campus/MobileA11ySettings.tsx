@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Contrast, Settings2, X } from "lucide-react";
+import { Contrast, Settings2, Vibrate, X } from "lucide-react";
 import {
   CONTROL_SIZE_LABELS,
   useControlsStore,
@@ -17,6 +17,8 @@ export function MobileA11ySettings() {
   const setSize = useControlsStore((s) => s.setSize);
   const hc = useControlsStore((s) => s.highContrast);
   const toggleHc = useControlsStore((s) => s.toggleHighContrast);
+  const haptics = useControlsStore((s) => s.haptics);
+  const toggleHaptics = useControlsStore((s) => s.toggleHaptics);
   const assist = useAssistStore((s) => s.assist);
   const toggleAssist = useAssistStore((s) => s.toggle);
   const motion = useMotionStore((s) => s.setting);
@@ -86,6 +88,19 @@ export function MobileA11ySettings() {
             >
               <Contrast className="size-4" aria-hidden="true" />
               High-contrast controls: {hc ? "On" : "Off"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                toggleHaptics();
+              }}
+              aria-pressed={haptics}
+              data-testid="a11y-haptics"
+              className="mb-2 flex min-h-12 w-full items-center gap-2 rounded-md border-2 border-border bg-background px-3 text-sm font-semibold text-foreground"
+            >
+              <Vibrate className="size-4" aria-hidden="true" />
+              Haptic feedback: {haptics ? "On" : "Off"}
             </button>
 
             <button
