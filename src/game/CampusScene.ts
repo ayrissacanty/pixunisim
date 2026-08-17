@@ -5,6 +5,7 @@ import { canStandBox } from "@/lib/campus/walkable";
 import { interactRadius, doorTriggerRadius } from "@/lib/a11y/assist";
 import { npcPalette, type NpcPalette } from "@/lib/campus/npc-cast";
 import { useCampusStore } from "@/lib/campus/store";
+import { debugEnabled } from "@/lib/debug";
 import { bobScale, cameraLerp, useMotionStore } from "@/lib/a11y/motion";
 import {
   DECOR_KEY,
@@ -534,7 +535,11 @@ export class CampusScene extends Phaser.Scene {
     this.keys = kb.addKeys("W,A,S,D,E,M,C") as Record<string, Phaser.Input.Keyboard.Key>;
     this.keys["E"]!.on("down", () => this.interact());
     this.keys["M"]!.on("down", () => useCampusStore.getState().setMapOpen(true));
-    this.keys["C"]!.on("down", () => this.setCollisionDebug(!this.debugOn));
+    // Collision overlay is a dev tool: never reachable in a production run.
+    this.keys["C"]!.on("down", () => {
+      if (!debugEnabled()) return;
+      this.setCollisionDebug(!this.debugOn);
+    });
 
     useCampusStore.getState().setZone(this.zone.id);
     useCampusStore
