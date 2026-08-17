@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useCampusStore } from "@/lib/campus/store";
 import { getZone } from "@/lib/campus/world";
-import { TILE } from "@/lib/campus/tiles";
 import type { TileKind } from "@/lib/campus/tiles";
 
 const COLOR: Partial<Record<TileKind, string>> = {
