@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useCampusStore } from "@/lib/campus/store";
 import { getZone } from "@/lib/campus/world";
-import { TILE } from "@/lib/campus/tiles";
 import type { TileKind } from "@/lib/campus/tiles";
 
 const COLOR: Partial<Record<TileKind, string>> = {
@@ -82,8 +81,9 @@ export function Minimap({ size = 132 }: { size?: number }) {
     });
 
     // Player marker with a soft halo so it stays readable on any terrain.
-    const px = (player.x / TILE) * cell;
-    const py = (player.y / TILE) * cell;
+    // playerPosition is stored in tile coordinates, so multiply directly by cell.
+    const px = player.x * cell;
+    const py = player.y * cell;
     ctx.beginPath();
     ctx.fillStyle = "rgba(224, 85, 63, 0.32)";
     ctx.arc(px, py, cell * 2.4, 0, Math.PI * 2);
