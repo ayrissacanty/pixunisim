@@ -6,6 +6,7 @@ import { create } from "zustand";
  */
 const SIZE_KEY = "unify:controls-size";
 const CONTRAST_KEY = "unify:controls-contrast";
+const HAPTICS_KEY = "unify:controls-haptics";
 
 export type ControlSize = "standard" | "large" | "xl";
 
@@ -38,18 +39,27 @@ function initialContrast(): boolean {
   return window.localStorage.getItem(CONTRAST_KEY) === "on";
 }
 
+function initialHaptics(): boolean {
+  if (typeof window === "undefined") return true;
+  return window.localStorage.getItem(HAPTICS_KEY) !== "off";
+}
+
 interface ControlsState {
   size: ControlSize;
   highContrast: boolean;
+  haptics: boolean;
   setSize: (s: ControlSize) => void;
   cycleSize: () => void;
   setHighContrast: (v: boolean) => void;
   toggleHighContrast: () => void;
+  setHaptics: (v: boolean) => void;
+  toggleHaptics: () => void;
 }
 
 export const useControlsStore = create<ControlsState>((set, get) => ({
   size: initialSize(),
   highContrast: initialContrast(),
+  haptics: initialHaptics(),
   setSize: (size) => {
     if (typeof window !== "undefined") window.localStorage.setItem(SIZE_KEY, size);
     set({ size });
@@ -64,4 +74,10 @@ export const useControlsStore = create<ControlsState>((set, get) => ({
     set({ highContrast });
   },
   toggleHighContrast: () => get().setHighContrast(!get().highContrast),
+  setHaptics: (haptics) => {
+    if (typeof window !== "undefined")
+      window.localStorage.setItem(HAPTICS_KEY, haptics ? "on" : "off");
+    set({ haptics });
+  },
+  toggleHaptics: () => get().setHaptics(!get().haptics),
 }));

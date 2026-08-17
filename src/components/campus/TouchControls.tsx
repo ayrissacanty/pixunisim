@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { CONTROL_METRICS, useControlsStore } from "@/lib/a11y/controls";
+import { haptic } from "@/lib/a11y/haptics";
 
 const DEAD = 8;
 
@@ -54,6 +55,7 @@ export function TouchControls({
     e.currentTarget.setPointerCapture(e.pointerId);
     const rect = zoneRef.current?.getBoundingClientRect();
     origin.current = { x: e.clientX, y: e.clientY };
+    haptic("engage");
     setStick({
       ox: e.clientX - (rect?.left ?? 0),
       oy: e.clientY - (rect?.top ?? 0),
@@ -71,6 +73,7 @@ export function TouchControls({
   const end = (e: React.PointerEvent<HTMLDivElement>) => {
     if (pointerId.current !== e.pointerId) return;
     pointerId.current = null;
+    haptic("release");
     setStick(null);
     onMove(0, 0);
   };
@@ -125,7 +128,10 @@ export function TouchControls({
       </div>
 
       <button
-        onClick={onAction}
+        onClick={() => {
+          haptic("tap");
+          onAction();
+        }}
         aria-label="Interact"
         data-testid="touch-action"
         style={{ touchAction: "none", width: m.action, height: m.action, fontSize: m.font }}
