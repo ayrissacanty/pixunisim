@@ -9,6 +9,7 @@ import { MOTION_LABELS, useMotionStore } from "@/lib/a11y/motion";
 import { ASSIST_LABEL, useAssistStore } from "@/lib/a11y/assist";
 import { useDebugMode } from "@/lib/debug";
 import { TouchControls } from "@/components/campus/TouchControls";
+import { MobileA11ySettings } from "@/components/campus/MobileA11ySettings";
 
 export function CampusHud({
   onMove,
@@ -96,6 +97,7 @@ export function CampusHud({
         <Button size="sm" variant="secondary" onClick={() => setMapOpen(true)}>
           <Map className="size-4" /> Map
         </Button>
+        <MobileA11ySettings />
         <Button asChild size="sm" variant="outline">
           <Link to="/workspace">
             <LayoutDashboard className="size-4" /> Workspace
