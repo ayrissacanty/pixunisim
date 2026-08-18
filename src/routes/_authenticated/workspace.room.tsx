@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CharacterStage } from "@/components/three/CharacterStage";
 import { PortraitView } from "@/components/campus/PortraitView";
+import { MascotView } from "@/components/campus/MascotView";
 import { DORM_PROPS } from "@/lib/props3d";
-import { useAvatar, usePortrait, useProfile } from "@/lib/profile";
+import { useAvatar, useMascot, usePortrait, useProfile } from "@/lib/profile";
 import { useCourses, useLessons, useProgress } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/_authenticated/workspace/room")({
 function StudentSpace() {
   const avatar = useAvatar();
   const portrait = usePortrait();
+  const mascot = useMascot();
   const { data: profile } = useProfile();
   const { data: courses } = useCourses();
   const { data: lessons } = useLessons();
@@ -74,10 +76,16 @@ function StudentSpace() {
         />
 
         <aside className="space-y-4">
+          <div className="flex flex-col items-center rounded-md border border-border bg-card p-3">
+            <MascotView mascot={mascot} size={110} />
+            <p className="mt-2 text-center text-xs text-muted-foreground">Your mascot</p>
+          </div>
+
           <div className="rounded-md border border-border bg-card p-3">
             <PortraitView portrait={portrait} />
             <p className="mt-2 text-center text-xs text-muted-foreground">Your dialogue portrait</p>
           </div>
+
 
           <div className="rounded-md border border-border bg-card p-4 text-sm">
             <p className="font-semibold">Study log</p>

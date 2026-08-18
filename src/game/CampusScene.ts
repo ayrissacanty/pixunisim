@@ -7,6 +7,7 @@ import { npcPalette, type NpcPalette } from "@/lib/campus/npc-cast";
 import { useCampusStore } from "@/lib/campus/store";
 import { debugEnabled } from "@/lib/debug";
 import { bobScale, cameraLerp, useMotionStore } from "@/lib/a11y/motion";
+import { currentMascot, mascotAccessoryOf, mascotColorOf, useMascotStore } from "@/lib/mascot";
 import {
   DECOR_KEY,
   DECOR_URL,
@@ -239,12 +240,36 @@ export class CampusScene extends Phaser.Scene {
   /** Doors re-arm only after the player has stepped clear of the trigger. */
   private doorArmed = false;
   private motionUnsub?: (() => void) | undefined;
+  private mascotUnsub?: (() => void) | undefined;
+  private mascotBadge?: Phaser.GameObjects.Rectangle | undefined;
+
+  /** Draw (or clear) the single accessory badge above the player's head. */
+  private applyMascotAccessory(id: string) {
+    this.mascotBadge?.destroy();
+    this.mascotBadge = undefined;
+    const accessory = mascotAccessoryOf(id);
+    if (accessory.id === "none" || !this.player) return;
+    const badge = this.add
+      .rectangle(0, -22, 14, 4, accessory.hex)
+      .setStrokeStyle(1, 0x2b1e18, 0.5);
+    this.player.add(badge);
+    this.mascotBadge = badge;
+  }
+
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private npcs: NpcSprite[] = [];
   private stepPhase = 0;
   private lastPromptId: string | null = null;
   private lastRoomId: string | null = null;
+  /** Last tile/facing published to the store — avoids per-frame React updates. */
+  private lastSentTx = -1;
+  private lastSentTy = -1;
+  private lastSentFacing: Direction | null = null;
+  /** Throttle accumulator for prompt/room scans. */
+  private scanTimer = 0;
+  /** Characters already parked in their idle pose (skip redundant writes). */
+  private idleParked = new WeakSet<object>();
   /** Interior prop streaming: placements are baked once, sprites come and go. */
   private decorPlacements: DecorPlacement[] = [];
   private decorSprites = new Map<number, Phaser.GameObjects.Image>();
@@ -486,12 +511,26 @@ export class CampusScene extends Phaser.Scene {
       timer: 0,
     }));
 
+    // Personalization: the student's mascot colour tints their sprite, and the
+    // accessory slot adds a small badge above the head.
+    const mascot = currentMascot();
     this.player = this.makeCharacter(
       data.x * TILE + 16,
       data.y * TILE + 16,
-      { cloth: 0xa8543f, hair: 0x4a3324, skin: 0xe8c9a0 },
+      { cloth: mascotColorOf(mascot.color).hex, hair: 0x4a3324, skin: 0xe8c9a0 },
       "You",
     );
+    this.applyMascotAccessory(mascot.accessory);
+    this.mascotUnsub?.();
+    this.mascotUnsub = useMascotStore.subscribe((s) => {
+      if (!this.player) return;
+      const cloth = mascotColorOf(s.mascot.color).hex;
+      const parts = this.player.parts;
+      parts.body.setFillStyle(cloth);
+      parts.armL.setFillStyle(cloth);
+      parts.armR.setFillStyle(cloth);
+      this.applyMascotAccessory(s.mascot.accessory);
+    });
     this.vx = 0;
     this.vy = 0;
     // Spawning inside a blocked tile would trap the player: nudge to the
@@ -522,6 +561,9 @@ export class CampusScene extends Phaser.Scene {
     this.events.once("shutdown", () => {
       this.motionUnsub?.();
       this.motionUnsub = undefined;
+      this.mascotUnsub?.();
+      this.mascotUnsub = undefined;
+      this.mascotBadge = undefined;
       this.decorSprites.forEach((sprite) => sprite.destroy());
       this.decorSprites.clear();
       this.decorPlacements = [];
@@ -577,8 +619,17 @@ export class CampusScene extends Phaser.Scene {
     const p = c.parts;
     // Accessibility: reduced motion damps (or removes) the walk bob and swing.
     const amp = bobScale();
-    const swing = moving ? Math.sin(phase) * amp : 0;
-    const bob = moving ? Math.abs(Math.cos(phase)) * -1.2 * amp : 0;
+    const animated = moving && amp > 0;
+    // A still character (or motion "off") only needs its idle pose written once
+    // instead of the same values 60 times a second.
+    if (!animated) {
+      if (this.idleParked.has(c) && this.lastSentFacing === dir) return;
+      this.idleParked.add(c);
+    } else {
+      this.idleParked.delete(c);
+    }
+    const swing = animated ? Math.sin(phase) * amp : 0;
+    const bob = animated ? Math.abs(Math.cos(phase)) * -1.2 * amp : 0;
     p.legL.y = 10 + swing * 2;
     p.legR.y = 10 - swing * 2;
     p.armL.y = swing * 2.5;
@@ -595,6 +646,7 @@ export class CampusScene extends Phaser.Scene {
     p.face.y = p.head.y + 1;
     p.hair.height = dir === "up" ? 9 : 5;
   }
+
 
   private canStand(px: number, py: number) {
     return canStandBox(this.zone, px, py);
@@ -740,34 +792,51 @@ export class CampusScene extends Phaser.Scene {
     }
     this.animateCharacter(this.player, this.facing, this.stepPhase, moving);
     if (moving) {
-      store.setPlayer(
-        Math.round(this.player.x / TILE),
-        Math.round(this.player.y / TILE),
-        this.facing,
-      );
+      // Only publish to the React store when the tile or facing actually
+      // changes; a per-frame store write re-rendered the HUD 60x/sec.
+      const ptx = Math.round(this.player.x / TILE);
+      const pty = Math.round(this.player.y / TILE);
+      if (ptx !== this.lastSentTx || pty !== this.lastSentTy || this.facing !== this.lastSentFacing) {
+        this.lastSentTx = ptx;
+        this.lastSentTy = pty;
+        this.lastSentFacing = this.facing;
+        store.setPlayer(ptx, pty, this.facing);
+      }
       this.checkDoorTrigger(delta);
     } else if (this.doorCooldown > 0) {
       this.doorCooldown -= delta;
     }
 
-    // NPC behaviour
+    // NPC behaviour — skip anyone the camera cannot see, and skip decorative
+    // idle motion entirely when reduced motion is on.
+    const view = this.cameras.main.worldView;
+    const idleMotion = bobScale() > 0;
     this.npcs.forEach((n) => {
       n.timer += delta;
+      const c = n.container;
+      if (
+        c.x < view.x - 64 ||
+        c.x > view.right + 64 ||
+        c.y < view.y - 64 ||
+        c.y > view.bottom + 64
+      )
+        return;
       if (n.spawn.behavior === "walk") {
-        const targetX = n.homeX + Math.sin(n.timer / 1400) * 48;
-        const walking = this.canStand(targetX, n.container.y);
-        if (walking) n.container.x = targetX;
+        const targetX = idleMotion ? n.homeX + Math.sin(n.timer / 1400) * 48 : n.homeX;
+        const walking = idleMotion && this.canStand(targetX, c.y);
+        if (walking) c.x = targetX;
         this.animateCharacter(
-          n.container,
+          c,
           Math.cos(n.timer / 1400) > 0 ? "right" : "left",
           n.timer / 130,
           walking,
         );
       } else if (n.spawn.behavior === "study" || n.spawn.behavior === "read") {
-        n.container.y = n.homeY + Math.sin(n.timer / 600) * 1.2;
-        this.animateCharacter(n.container, "down", 0, false);
+        if (idleMotion) c.y = n.homeY + Math.sin(n.timer / 600) * 1.2;
+        this.animateCharacter(c, "down", 0, false);
       }
     });
+
 
 
     // Interior prop streaming runs on a timer, not every frame.
@@ -779,7 +848,12 @@ export class CampusScene extends Phaser.Scene {
       }
     }
 
-    // prompt + room tracking
+    // prompt + room tracking — scanning every interactable, NPC and room on
+    // every frame was pure overhead; 100ms is well below human reaction time.
+    this.scanTimer += delta;
+    if (this.scanTimer < 100) return;
+    this.scanTimer = 0;
+
     const hit = this.nearestInteraction();
     if (hit) {
       const prompt =

@@ -1,7 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { CHARACTER_IDS, CHARACTERS, type CharacterId } from "@/lib/characters";
-import { useAvatar, usePortrait, useSaveAvatar, useSavePortrait } from "@/lib/profile";
+import {
+  useAvatar,
+  useMascot,
+  usePortrait,
+  useSaveAvatar,
+  useSaveMascot,
+  useSavePortrait,
+} from "@/lib/profile";
+import { MASCOT_ACCESSORIES, MASCOT_COLORS, type Mascot } from "@/lib/mascot";
+import { MascotView } from "@/components/campus/MascotView";
 import { CharacterStage } from "@/components/three/CharacterStage";
 import { PortraitView } from "@/components/campus/PortraitView";
 import {
@@ -100,10 +109,119 @@ function AvatarPicker() {
         </div>
       </div>
 
+      <MascotCustomizer />
       <PortraitCustomizer />
     </main>
   );
 }
+
+/**
+ * Light personalization: one base colour + one accessory slot. Intentionally
+ * small — not a full character creator.
+ */
+function MascotCustomizer() {
+  const savedMascot = useMascot();
+  const [draft, setDraft] = useState<Mascot | null>(null);
+  const mascot = draft ?? savedMascot;
+  const save = useSaveMascot();
+  const dirty =
+    mascot.color !== savedMascot.color || mascot.accessory !== savedMascot.accessory;
+
+  return (
+    <section className="mt-10 border-t border-border pt-8">
+      <h2 className="text-2xl font-bold">Your mascot</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Pick a base colour and one accessory. Your colour also tints your student sprite out on
+        campus. (Placeholder art — final mascot pieces drop in later.)
+      </p>
+
+      <div className="mt-6 grid gap-6 md:grid-cols-[220px_1fr]">
+        <div className="flex items-center justify-center rounded-md border border-border bg-card p-4">
+          <MascotView mascot={mascot} size={140} />
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+              Base colour
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {MASCOT_COLORS.map((c) => {
+                const active = mascot.color === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    data-testid={`mascot-color-${c.id}`}
+                    data-active={active}
+                    aria-pressed={active}
+                    title={c.label}
+                    onClick={() => setDraft({ ...mascot, color: c.id })}
+                    className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition ${
+                      active
+                        ? "border-accent bg-accent/10 text-foreground"
+                        : "border-border bg-card text-muted-foreground hover:border-accent/60"
+                    }`}
+                  >
+                    <span
+                      aria-hidden
+                      className="size-4 rounded-full border border-border"
+                      style={{ backgroundColor: c.css }}
+                    />
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+              Accessory
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {MASCOT_ACCESSORIES.map((a) => {
+                const active = mascot.accessory === a.id;
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    data-testid={`mascot-accessory-${a.id}`}
+                    data-active={active}
+                    aria-pressed={active}
+                    onClick={() => setDraft({ ...mascot, accessory: a.id })}
+                    className={`rounded-md border px-3 py-1.5 text-xs transition ${
+                      active
+                        ? "border-accent bg-accent/10 text-foreground"
+                        : "border-border bg-card text-muted-foreground hover:border-accent/60"
+                    }`}
+                  >
+                    {a.glyph ? `${a.glyph} ` : ""}
+                    {a.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <Button
+            data-testid="save-mascot"
+            disabled={save.isPending || !dirty}
+            onClick={() =>
+              save.mutate(mascot, {
+                onSuccess: () => toast.success("Mascot saved."),
+                onError: () => toast.error("Could not save your mascot."),
+              })
+            }
+          >
+            {dirty ? "Save mascot" : "Saved"}
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 
 const LAYER_LABELS: Record<PortraitLayer, string> = {
   skin: "Skin",

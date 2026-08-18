@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { CONTROL_METRICS, useControlsStore } from "@/lib/a11y/controls";
 import { haptic } from "@/lib/a11y/haptics";
+import { useMotionStore, transitionsAnimated } from "@/lib/a11y/motion";
 
 const DEAD = 8;
 
@@ -18,6 +19,8 @@ export function TouchControls({
 }) {
   const size = useControlsStore((s) => s.size);
   const hc = useControlsStore((s) => s.highContrast);
+  const motionSetting = useMotionStore((s) => s.setting);
+  const animated = transitionsAnimated(motionSetting);
   const m = CONTROL_METRICS[size];
   const zoneRef = useRef<HTMLDivElement | null>(null);
   const pointerId = useRef<number | null>(null);
@@ -135,7 +138,9 @@ export function TouchControls({
         aria-label="Interact"
         data-testid="touch-action"
         style={{ touchAction: "none", width: m.action, height: m.action, fontSize: m.font }}
-        className={`pointer-events-auto absolute bottom-10 right-5 rounded-full font-bold shadow-xl active:scale-95 md:hidden ${actionClass}`}
+        className={`pointer-events-auto absolute bottom-10 right-5 rounded-full font-bold shadow-xl md:hidden ${actionClass} ${
+          animated ? "active:scale-95 transition-transform" : ""
+        }`}
       >
         ACT
       </button>

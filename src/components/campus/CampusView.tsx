@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type Phaser from "phaser";
 import { useCampusStore, hydrateCampus, startCampusPersistence } from "@/lib/campus/store";
@@ -31,10 +31,11 @@ export function CampusView({
   const gameRef = useRef<Phaser.Game | null>(null);
   const sceneRef = useRef<CampusScene | null>(null);
   const navigate = useNavigate();
-  // Warm the 3D cast while the student is still walking around outside.
+
   useEffect(() => {
     void prefetchCharacters();
   }, []);
+
   const [ready, setReady] = useState(false);
   const [tourStep, setTourStep] = useState<{ label: string; index: number; total: number } | null>(
     null,
@@ -42,8 +43,6 @@ export function CampusView({
   useCampusObjectives();
   useOfflineSync();
 
-  // Exploration state survives refresh/relogin: restore before Phaser boots and
-  // keep writing a throttled snapshot afterwards.
   useEffect(() => startCampusPersistence(), []);
 
   useEffect(() => {
@@ -57,8 +56,6 @@ export function CampusView({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-
-
 
   useEffect(() => {
     let disposed = false;
@@ -99,7 +96,6 @@ export function CampusView({
 
       const store = useCampusStore.getState();
 
-      /** Layer 1 <-> Layer 2 movement, always through an animated beat. */
       const enterZone = (zoneId: string, x: number, y: number) => {
         const target = getZone(zoneId);
         const current = useCampusStore.getState();
@@ -109,7 +105,6 @@ export function CampusView({
           current.playerPosition.x,
           current.playerPosition.y,
         );
-        // Returning to a zone puts you back exactly where you left it.
         const remembered = current.zoneMemory[zoneId];
         const spawnX = remembered?.x ?? x;
         const spawnY = remembered?.y ?? y;
@@ -124,7 +119,6 @@ export function CampusView({
         window.setTimeout(() => store.travel(zoneId, spawnX, spawnY), motionDuration(340));
       };
 
-      /** Layer 2 -> Layer 3: the classroom beat. */
       const enterClassroom = (c: {
         roomId: string;
         roomName: string;
@@ -180,7 +174,6 @@ export function CampusView({
 
       game.events.on("unify-interact", runAction);
 
-      /** Walking into a doorway transitions automatically (no key press). */
       game.events.on("unify-door", (action: InteractAction) => {
         if (action.kind !== "travel") return;
         const s = useCampusStore.getState();
@@ -228,7 +221,6 @@ export function CampusView({
 
       game.events.on("unify-talk", talkTo);
 
-      /** Scripted camera route: /campus?tour=algebra-204 */
       const runTour = async (tourId: string) => {
         const preset = WALKTHROUGHS[tourId];
         const walk = buildWalkthrough(preset?.lessonId ?? tourId);
@@ -243,7 +235,6 @@ export function CampusView({
         talkTo(walk.npc);
       };
 
-      // Test/automation hook used by the Playwright end-to-end walkthrough.
       (window as unknown as Record<string, unknown>)["__unifyCampus"] = {
         tour: (id: string) => runTour(id),
         walkthrough: (id: string) => {
@@ -295,8 +286,6 @@ export function CampusView({
     };
   }, [initialZone, navigate, tour]);
 
-
-  // Zone changes (doors, fast travel) restart the scene in place.
   const pendingTravel = useCampusStore((s) => s.pendingTravel);
   const consumeTravel = useCampusStore((s) => s.consumeTravel);
   useEffect(() => {
@@ -315,9 +304,16 @@ export function CampusView({
 
   const layer = useCampusStore((s) => s.layer);
 
-  const move = (x: number, y: number) => {
+  const move = useCallback((x: number, y: number) => {
     if (sceneRef.current) sceneRef.current.joystick = { x, y };
-  };
+  }, []);
+
+  const interact = useCallback(() => {
+    sceneRef.current?.interact();
+  }, []);
+
+  const getPerfStats = useCallback(() => sceneRef.current?.perfStats() as CampusPerfStats | undefined, []);
+  const resetPerfStats = useCallback(() => sceneRef.current?.resetPerfStats(), []);
 
   return (
     <div
@@ -338,13 +334,13 @@ export function CampusView({
           data-step-total={tourStep.total}
           data-step-label={tourStep.label}
           data-step-zone={useCampusStore.getState().currentZone}
-          className="pointer-events-none absolute left-1/2 top-4 z-40 -translate-x-1/2 rounded-md border-2 border-accent bg-sidebar/95 px-4 py-2 font-display text-sm text-sidebar-foreground shadow-lg"
+          className="pointer-events-auto absolute left-1/2 top-4 z-40 -translate-x-1/2 rounded-md border-2 border-accent bg-sidebar/95 px-4 py-2 font-display text-sm text-sidebar-foreground shadow-lg"
         >
           Guided route: {tourStep.label}
         </div>
       )}
 
-      <CampusHud onMove={move} onAction={() => sceneRef.current?.interact()} />
+      <CampusHud onMove={move} onAction={interact} />
       <DialogueBox />
       <ReadingBox />
       <CampusMapOverlay />
@@ -352,8 +348,8 @@ export function CampusView({
       <LessonOverlay />
       <LayerTransition />
       <PerfOverlay
-        getStats={() => sceneRef.current?.perfStats() as CampusPerfStats | undefined}
-        onReset={() => sceneRef.current?.resetPerfStats()}
+        getStats={getPerfStats}
+        onReset={resetPerfStats}
       />
     </div>
   );
