@@ -14,9 +14,8 @@ const isIntent = (value: unknown): value is Intent =>
   value === "create" || value === "join" || value === "signin";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>): { intent: Intent } => ({
-    intent: isIntent(search["intent"]) ? search["intent"] : "signin",
-  }),
+  validateSearch: (search: Record<string, unknown>): { intent?: Intent } =>
+    isIntent(search["intent"]) ? { intent: search["intent"] } : {},
   head: () => ({
     meta: [
       { title: "Create or join a family — Unify University" },
@@ -59,7 +58,7 @@ const COPY: Record<Intent, { title: string; blurb: string; cta: string }> = {
 function AuthPage() {
   const navigate = useNavigate();
   const { intent: initialIntent } = Route.useSearch();
-  const [intent, setIntent] = useState<Intent>(initialIntent);
+  const [intent, setIntent] = useState<Intent>(initialIntent ?? "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
