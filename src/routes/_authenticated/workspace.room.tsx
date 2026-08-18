@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CharacterStage } from "@/components/three/CharacterStage";
 import { PortraitView } from "@/components/campus/PortraitView";
+import { MascotView } from "@/components/campus/MascotView";
 import { DORM_PROPS } from "@/lib/props3d";
-import { useAvatar, usePortrait, useProfile } from "@/lib/profile";
+import { useAvatar, useMascot, usePortrait, useProfile } from "@/lib/profile";
 import { useCourses, useLessons, useProgress } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 
