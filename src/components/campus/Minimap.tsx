@@ -43,6 +43,30 @@ const EASE_PER_SECOND = 12;
 const SNAP_EPSILON = 0.05;
 
 /**
+ * Keep the marker fully inside the minimap. Edge tiles, out-of-range values
+ * from a collision nudge, or a stale position from another zone would
+ * otherwise draw the dot half (or entirely) off the canvas.
+ */
+export function clampMarker(
+  px: number,
+  py: number,
+  bounds: { w: number; h: number; radius: number },
+) {
+  const r = Math.min(bounds.radius, bounds.w / 2, bounds.h / 2);
+  const clamp = (v: number, max: number) =>
+    Number.isFinite(v) ? Math.min(Math.max(v, r), Math.max(r, max - r)) : r;
+  return { x: clamp(px, bounds.w), y: clamp(py, bounds.h) };
+}
+
+/** Unit vector for the facing arrow. */
+const FACING_VECTOR: Record<string, { x: number; y: number }> = {
+  up: { x: 0, y: -1 },
+  down: { x: 0, y: 1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+};
+
+/**
  * Live corner minimap: the current zone painted from its tile grid, with
  * doorways, interactables, NPCs and the player rendered on top.
  *
@@ -54,7 +78,9 @@ export function Minimap({ size = 132 }: { size?: number }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const zoneId = useCampusStore((s) => s.currentZone);
   const player = useCampusStore((s) => s.playerPosition);
+  const facing = useCampusStore((s) => s.playerDirection);
   const zone = useMemo(() => getZone(zoneId), [zoneId]);
+
 
   // Interpolated marker position, in tile units.
   const markerRef = useRef<{ x: number; y: number } | null>(null);
