@@ -371,6 +371,8 @@ export type Database = {
           family_id: string | null
           family_role: string | null
           id: string
+          mascot_accessory: string
+          mascot_color: string
           portrait: Json
         }
         Insert: {
@@ -380,6 +382,8 @@ export type Database = {
           family_id?: string | null
           family_role?: string | null
           id: string
+          mascot_accessory?: string
+          mascot_color?: string
           portrait?: Json
         }
         Update: {
@@ -389,6 +393,8 @@ export type Database = {
           family_id?: string | null
           family_role?: string | null
           id?: string
+          mascot_accessory?: string
+          mascot_color?: string
           portrait?: Json
         }
         Relationships: [
