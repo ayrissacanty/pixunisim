@@ -792,34 +792,51 @@ export class CampusScene extends Phaser.Scene {
     }
     this.animateCharacter(this.player, this.facing, this.stepPhase, moving);
     if (moving) {
-      store.setPlayer(
-        Math.round(this.player.x / TILE),
-        Math.round(this.player.y / TILE),
-        this.facing,
-      );
+      // Only publish to the React store when the tile or facing actually
+      // changes; a per-frame store write re-rendered the HUD 60x/sec.
+      const ptx = Math.round(this.player.x / TILE);
+      const pty = Math.round(this.player.y / TILE);
+      if (ptx !== this.lastSentTx || pty !== this.lastSentTy || this.facing !== this.lastSentFacing) {
+        this.lastSentTx = ptx;
+        this.lastSentTy = pty;
+        this.lastSentFacing = this.facing;
+        store.setPlayer(ptx, pty, this.facing);
+      }
       this.checkDoorTrigger(delta);
     } else if (this.doorCooldown > 0) {
       this.doorCooldown -= delta;
     }
 
-    // NPC behaviour
+    // NPC behaviour — skip anyone the camera cannot see, and skip decorative
+    // idle motion entirely when reduced motion is on.
+    const view = this.cameras.main.worldView;
+    const idleMotion = bobScale() > 0;
     this.npcs.forEach((n) => {
       n.timer += delta;
+      const c = n.container;
+      if (
+        c.x < view.x - 64 ||
+        c.x > view.right + 64 ||
+        c.y < view.y - 64 ||
+        c.y > view.bottom + 64
+      )
+        return;
       if (n.spawn.behavior === "walk") {
-        const targetX = n.homeX + Math.sin(n.timer / 1400) * 48;
-        const walking = this.canStand(targetX, n.container.y);
-        if (walking) n.container.x = targetX;
+        const targetX = idleMotion ? n.homeX + Math.sin(n.timer / 1400) * 48 : n.homeX;
+        const walking = idleMotion && this.canStand(targetX, c.y);
+        if (walking) c.x = targetX;
         this.animateCharacter(
-          n.container,
+          c,
           Math.cos(n.timer / 1400) > 0 ? "right" : "left",
           n.timer / 130,
           walking,
         );
       } else if (n.spawn.behavior === "study" || n.spawn.behavior === "read") {
-        n.container.y = n.homeY + Math.sin(n.timer / 600) * 1.2;
-        this.animateCharacter(n.container, "down", 0, false);
+        if (idleMotion) c.y = n.homeY + Math.sin(n.timer / 600) * 1.2;
+        this.animateCharacter(c, "down", 0, false);
       }
     });
+
 
 
     // Interior prop streaming runs on a timer, not every frame.
