@@ -1,7 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { CHARACTER_IDS, CHARACTERS, type CharacterId } from "@/lib/characters";
-import { useAvatar, usePortrait, useSaveAvatar, useSavePortrait } from "@/lib/profile";
+import {
+  useAvatar,
+  useMascot,
+  usePortrait,
+  useSaveAvatar,
+  useSaveMascot,
+  useSavePortrait,
+} from "@/lib/profile";
+import { MASCOT_ACCESSORIES, MASCOT_COLORS, type Mascot } from "@/lib/mascot";
+import { MascotView } from "@/components/campus/MascotView";
 import { CharacterStage } from "@/components/three/CharacterStage";
 import { PortraitView } from "@/components/campus/PortraitView";
 import {
