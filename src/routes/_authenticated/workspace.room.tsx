@@ -31,6 +31,7 @@ export const Route = createFileRoute("/_authenticated/workspace/room")({
 function StudentSpace() {
   const avatar = useAvatar();
   const portrait = usePortrait();
+  const mascot = useMascot();
   const { data: profile } = useProfile();
   const { data: courses } = useCourses();
   const { data: lessons } = useLessons();
