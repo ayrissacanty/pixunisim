@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_pins: {
+        Row: {
+          created_at: string
+          id: string
+          pin_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pin_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pin_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       alley_dialogue: {
         Row: {
           created_at: string
@@ -513,6 +534,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      verify_admin_pin: { Args: { _pin: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
