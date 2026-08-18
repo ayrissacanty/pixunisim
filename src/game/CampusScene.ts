@@ -487,12 +487,26 @@ export class CampusScene extends Phaser.Scene {
       timer: 0,
     }));
 
+    // Personalization: the student's mascot colour tints their sprite, and the
+    // accessory slot adds a small badge above the head.
+    const mascot = currentMascot();
     this.player = this.makeCharacter(
       data.x * TILE + 16,
       data.y * TILE + 16,
-      { cloth: 0xa8543f, hair: 0x4a3324, skin: 0xe8c9a0 },
+      { cloth: mascotColorOf(mascot.color).hex, hair: 0x4a3324, skin: 0xe8c9a0 },
       "You",
     );
+    this.applyMascotAccessory(mascot.accessory);
+    this.mascotUnsub?.();
+    this.mascotUnsub = useMascotStore.subscribe((s) => {
+      if (!this.player) return;
+      const cloth = mascotColorOf(s.mascot.color).hex;
+      const parts = this.player.parts;
+      parts.body.setFillStyle(cloth);
+      parts.armL.setFillStyle(cloth);
+      parts.armR.setFillStyle(cloth);
+      this.applyMascotAccessory(s.mascot.accessory);
+    });
     this.vx = 0;
     this.vy = 0;
     // Spawning inside a blocked tile would trap the player: nudge to the
