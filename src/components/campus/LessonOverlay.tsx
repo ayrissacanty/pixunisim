@@ -14,7 +14,7 @@ export function LessonOverlay() {
       data-layer="4"
       className="pointer-events-auto absolute inset-0 z-40 flex items-stretch justify-center bg-black/60 p-2 sm:p-6"
     >
-      <div className="flex w-full max-w-3xl flex-col overflow-hidden rounded-md border-2 border-accent bg-background shadow-2xl">
+      <div className="block-panel-lg flex w-full max-w-3xl flex-col overflow-hidden border-accent bg-background">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <p className="font-display text-sm font-bold">In class</p>
           <Button size="icon" variant="ghost" onClick={close} aria-label="Leave the classroom">

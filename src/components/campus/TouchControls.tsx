@@ -83,16 +83,16 @@ export function TouchControls({
 
   const zoneClass = hc
     ? "border-4 border-foreground bg-background/85"
-    : "border border-accent/25 bg-sidebar/25";
+    : "border-[3px] border-accent/35 bg-sidebar/30";
   const baseClass = hc
     ? "border-4 border-foreground bg-background/90"
-    : "border-2 border-accent/60 bg-sidebar/45";
+    : "border-[3px] border-accent/70 bg-sidebar/55";
   const knobClass = hc
     ? "border-4 border-background bg-foreground"
-    : "border-2 border-accent bg-primary/85";
+    : "border-[4px] border-accent bg-primary/90";
   const actionClass = hc
     ? "border-4 border-background bg-foreground text-background"
-    : "border-2 border-accent bg-primary text-primary-foreground";
+    : "border-[4px] border-accent bg-primary text-primary-foreground";
 
   return (
     <>
@@ -109,16 +109,16 @@ export function TouchControls({
         onPointerCancel={end}
         onPointerLeave={end}
         style={{ width: m.zone, height: m.zone, touchAction: "none" }}
-        className={`pointer-events-auto absolute bottom-6 left-4 rounded-full md:hidden ${zoneClass}`}
+        className={`pointer-events-auto absolute bottom-6 left-4 rounded-[2rem] md:hidden ${zoneClass}`}
       >
         {stick && (
           <>
             <span
-              className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full ${baseClass}`}
+              className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full shadow-[0_4px_0_0_var(--block-edge)] ${baseClass}`}
               style={{ left: stick.ox, top: stick.oy, width: m.base, height: m.base }}
             />
             <span
-              className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full shadow-lg ${knobClass}`}
+              className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-[0.9rem] shadow-[0_4px_0_0_var(--block-edge)] ${knobClass}`}
               style={{
                 left: stick.ox + stick.dx,
                 top: stick.oy + stick.dy,
@@ -138,8 +138,8 @@ export function TouchControls({
         aria-label="Interact"
         data-testid="touch-action"
         style={{ touchAction: "none", width: m.action, height: m.action, fontSize: m.font }}
-        className={`pointer-events-auto absolute bottom-10 right-5 rounded-full font-bold shadow-xl md:hidden ${actionClass} ${
-          animated ? "active:scale-95 transition-transform" : ""
+        className={`block-round pointer-events-auto absolute bottom-10 right-5 font-black tracking-wide md:hidden ${actionClass} ${
+          animated ? "" : "transition-none"
         }`}
       >
         ACT

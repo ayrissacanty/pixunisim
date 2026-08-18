@@ -30,7 +30,7 @@ export function CampusMapOverlay() {
 
   return (
     <div className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-2xl rounded-md border-2 border-accent bg-card p-5 shadow-2xl">
+      <div className="block-panel-lg w-full max-w-2xl border-accent bg-card p-5">
         <div className="flex items-center gap-2">
           <Map className="size-4 text-primary" />
           <h2 className="font-display text-lg font-bold">Campus Map</h2>
@@ -61,7 +61,7 @@ export function CampusMapOverlay() {
                   setOpen(false);
                 }}
                 className={[
-                  "rounded-md border px-3 py-2 text-left text-sm transition-colors",
+                  "block-btn px-3 py-2 text-left text-sm",
                   id === current
                     ? "border-primary bg-primary/10 font-semibold"
                     : known

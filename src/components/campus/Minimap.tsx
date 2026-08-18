@@ -209,7 +209,7 @@ export function Minimap({ size = 132 }: { size?: number }) {
     <div
       data-testid="minimap"
       data-zone={zoneId}
-      className="rounded-md border border-accent/60 bg-sidebar/90 p-1.5 shadow-lg"
+      className="block-panel border-accent/70 bg-sidebar/95 p-2"
     >
       <canvas ref={canvasRef} className="block [image-rendering:pixelated]" />
       <p className="pt-1 text-center text-[9px] uppercase tracking-widest text-sidebar-foreground/70">

@@ -35,7 +35,7 @@ export function DialogueBox() {
             alt={dialogue.speakerId ? `${dialogue.speaker} portrait` : "Your portrait"}
           />
         </div>
-        <div className="flex-1 rounded-md border-2 border-accent bg-sidebar/95 p-4 shadow-xl backdrop-blur">
+        <div className="block-panel-lg flex-1 border-accent bg-sidebar/95 p-4 backdrop-blur">
           <div className="flex items-baseline gap-2">
             <span className="font-display text-base font-bold text-accent">{dialogue.speaker}</span>
             {dialogue.role && (
@@ -90,7 +90,7 @@ export function ReadingBox() {
         animated ? "animate-fade-in" : ""
       }`}
     >
-      <div className="max-w-lg rounded-md border-2 border-border bg-card p-5 shadow-xl">
+      <div className="block-panel-lg max-w-lg border-border bg-card p-5">
         <h3 className="font-display text-lg font-bold text-foreground">{reading.title}</h3>
         <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-foreground/90">
           {reading.body}
