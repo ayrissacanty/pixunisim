@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 import { Minimap } from "./Minimap";
 import { useCampusStore } from "@/lib/campus/store";
+import { useMotionStore } from "@/lib/a11y/motion";
 import { getZone } from "@/lib/campus/world";
 
 type Arc = { x: number; y: number; r: number };
@@ -17,6 +18,7 @@ function stubCanvas() {
     setTransform: vi.fn(),
     clearRect: vi.fn(),
     fillRect: vi.fn(),
+    drawImage: vi.fn(),
     beginPath: vi.fn(),
     fill: vi.fn(),
     stroke: vi.fn(),
@@ -48,7 +50,34 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/** Manual rAF pump so interpolation can be stepped deterministically. */
+function stubRaf() {
+  let queued: FrameRequestCallback | null = null;
+  let now = 0;
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+    queued = cb;
+    return 1;
+  });
+  vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {
+    queued = null;
+  });
+  vi.spyOn(performance, "now").mockImplementation(() => now);
+  return {
+    tick(ms = 16) {
+      now += ms;
+      const cb = queued;
+      queued = null;
+      cb?.(now);
+      return cb !== null;
+    },
+  };
+}
+
 describe("Minimap player marker", () => {
+  // Snap-position assertions run with motion disabled; interpolation is
+  // covered explicitly in its own test below.
+  beforeEach(() => useMotionStore.setState({ setting: "off" }));
+
   it("places the marker at tileCoord * cell, not divided by TILE again", () => {
     const ctx = stubCanvas();
     const zoneId = useCampusStore.getState().currentZone;
@@ -91,5 +120,32 @@ describe("Minimap player marker", () => {
 
     expect(first).not.toEqual({ x: 0, y: 0 });
     expect(second).not.toEqual(first);
+  });
+
+  it("eases toward the new tile over several frames instead of jumping", () => {
+    useMotionStore.setState({ setting: "full" });
+    const ctx = stubCanvas();
+    const raf = stubRaf();
+    const cell = cellSize(useCampusStore.getState().currentZone);
+
+    useCampusStore.setState({ playerPosition: { x: 4, y: 4 } });
+    const view = render(<Minimap size={SIZE} />);
+    expect(markerFor(ctx)).toEqual({ x: 4 * cell, y: 4 * cell });
+
+    useCampusStore.setState({ playerPosition: { x: 14, y: 4 } });
+    view.rerender(<Minimap size={SIZE} />);
+
+    raf.tick();
+    const mid = markerFor(ctx);
+    expect(mid.x).toBeGreaterThan(4 * cell);
+    expect(mid.x).toBeLessThan(14 * cell);
+
+    // Pumping frames converges on the target and then stops requesting frames.
+    let guard = 0;
+    while (raf.tick() && guard++ < 200) {
+      /* advance until settled */
+    }
+    expect(markerFor(ctx).x).toBeCloseTo(14 * cell, 5);
+    expect(guard).toBeLessThan(200);
   });
 });
