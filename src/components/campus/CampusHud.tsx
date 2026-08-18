@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Link } from "@tanstack/react-router";
 import { Accessibility, Compass, Gauge, LayoutDashboard, Map, MoveDiagonal } from "lucide-react";
 import { useCampusStore } from "@/lib/campus/store";
@@ -10,6 +11,10 @@ import { ASSIST_LABEL, useAssistStore } from "@/lib/a11y/assist";
 import { useDebugMode } from "@/lib/debug";
 import { TouchControls } from "@/components/campus/TouchControls";
 import { MobileA11ySettings } from "@/components/campus/MobileA11ySettings";
+
+const MemoizedMinimap = memo(Minimap);
+const MemoizedObjectiveTracker = memo(ObjectiveTracker);
+const MemoizedTouchControls = memo(TouchControls);
 
 export function CampusHud({
   onMove,
@@ -42,54 +47,54 @@ export function CampusHud({
             {roomName ?? "Unify University"}
           </p>
         </div>
-        <ObjectiveTracker />
+        <MemoizedObjectiveTracker />
         {debug && (
-          <>
-        <button
-          type="button"
-          onClick={() => setPerfOpen(!perfOpen)}
-          data-testid="perf-toggle"
-          data-perf={perfOpen ? "on" : "off"}
-          aria-pressed={perfOpen}
-          aria-label="Toggle the campus performance profiling overlay"
-          title="Show streamed prop counts and frame-time spikes"
-          className="flex items-center gap-1.5 self-start rounded-md border border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-semibold text-foreground shadow hover:bg-accent hover:text-accent-foreground"
-        >
-          <Gauge className="size-3.5" aria-hidden="true" />
-          Profiler {perfOpen ? "on" : "off"}
-        </button>
-        <button
-          type="button"
-          onClick={cycleMotion}
-          data-testid="motion-toggle"
-          data-motion={motion}
-          aria-label={`${MOTION_LABELS[motion]} — click to change camera and transition motion`}
-          title="Reduce camera motion and transition effects"
-          className="flex items-center gap-1.5 self-start rounded-md border border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-semibold text-foreground shadow hover:bg-accent hover:text-accent-foreground"
-        >
-          <Accessibility className="size-3.5" aria-hidden="true" />
-          {MOTION_LABELS[motion]}
-        </button>
-        <button
-          type="button"
-          onClick={toggleAssist}
-          data-testid="assist-toggle"
-          data-assist={assist ? "on" : "off"}
-          aria-pressed={assist}
-          aria-label={`${ASSIST_LABEL(assist)} — widens door, chair and rug tolerances to reduce accidental bumping`}
-          title="Widen interaction tolerances around doors, rugs and chair edges"
-          className="flex items-center gap-1.5 self-start rounded-md border border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-semibold text-foreground shadow hover:bg-accent hover:text-accent-foreground"
-        >
-          <MoveDiagonal className="size-3.5" aria-hidden="true" />
-          {ASSIST_LABEL(assist)}
-        </button>
-          </>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setPerfOpen(!perfOpen)}
+              data-testid="perf-toggle"
+              data-perf={perfOpen ? "on" : "off"}
+              aria-pressed={perfOpen}
+              aria-label="Toggle the campus performance profiling overlay"
+              title="Show streamed prop counts and frame-time spikes"
+              className="flex items-center gap-1.5 self-start rounded-md border border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-semibold text-foreground shadow hover:bg-accent hover:text-accent-foreground"
+            >
+              <Gauge className="size-3.5" aria-hidden="true" />
+              Profiler {perfOpen ? "on" : "off"}
+            </button>
+            <button
+              type="button"
+              onClick={cycleMotion}
+              data-testid="motion-toggle"
+              data-motion={motion}
+              aria-label={`${MOTION_LABELS[motion]} — click to change camera and transition motion`}
+              title="Reduce camera motion and transition effects"
+              className="flex items-center gap-1.5 self-start rounded-md border border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-semibold text-foreground shadow hover:bg-accent hover:text-accent-foreground"
+            >
+              <Accessibility className="size-3.5" aria-hidden="true" />
+              {MOTION_LABELS[motion]}
+            </button>
+            <button
+              type="button"
+              onClick={toggleAssist}
+              data-testid="assist-toggle"
+              data-assist={assist ? "on" : "off"}
+              aria-pressed={assist}
+              aria-label={`${ASSIST_LABEL(assist)} — widens door, chair and rug tolerances to reduce accidental bumping`}
+              title="Widen interaction tolerances around doors, rugs and chair edges"
+              className="flex items-center gap-1.5 self-start rounded-md border border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-semibold text-foreground shadow hover:bg-accent hover:text-accent-foreground"
+            >
+              <MoveDiagonal className="size-3.5" aria-hidden="true" />
+              {ASSIST_LABEL(assist)}
+            </button>
+          </div>
         )}
       </div>
 
       {!busy && (
         <div className="pointer-events-auto absolute bottom-3 right-3 hidden md:block">
-          <Minimap />
+          <MemoizedMinimap />
         </div>
       )}
 
@@ -114,7 +119,7 @@ export function CampusHud({
         </div>
       )}
 
-      {!busy && <TouchControls onMove={onMove} onAction={onAction} />}
+      {!busy && <MemoizedTouchControls onMove={onMove} onAction={onAction} />}
 
       <div className="absolute bottom-3 left-1/2 hidden -translate-x-1/2 items-center gap-3 rounded-md bg-sidebar/80 px-3 py-1.5 text-[11px] text-sidebar-foreground/90 md:flex">
         <Compass className="size-3.5" />
