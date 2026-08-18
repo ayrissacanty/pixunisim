@@ -7,6 +7,7 @@ import { npcPalette, type NpcPalette } from "@/lib/campus/npc-cast";
 import { useCampusStore } from "@/lib/campus/store";
 import { debugEnabled } from "@/lib/debug";
 import { bobScale, cameraLerp, useMotionStore } from "@/lib/a11y/motion";
+import { currentMascot, mascotAccessoryOf, mascotColorOf } from "@/lib/mascot";
 import {
   DECOR_KEY,
   DECOR_URL,
