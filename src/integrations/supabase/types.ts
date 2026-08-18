@@ -531,6 +531,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_family: { Args: { _family_name: string }; Returns: string }
       current_family_id: { Args: never; Returns: string }
       generate_family_code: { Args: never; Returns: string }
       has_role: {
@@ -539,6 +540,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      join_family: {
+        Args: { _family_code: string; _role?: string }
+        Returns: string
       }
       verify_admin_pin: { Args: { _pin: string }; Returns: boolean }
     }
