@@ -848,7 +848,12 @@ export class CampusScene extends Phaser.Scene {
       }
     }
 
-    // prompt + room tracking
+    // prompt + room tracking — scanning every interactable, NPC and room on
+    // every frame was pure overhead; 100ms is well below human reaction time.
+    this.scanTimer += delta;
+    if (this.scanTimer < 100) return;
+    this.scanTimer = 0;
+
     const hit = this.nearestInteraction();
     if (hit) {
       const prompt =
