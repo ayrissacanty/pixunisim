@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { CheckCircle2, DoorOpen, GraduationCap, Target } from "lucide-react";
 import { useCampusStore, type TrackerEvent } from "@/lib/campus/store";
 
@@ -12,7 +13,7 @@ const ICON: Record<TrackerEvent["kind"], typeof Target> = {
  * Live objective panel: the current goal plus the last few things the student
  * did (rooms entered, lessons started, assessments recorded).
  */
-export function ObjectiveTracker() {
+export const ObjectiveTracker = memo(function ObjectiveTracker() {
   const objective = useCampusStore((s) => s.currentObjective);
   const events = useCampusStore((s) => s.events);
   const room = useCampusStore((s) => s.currentRoomName);
@@ -53,4 +54,4 @@ export function ObjectiveTracker() {
       )}
     </div>
   );
-}
+});
