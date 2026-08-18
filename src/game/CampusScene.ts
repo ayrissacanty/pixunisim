@@ -619,8 +619,17 @@ export class CampusScene extends Phaser.Scene {
     const p = c.parts;
     // Accessibility: reduced motion damps (or removes) the walk bob and swing.
     const amp = bobScale();
-    const swing = moving ? Math.sin(phase) * amp : 0;
-    const bob = moving ? Math.abs(Math.cos(phase)) * -1.2 * amp : 0;
+    const animated = moving && amp > 0;
+    // A still character (or motion "off") only needs its idle pose written once
+    // instead of the same values 60 times a second.
+    if (!animated) {
+      if (this.idleParked.has(c) && this.lastSentFacing === dir) return;
+      this.idleParked.add(c);
+    } else {
+      this.idleParked.delete(c);
+    }
+    const swing = animated ? Math.sin(phase) * amp : 0;
+    const bob = animated ? Math.abs(Math.cos(phase)) * -1.2 * amp : 0;
     p.legL.y = 10 + swing * 2;
     p.legR.y = 10 - swing * 2;
     p.armL.y = swing * 2.5;
@@ -637,6 +646,7 @@ export class CampusScene extends Phaser.Scene {
     p.face.y = p.head.y + 1;
     p.hair.height = dir === "up" ? 9 : 5;
   }
+
 
   private canStand(px: number, py: number) {
     return canStandBox(this.zone, px, py);
