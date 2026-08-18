@@ -41,6 +41,9 @@ function WorkspaceHome() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button asChild variant="secondary">
+            <Link to="/family">Today&apos;s Report</Link>
+          </Button>
           <Button asChild variant="outline">
             <Link to="/workspace/avatar">Your character</Link>
           </Button>
