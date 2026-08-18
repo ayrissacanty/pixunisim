@@ -136,21 +136,40 @@ export function Minimap({ size = 132 }: { size?: number }) {
       const base = baseRef.current;
       if (base) ctx.drawImage(base, 0, 0, w, h);
 
-      // playerPosition is in tile coordinates, so multiply directly by cell.
-      const px = marker.x * cell;
-      const py = marker.y * cell;
+      // playerPosition is in tile coordinates, so multiply directly by cell,
+      // then clamp so edge tiles and collision overshoot stay on the map.
+      const dot = Math.max(2, cell * 0.9);
+      const { x: px, y: py } = clampMarker(marker.x * cell, marker.y * cell, {
+        w,
+        h,
+        radius: dot + 1,
+      });
       ctx.beginPath();
       ctx.fillStyle = "rgba(224, 85, 63, 0.32)";
       ctx.arc(px, py, cell * 2.4, 0, Math.PI * 2);
       ctx.fill();
+
+      // Facing arrow: a small triangle offset from the dot in the look direction.
+      const v = FACING_VECTOR[facing] ?? FACING_VECTOR["down"]!;
+      const tip = dot + Math.max(3, cell * 1.5);
+      const half = Math.max(2, cell * 0.8);
+      ctx.beginPath();
+      ctx.fillStyle = "#f1e6d0";
+      ctx.moveTo(px + v.x * tip, py + v.y * tip);
+      ctx.lineTo(px + v.x * dot - v.y * half, py + v.y * dot + v.x * half);
+      ctx.lineTo(px + v.x * dot + v.y * half, py + v.y * dot - v.x * half);
+      ctx.closePath();
+      ctx.fill();
+
       ctx.beginPath();
       ctx.fillStyle = "#e0553f";
       ctx.strokeStyle = "#f1e6d0";
       ctx.lineWidth = 1;
-      ctx.arc(px, py, Math.max(2, cell * 0.9), 0, Math.PI * 2);
+      ctx.arc(px, py, dot, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     };
+
 
     const animate = motionSetting() === "full" && markerRef.current !== null;
     if (!animate) {
