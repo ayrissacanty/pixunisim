@@ -262,6 +262,14 @@ export class CampusScene extends Phaser.Scene {
   private stepPhase = 0;
   private lastPromptId: string | null = null;
   private lastRoomId: string | null = null;
+  /** Last tile/facing published to the store — avoids per-frame React updates. */
+  private lastSentTx = -1;
+  private lastSentTy = -1;
+  private lastSentFacing: Direction | null = null;
+  /** Throttle accumulator for prompt/room scans. */
+  private scanTimer = 0;
+  /** Characters already parked in their idle pose (skip redundant writes). */
+  private idleParked = new WeakSet<object>();
   /** Interior prop streaming: placements are baked once, sprites come and go. */
   private decorPlacements: DecorPlacement[] = [];
   private decorSprites = new Map<number, Phaser.GameObjects.Image>();
