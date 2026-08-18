@@ -553,6 +553,9 @@ export class CampusScene extends Phaser.Scene {
     this.events.once("shutdown", () => {
       this.motionUnsub?.();
       this.motionUnsub = undefined;
+      this.mascotUnsub?.();
+      this.mascotUnsub = undefined;
+      this.mascotBadge = undefined;
       this.decorSprites.forEach((sprite) => sprite.destroy());
       this.decorSprites.clear();
       this.decorPlacements = [];
