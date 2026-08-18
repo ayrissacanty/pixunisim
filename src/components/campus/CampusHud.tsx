@@ -39,7 +39,7 @@ export function CampusHud({
   return (
     <div className="pointer-events-none absolute inset-0 z-20">
       <div className="pointer-events-auto absolute left-3 top-3 flex flex-col gap-2">
-        <div className="rounded-md border border-accent/60 bg-sidebar/90 px-3 py-2 shadow-lg">
+        <div className="block-panel border-accent/70 bg-sidebar/95 px-3.5 py-2.5">
           <p className="font-display text-sm font-bold text-accent">
             {ZONE_LABELS[zone] ?? zone}
           </p>
@@ -58,7 +58,7 @@ export function CampusHud({
               aria-pressed={perfOpen}
               aria-label="Toggle the campus performance profiling overlay"
               title="Show streamed prop counts and frame-time spikes"
-              className="flex items-center gap-1.5 self-start rounded-md border border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-semibold text-foreground shadow hover:bg-accent hover:text-accent-foreground"
+              className="block-btn flex items-center gap-1.5 self-start border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-bold text-foreground hover:bg-accent hover:text-accent-foreground"
             >
               <Gauge className="size-3.5" aria-hidden="true" />
               Profiler {perfOpen ? "on" : "off"}
@@ -70,7 +70,7 @@ export function CampusHud({
               data-motion={motion}
               aria-label={`${MOTION_LABELS[motion]} — click to change camera and transition motion`}
               title="Reduce camera motion and transition effects"
-              className="flex items-center gap-1.5 self-start rounded-md border border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-semibold text-foreground shadow hover:bg-accent hover:text-accent-foreground"
+              className="block-btn flex items-center gap-1.5 self-start border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-bold text-foreground hover:bg-accent hover:text-accent-foreground"
             >
               <Accessibility className="size-3.5" aria-hidden="true" />
               {MOTION_LABELS[motion]}
@@ -83,7 +83,7 @@ export function CampusHud({
               aria-pressed={assist}
               aria-label={`${ASSIST_LABEL(assist)} — widens door, chair and rug tolerances to reduce accidental bumping`}
               title="Widen interaction tolerances around doors, rugs and chair edges"
-              className="flex items-center gap-1.5 self-start rounded-md border border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-semibold text-foreground shadow hover:bg-accent hover:text-accent-foreground"
+              className="block-btn flex items-center gap-1.5 self-start border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-bold text-foreground hover:bg-accent hover:text-accent-foreground"
             >
               <MoveDiagonal className="size-3.5" aria-hidden="true" />
               {ASSIST_LABEL(assist)}
@@ -111,8 +111,8 @@ export function CampusHud({
       </div>
 
       {prompt && !busy && (
-        <div className="absolute bottom-32 left-1/2 -translate-x-1/2 rounded-md border border-accent bg-sidebar/95 px-4 py-2 text-sm text-sidebar-foreground shadow-lg sm:bottom-24">
-          <span className="mr-2 rounded bg-accent px-1.5 py-0.5 text-[11px] font-bold text-accent-foreground">
+        <div className="block-panel absolute bottom-32 left-1/2 -translate-x-1/2 border-accent bg-sidebar/95 px-4 py-2.5 text-sm font-semibold text-sidebar-foreground sm:bottom-24">
+          <span className="mr-2 block-chip border-accent-foreground/25 bg-accent px-2 py-0.5 text-[11px] font-black text-accent-foreground">
             E
           </span>
           {prompt.verb} · {prompt.label}
@@ -121,7 +121,7 @@ export function CampusHud({
 
       {!busy && <MemoizedTouchControls onMove={onMove} onAction={onAction} />}
 
-      <div className="absolute bottom-3 left-1/2 hidden -translate-x-1/2 items-center gap-3 rounded-md bg-sidebar/80 px-3 py-1.5 text-[11px] text-sidebar-foreground/90 md:flex">
+      <div className="block-panel absolute bottom-3 left-1/2 hidden -translate-x-1/2 items-center gap-3 border-accent/40 bg-sidebar/90 px-3.5 py-2 text-[11px] font-semibold text-sidebar-foreground/90 md:flex">
         <Compass className="size-3.5" />
         WASD / arrows to move · E to interact · M for map
       </div>

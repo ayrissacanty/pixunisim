@@ -31,7 +31,7 @@ export function MobileA11ySettings() {
         onClick={() => setOpen(true)}
         data-testid="a11y-open"
         aria-label="Accessibility and control settings"
-        className="flex size-12 items-center justify-center rounded-full border-2 border-accent bg-sidebar/90 text-sidebar-foreground shadow-lg"
+        className="block-btn flex size-12 items-center justify-center border-accent bg-sidebar/95 text-sidebar-foreground"
       >
         <Settings2 className="size-5" aria-hidden="true" />
       </button>
@@ -44,7 +44,7 @@ export function MobileA11ySettings() {
           data-testid="a11y-panel"
           className="fixed inset-0 z-50 flex items-end bg-background/70 p-3"
         >
-          <div className="w-full rounded-xl border-2 border-accent bg-card p-4 shadow-2xl">
+          <div className="block-panel-lg w-full border-accent bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-display text-base font-bold text-foreground">
                 Controls &amp; accessibility
@@ -53,7 +53,7 @@ export function MobileA11ySettings() {
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close settings"
-                className="flex size-11 items-center justify-center rounded-md border border-border text-foreground"
+                className="block-btn flex size-11 items-center justify-center border-border bg-background text-foreground"
               >
                 <X className="size-5" aria-hidden="true" />
               </button>
@@ -68,7 +68,7 @@ export function MobileA11ySettings() {
                   onClick={() => setSize(s)}
                   aria-pressed={size === s}
                   data-testid={`a11y-size-${s}`}
-                  className={`min-h-12 rounded-md border-2 px-2 text-sm font-semibold ${
+                  className={`block-btn min-h-12 px-2 text-sm font-bold ${
                     size === s
                       ? "border-accent bg-primary text-primary-foreground"
                       : "border-border bg-background text-foreground"
@@ -84,7 +84,7 @@ export function MobileA11ySettings() {
               onClick={toggleHc}
               aria-pressed={hc}
               data-testid="a11y-contrast"
-              className="mb-2 flex min-h-12 w-full items-center gap-2 rounded-md border-2 border-border bg-background px-3 text-sm font-semibold text-foreground"
+              className="block-btn mb-3 flex min-h-12 w-full items-center gap-2 border-border bg-background px-3 text-sm font-bold text-foreground"
             >
               <Contrast className="size-4" aria-hidden="true" />
               High-contrast controls: {hc ? "On" : "Off"}
@@ -97,7 +97,7 @@ export function MobileA11ySettings() {
               }}
               aria-pressed={haptics}
               data-testid="a11y-haptics"
-              className="mb-2 flex min-h-12 w-full items-center gap-2 rounded-md border-2 border-border bg-background px-3 text-sm font-semibold text-foreground"
+              className="block-btn mb-3 flex min-h-12 w-full items-center gap-2 border-border bg-background px-3 text-sm font-bold text-foreground"
             >
               <Vibrate className="size-4" aria-hidden="true" />
               Haptic feedback: {haptics ? "On" : "Off"}
@@ -107,7 +107,7 @@ export function MobileA11ySettings() {
               type="button"
               onClick={toggleAssist}
               aria-pressed={assist}
-              className="mb-2 flex min-h-12 w-full items-center rounded-md border-2 border-border bg-background px-3 text-sm font-semibold text-foreground"
+              className="block-btn mb-3 flex min-h-12 w-full items-center border-border bg-background px-3 text-sm font-bold text-foreground"
             >
               {ASSIST_LABEL(assist)}
             </button>
@@ -115,7 +115,7 @@ export function MobileA11ySettings() {
             <button
               type="button"
               onClick={cycleMotion}
-              className="flex min-h-12 w-full items-center rounded-md border-2 border-border bg-background px-3 text-sm font-semibold text-foreground"
+              className="block-btn flex min-h-12 w-full items-center border-border bg-background px-3 text-sm font-bold text-foreground"
             >
               {MOTION_LABELS[motion]}
             </button>
