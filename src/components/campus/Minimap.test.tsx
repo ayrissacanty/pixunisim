@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
-import { Minimap } from "./Minimap";
+import { Minimap, clampMarker } from "./Minimap";
 import { useCampusStore } from "@/lib/campus/store";
 import { useMotionStore } from "@/lib/a11y/motion";
 import { getZone } from "@/lib/campus/world";
@@ -13,12 +13,17 @@ type Arc = { x: number; y: number; r: number };
  */
 function stubCanvas() {
   const arcs: Arc[] = [];
+  const tri: { x: number; y: number }[] = [];
   const ctx = {
     arcs,
+    tri,
     setTransform: vi.fn(),
     clearRect: vi.fn(),
     fillRect: vi.fn(),
     drawImage: vi.fn(),
+    moveTo: (x: number, y: number) => tri.push({ x, y }),
+    lineTo: (x: number, y: number) => tri.push({ x, y }),
+    closePath: vi.fn(),
     beginPath: vi.fn(),
     fill: vi.fn(),
     stroke: vi.fn(),
@@ -43,6 +48,18 @@ function cellSize(zoneId: string) {
 function markerFor(ctx: ReturnType<typeof stubCanvas>) {
   const dot = ctx.arcs[ctx.arcs.length - 1]!;
   return { x: dot.x, y: dot.y };
+}
+
+/** Expected on-canvas marker position for a tile, including edge clamping. */
+function expectedFor(zoneId: string, tile: { x: number; y: number }) {
+  const zone = getZone(zoneId);
+  const cell = cellSize(zoneId);
+  const dot = Math.max(2, cell * 0.9);
+  return clampMarker(tile.x * cell, tile.y * cell, {
+    w: zone.width * cell,
+    h: zone.height * cell,
+    radius: dot + 1,
+  });
 }
 
 afterEach(() => {
@@ -86,6 +103,7 @@ describe("Minimap player marker", () => {
 
     render(<Minimap size={SIZE} />);
 
+    expect(markerFor(ctx)).toEqual(expectedFor(zoneId, { x: 12, y: 9 }));
     expect(markerFor(ctx)).toEqual({ x: 12 * cell, y: 9 * cell });
   });
 
@@ -104,7 +122,7 @@ describe("Minimap player marker", () => {
     for (const tile of path) {
       useCampusStore.setState({ playerPosition: tile });
       view.rerender(<Minimap size={SIZE} />);
-      expect(markerFor(ctx)).toEqual({ x: tile.x * cell, y: tile.y * cell });
+      expect(markerFor(ctx)).toEqual(expectedFor(zoneId, tile));
     }
   });
 
@@ -126,7 +144,8 @@ describe("Minimap player marker", () => {
     useMotionStore.setState({ setting: "full" });
     const ctx = stubCanvas();
     const raf = stubRaf();
-    const cell = cellSize(useCampusStore.getState().currentZone);
+    const zoneId = useCampusStore.getState().currentZone;
+    const cell = cellSize(zoneId);
 
     useCampusStore.setState({ playerPosition: { x: 4, y: 4 } });
     const view = render(<Minimap size={SIZE} />);
@@ -147,5 +166,53 @@ describe("Minimap player marker", () => {
     }
     expect(markerFor(ctx).x).toBeCloseTo(14 * cell, 5);
     expect(guard).toBeLessThan(200);
+  });
+
+  it("clamps the marker inside the canvas at map edges and on bad values", () => {
+    const bounds = { w: 100, h: 80, radius: 5 };
+    expect(clampMarker(0, 0, bounds)).toEqual({ x: 5, y: 5 });
+    expect(clampMarker(999, 999, bounds)).toEqual({ x: 95, y: 75 });
+    expect(clampMarker(-40, 120, bounds)).toEqual({ x: 5, y: 75 });
+    expect(clampMarker(Number.NaN, Number.NaN, bounds)).toEqual({ x: 5, y: 5 });
+    expect(clampMarker(50, 40, bounds)).toEqual({ x: 50, y: 40 });
+  });
+
+  it("keeps the marker on-map for the extreme corner tiles of the zone", () => {
+    const ctx = stubCanvas();
+    const zoneId = useCampusStore.getState().currentZone;
+    const zone = getZone(zoneId);
+    const cell = cellSize(zoneId);
+    const corners = [
+      { x: 0, y: 0 },
+      { x: zone.width - 1, y: zone.height - 1 },
+      { x: zone.width + 6, y: -4 },
+    ];
+
+    const view = render(<Minimap size={SIZE} />);
+    for (const tile of corners) {
+      useCampusStore.setState({ playerPosition: tile });
+      view.rerender(<Minimap size={SIZE} />);
+      const m = markerFor(ctx);
+      expect(m.x).toBeGreaterThan(0);
+      expect(m.y).toBeGreaterThan(0);
+      expect(m.x).toBeLessThan(zone.width * cell);
+      expect(m.y).toBeLessThan(zone.height * cell);
+    }
+  });
+
+  it("points the facing arrow in the direction the student looks", () => {
+    const ctx = stubCanvas();
+    useCampusStore.setState({ playerPosition: { x: 12, y: 12 }, playerDirection: "right" });
+    const view = render(<Minimap size={SIZE} />);
+    const center = markerFor(ctx);
+    const rightTip = ctx.tri[ctx.tri.length - 3]!;
+    expect(rightTip.x).toBeGreaterThan(center.x);
+    expect(rightTip.y).toBeCloseTo(center.y, 5);
+
+    ctx.tri.length = 0;
+    useCampusStore.setState({ playerDirection: "up" });
+    view.rerender(<Minimap size={SIZE} />);
+    const upTip = ctx.tri[ctx.tri.length - 3]!;
+    expect(upTip.y).toBeLessThan(markerFor(ctx).y);
   });
 });

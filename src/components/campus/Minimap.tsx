@@ -43,6 +43,30 @@ const EASE_PER_SECOND = 12;
 const SNAP_EPSILON = 0.05;
 
 /**
+ * Keep the marker fully inside the minimap. Edge tiles, out-of-range values
+ * from a collision nudge, or a stale position from another zone would
+ * otherwise draw the dot half (or entirely) off the canvas.
+ */
+export function clampMarker(
+  px: number,
+  py: number,
+  bounds: { w: number; h: number; radius: number },
+) {
+  const r = Math.min(bounds.radius, bounds.w / 2, bounds.h / 2);
+  const clamp = (v: number, max: number) =>
+    Number.isFinite(v) ? Math.min(Math.max(v, r), Math.max(r, max - r)) : r;
+  return { x: clamp(px, bounds.w), y: clamp(py, bounds.h) };
+}
+
+/** Unit vector for the facing arrow. */
+const FACING_VECTOR: Record<string, { x: number; y: number }> = {
+  up: { x: 0, y: -1 },
+  down: { x: 0, y: 1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+};
+
+/**
  * Live corner minimap: the current zone painted from its tile grid, with
  * doorways, interactables, NPCs and the player rendered on top.
  *
@@ -54,7 +78,9 @@ export function Minimap({ size = 132 }: { size?: number }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const zoneId = useCampusStore((s) => s.currentZone);
   const player = useCampusStore((s) => s.playerPosition);
+  const facing = useCampusStore((s) => s.playerDirection);
   const zone = useMemo(() => getZone(zoneId), [zoneId]);
+
 
   // Interpolated marker position, in tile units.
   const markerRef = useRef<{ x: number; y: number } | null>(null);
@@ -110,21 +136,40 @@ export function Minimap({ size = 132 }: { size?: number }) {
       const base = baseRef.current;
       if (base) ctx.drawImage(base, 0, 0, w, h);
 
-      // playerPosition is in tile coordinates, so multiply directly by cell.
-      const px = marker.x * cell;
-      const py = marker.y * cell;
+      // playerPosition is in tile coordinates, so multiply directly by cell,
+      // then clamp so edge tiles and collision overshoot stay on the map.
+      const dot = Math.max(2, cell * 0.9);
+      const { x: px, y: py } = clampMarker(marker.x * cell, marker.y * cell, {
+        w,
+        h,
+        radius: dot + 1,
+      });
       ctx.beginPath();
       ctx.fillStyle = "rgba(224, 85, 63, 0.32)";
       ctx.arc(px, py, cell * 2.4, 0, Math.PI * 2);
       ctx.fill();
+
+      // Facing arrow: a small triangle offset from the dot in the look direction.
+      const v = FACING_VECTOR[facing] ?? FACING_VECTOR["down"]!;
+      const tip = dot + Math.max(3, cell * 1.5);
+      const half = Math.max(2, cell * 0.8);
+      ctx.beginPath();
+      ctx.fillStyle = "#f1e6d0";
+      ctx.moveTo(px + v.x * tip, py + v.y * tip);
+      ctx.lineTo(px + v.x * dot - v.y * half, py + v.y * dot + v.x * half);
+      ctx.lineTo(px + v.x * dot + v.y * half, py + v.y * dot - v.x * half);
+      ctx.closePath();
+      ctx.fill();
+
       ctx.beginPath();
       ctx.fillStyle = "#e0553f";
       ctx.strokeStyle = "#f1e6d0";
       ctx.lineWidth = 1;
-      ctx.arc(px, py, Math.max(2, cell * 0.9), 0, Math.PI * 2);
+      ctx.arc(px, py, dot, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     };
+
 
     const animate = motionSetting() === "full" && markerRef.current !== null;
     if (!animate) {
@@ -158,7 +203,7 @@ export function Minimap({ size = 132 }: { size?: number }) {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [zone, player.x, player.y, cell, w, h]);
+  }, [zone, player.x, player.y, facing, cell, w, h]);
 
   return (
     <div
