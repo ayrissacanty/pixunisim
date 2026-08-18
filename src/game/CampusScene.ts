@@ -240,6 +240,22 @@ export class CampusScene extends Phaser.Scene {
   /** Doors re-arm only after the player has stepped clear of the trigger. */
   private doorArmed = false;
   private motionUnsub?: (() => void) | undefined;
+  private mascotUnsub?: (() => void) | undefined;
+  private mascotBadge?: Phaser.GameObjects.Rectangle | undefined;
+
+  /** Draw (or clear) the single accessory badge above the player's head. */
+  private applyMascotAccessory(id: string) {
+    this.mascotBadge?.destroy();
+    this.mascotBadge = undefined;
+    const accessory = mascotAccessoryOf(id);
+    if (accessory.id === "none" || !this.player) return;
+    const badge = this.add
+      .rectangle(0, -22, 14, 4, accessory.hex)
+      .setStrokeStyle(1, 0x2b1e18, 0.5);
+    this.player.add(badge);
+    this.mascotBadge = badge;
+  }
+
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private npcs: NpcSprite[] = [];
