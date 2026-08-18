@@ -133,7 +133,7 @@ function Landing() {
               </figcaption>
             </figure>
 
-            <div className="block-panel absolute -bottom-8 -left-4 flex max-w-[16rem] items-center gap-3 border-accent/70 bg-card p-3 text-card-foreground sm:-left-8">
+            <div className="block-panel mt-4 flex items-center gap-3 border-accent/70 bg-card p-3 text-card-foreground lg:absolute lg:-bottom-10 lg:-left-6 lg:mt-0 lg:max-w-[17rem]">
               <img
                 src={alleyMascot}
                 alt="Alley, the owl AI teacher mascot in a graduation cap"
