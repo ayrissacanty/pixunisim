@@ -203,7 +203,7 @@ export function Minimap({ size = 132 }: { size?: number }) {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [zone, player.x, player.y, cell, w, h]);
+  }, [zone, player.x, player.y, facing, cell, w, h]);
 
   return (
     <div
