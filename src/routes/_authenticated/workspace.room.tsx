@@ -74,10 +74,16 @@ function StudentSpace() {
         />
 
         <aside className="space-y-4">
+          <div className="flex flex-col items-center rounded-md border border-border bg-card p-3">
+            <MascotView mascot={mascot} size={110} />
+            <p className="mt-2 text-center text-xs text-muted-foreground">Your mascot</p>
+          </div>
+
           <div className="rounded-md border border-border bg-card p-3">
             <PortraitView portrait={portrait} />
             <p className="mt-2 text-center text-xs text-muted-foreground">Your dialogue portrait</p>
           </div>
+
 
           <div className="rounded-md border border-border bg-card p-4 text-sm">
             <p className="font-semibold">Study log</p>
