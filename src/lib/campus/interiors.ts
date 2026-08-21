@@ -91,7 +91,7 @@ export const INTERIOR_PROPS: Partial<Record<TileKind, PropSprite[]>> = {
   plant: [
     { sheet: "interiors", rect: [224, 96, 16, 32], tiles: 0.9 },
     { sheet: "interiors", rect: [240, 112, 16, 16], tiles: 0.7 },
-    { sheet: "items", rect: [196, 570 / 5, 24, 34], tiles: 0.9 },
+    { sheet: "items", rect: [48, 140, 14, 20], tiles: 0.9 },
   ],
   window: [{ sheet: "interiors", rect: [96, 0, 32, 32], tiles: 1 }],
   rug: [
