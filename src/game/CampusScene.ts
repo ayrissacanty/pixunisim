@@ -17,6 +17,17 @@ import {
 } from "@/lib/campus/decor";
 import { isWalkableTile, reachabilityReport } from "@/lib/campus/walkable";
 import {
+  INTERIOR_GROUND,
+  INTERIOR_KEY,
+  INTERIOR_PROPS,
+  INTERIOR_URL,
+  INT_SCALE,
+  INT_SRC,
+  ITEMS_KEY,
+  ITEMS_URL,
+  pick as pickVariant,
+} from "@/lib/campus/interiors";
+import {
   OVERLAY_TILES,
   SCALE,
   SRC_TILE,
@@ -322,6 +333,76 @@ export class CampusScene extends Phaser.Scene {
   preload() {
     if (!this.textures.exists(TILESET_KEY)) this.load.image(TILESET_KEY, TILESET_URL);
     if (!this.textures.exists(DECOR_KEY)) this.load.image(DECOR_KEY, DECOR_URL);
+    if (!this.textures.exists(INTERIOR_KEY)) this.load.image(INTERIOR_KEY, INTERIOR_URL);
+    if (!this.textures.exists(ITEMS_KEY)) this.load.image(ITEMS_KEY, ITEMS_URL);
+  }
+
+  /**
+   * Bakes an interior floor/wall layer from the pixel interior sheet, so rooms
+   * read as boarded floors and brick walls instead of flat colour blocks.
+   */
+  private bakeInterior(zone: ZoneMap): string | null {
+    if (!this.textures.exists(INTERIOR_KEY)) return null;
+    const key = `interior-${zone.id}`;
+    if (this.textures.exists(key)) return key;
+    const src = this.textures.get(INTERIOR_KEY).getSourceImage() as HTMLImageElement;
+    const tex = this.textures.createCanvas(key, zone.width * TILE, zone.height * TILE);
+    if (!tex) return null;
+    const ctx = tex.context;
+    ctx.imageSmoothingEnabled = false;
+    let painted = false;
+
+    for (let y = 0; y < zone.height; y++) {
+      for (let x = 0; x < zone.width; x++) {
+        const kind = zone.tiles[y]![x]!;
+        const frames = INTERIOR_GROUND[kind];
+        if (!frames?.length) continue;
+        const f = pickVariant(frames, x, y);
+        ctx.drawImage(
+          src,
+          f.x,
+          f.y,
+          INT_SRC,
+          INT_SRC,
+          x * TILE,
+          y * TILE,
+          INT_SRC * INT_SCALE,
+          INT_SRC * INT_SCALE,
+        );
+        painted = true;
+      }
+    }
+    tex.refresh();
+    if (!painted) {
+      this.textures.remove(key);
+      return null;
+    }
+    return key;
+  }
+
+  /** Draws the furniture sprites that sit on furnished interior tiles. */
+  private addInteriorProps(zone: ZoneMap) {
+    if (!this.textures.exists(INTERIOR_KEY) || !this.textures.exists(ITEMS_KEY)) return;
+    for (let y = 0; y < zone.height; y++) {
+      for (let x = 0; x < zone.width; x++) {
+        const kind = zone.tiles[y]![x]!;
+        const options = INTERIOR_PROPS[kind];
+        if (!options?.length) continue;
+        const prop = pickVariant(options, x, y);
+        const key = prop.sheet === "items" ? ITEMS_KEY : INTERIOR_KEY;
+        const [sx, sy, sw, sh] = prop.rect;
+        const frame = `${prop.sheet}-${sx}-${sy}-${sw}-${sh}`;
+        const texture = this.textures.get(key);
+        if (!texture.has(frame)) texture.add(frame, 0, sx, sy, sw, sh);
+        const width = prop.tiles * TILE;
+        const image = this.add
+          .image(x * TILE + TILE / 2, (y + 1) * TILE + 2, key, frame)
+          .setOrigin(0.5, 1)
+          .setDisplaySize(width, (width / sw) * sh)
+          .setDepth(kind === "rug" ? 0 : 4);
+        if (kind === "rug") image.setDepth(0);
+      }
+    }
   }
 
   /**
@@ -463,18 +544,22 @@ export class CampusScene extends Phaser.Scene {
     this.zone = getZone(data.zoneId);
     this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#5d7047" : "#cbb894");
 
-    const groundKey = this.zone.kind === "outdoor" ? this.bakeGround(this.zone) : null;
+    const outdoor = this.zone.kind === "outdoor";
+    const groundKey = outdoor ? this.bakeGround(this.zone) : this.bakeInterior(this.zone);
 
     const g = this.add.graphics();
     for (let y = 0; y < this.zone.height; y++) {
       for (let x = 0; x < this.zone.width; x++) {
         const kind = this.zone.tiles[y]![x]!;
-        if (groundKey && TILE_FRAMES[kind]?.length) continue;
+        const covered = outdoor ? TILE_FRAMES[kind]?.length : INTERIOR_GROUND[kind]?.length;
+        if (groundKey && covered) continue;
         paintTile(g, kind, x * TILE, y * TILE);
       }
     }
     g.setDepth(0);
     if (groundKey) this.add.image(0, 0, groundKey).setOrigin(0, 0).setDepth(-1);
+
+    if (!outdoor) this.addInteriorProps(this.zone);
 
     this.addDecor(this.zone);
 
