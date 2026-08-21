@@ -53,7 +53,7 @@ export const INTERIOR_GROUND: Partial<Record<TileKind, Frame[]>> = {
 
 export interface PropSprite {
   /** Which sheet the rect belongs to. */
-  sheet: "interiors" | "items";
+  sheet: "interiors" | "items" | "school";
   /** Source rect [x, y, w, h] in sheet pixels. */
   rect: [number, number, number, number];
   /** Drawn width in world tiles (height follows the source aspect). */
