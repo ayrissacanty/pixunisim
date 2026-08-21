@@ -17,6 +17,17 @@ import {
 } from "@/lib/campus/decor";
 import { isWalkableTile, reachabilityReport } from "@/lib/campus/walkable";
 import {
+  INTERIOR_GROUND,
+  INTERIOR_KEY,
+  INTERIOR_PROPS,
+  INTERIOR_URL,
+  INT_SCALE,
+  INT_SRC,
+  ITEMS_KEY,
+  ITEMS_URL,
+  pick as pickVariant,
+} from "@/lib/campus/interiors";
+import {
   OVERLAY_TILES,
   SCALE,
   SRC_TILE,
