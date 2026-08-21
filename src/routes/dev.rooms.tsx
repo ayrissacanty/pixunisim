@@ -7,7 +7,6 @@ import {
   DORM_PROPS,
 } from "@/lib/props3d";
 import { useDebugMode } from "@/lib/debug";
-import { PROP_MODELS, type PropId } from "@/lib/props3d";
 
 export const Route = createFileRoute("/dev/rooms")({
   component: RoomPreview,
@@ -46,24 +45,8 @@ function RoomPreview() {
       </main>
     );
   }
-  const single = (Object.keys(PROP_MODELS) as PropId[]).filter((k) =>
-    /^(cls|pc|caf)/.test(k),
-  );
   return (
     <main className="space-y-6 p-6">
-      <CharacterStage
-        actors={[]}
-        props={single.map((id, i) => ({
-          model: id,
-          x: (i % 8) * 1.6 - 5.6,
-          z: Math.floor(i / 8) * 1.8 - 3,
-          targetHeight: 1,
-        }))}
-        camera={{ y: 5.5, z: 9, lookY: 0.5, fov: 50 }}
-        background={0x8a6a45}
-        floorColor={0x6b4a2f}
-        height={520}
-      />
       {SETS.map((set) => (
         <section key={set.id} data-testid={`room-set-${set.id}`}>
           <h2 className="mb-2 font-display text-sm uppercase tracking-wide text-accent">
