@@ -180,7 +180,12 @@ export function CharacterStage({
                 const isGltf = url.endsWith(".glb");
                 const source = await load(url);
                 if (disposed) return;
-                const model = source.clone(true);
+                const raw = source.clone(true);
+                // Some glTF props are authored Z-up; tip them upright first so
+                // the bounding-box normalisation below measures real height.
+                const model = new THREE.Group();
+                if (placement.upAxis === "z") raw.rotation.x = -Math.PI / 2;
+                model.add(raw);
                 // glTF props ship their own baked materials; the FBX set all
                 // samples the shared low-poly palette texture.
                 if (!isGltf) {

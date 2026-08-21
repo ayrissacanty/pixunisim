@@ -120,6 +120,8 @@ export interface PropPlacement {
   scale?: number;
   /** Normalise the model so it stands this many metres tall. */
   targetHeight?: number;
+  /** Set for models authored Z-up (Blender default) so they stand upright. */
+  upAxis?: "y" | "z";
 }
 
 /**
