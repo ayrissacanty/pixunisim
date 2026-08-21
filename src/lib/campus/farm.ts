@@ -61,9 +61,9 @@ export interface FarmAnimated {
 
 export const FARM_ANIMATED: FarmAnimated[] = [
   // Windmill blades turning above the tower.
-  { kind: "blade", tx: 26, ty: 12.4, tiles: 4, fps: 10 },
+  { kind: "blade", tx: 26, ty: 12.2, tiles: 3, fps: 10 },
   // Water wheel on the irrigation channel.
-  { kind: "wheel", tx: 17.5, ty: 14, tiles: 2, fps: 8 },
+  { kind: "wheel", tx: 18, ty: 13.9, tiles: 2, fps: 8 },
 ];
 
 
