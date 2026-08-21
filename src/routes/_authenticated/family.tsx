@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { FamilyNews } from "@/components/family/FamilyNews";
+import { FamilyCode } from "@/components/family/FamilyCode";
+
 
 export const Route = createFileRoute("/_authenticated/family")({
   head: () => ({
