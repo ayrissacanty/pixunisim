@@ -544,18 +544,22 @@ export class CampusScene extends Phaser.Scene {
     this.zone = getZone(data.zoneId);
     this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#5d7047" : "#cbb894");
 
-    const groundKey = this.zone.kind === "outdoor" ? this.bakeGround(this.zone) : null;
+    const outdoor = this.zone.kind === "outdoor";
+    const groundKey = outdoor ? this.bakeGround(this.zone) : this.bakeInterior(this.zone);
 
     const g = this.add.graphics();
     for (let y = 0; y < this.zone.height; y++) {
       for (let x = 0; x < this.zone.width; x++) {
         const kind = this.zone.tiles[y]![x]!;
-        if (groundKey && TILE_FRAMES[kind]?.length) continue;
+        const covered = outdoor ? TILE_FRAMES[kind]?.length : INTERIOR_GROUND[kind]?.length;
+        if (groundKey && covered) continue;
         paintTile(g, kind, x * TILE, y * TILE);
       }
     }
     g.setDepth(0);
     if (groundKey) this.add.image(0, 0, groundKey).setOrigin(0, 0).setDepth(-1);
+
+    if (!outdoor) this.addInteriorProps(this.zone);
 
     this.addDecor(this.zone);
 
