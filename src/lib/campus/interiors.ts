@@ -28,7 +28,11 @@ export const INTERIOR_GROUND: Partial<Record<TileKind, Frame[]>> = {
   // Wood boards throughout: the sheet's only alternate floor is a pale stone
   // square, and checker-boarding it against the planks reads as noise.
   floorAlt: [{ x: 112, y: 32 }],
-  wall: [{ x: 0, y: 0 }],
+  wall: [
+    { x: 48, y: 16 },
+    { x: 64, y: 16 },
+    { x: 48, y: 32 },
+  ],
   door: [{ x: 112, y: 32 }],
   rug: [{ x: 112, y: 32 }],
   chair: [{ x: 112, y: 32 }],
