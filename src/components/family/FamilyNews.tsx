@@ -42,8 +42,8 @@ export function FamilyNews() {
         <div className="flex flex-wrap gap-2">
           <Button
             data-testid="news-play"
-            onClick={() => (speaking ? stop() : speak())}
-            disabled={!supported || muted || isLoading || lines.length === 0}
+            onClick={() => (speaking ? stop() : void speak())}
+            disabled={!supported || muted || isLoading || loading || lines.length === 0}
           >
             {speaking ? (
               <>
@@ -51,10 +51,11 @@ export function FamilyNews() {
               </>
             ) : (
               <>
-                <RotateCcw className="size-4" /> Play report
+                <RotateCcw className="size-4" /> {loading ? "Preparing voice…" : "Play report"}
               </>
             )}
           </Button>
+
           <Button
             variant="outline"
             data-testid="news-mute"
