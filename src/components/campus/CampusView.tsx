@@ -253,7 +253,7 @@ export function CampusView({
           const w = buildWalkthrough(WALKTHROUGHS[id]?.lessonId ?? id);
           useCampusStore.getState().enterClassroom({
             roomId: w.roomId,
-            roomName: w.roomName ?? w.roomId,
+            roomName: w.roomId,
             teacher: w.npc.name,
             courseId: w.courseId,
             lessonId: w.lessonId,
