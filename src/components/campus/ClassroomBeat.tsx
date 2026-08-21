@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useCampusStore } from "@/lib/campus/store";
 import { useAlleyDialogue, useLesson, useProgress, progressFor } from "@/lib/data";
 import { CharacterStage, type StageActor } from "@/components/three/CharacterStage";
-import { CLASSROOM_PROPS } from "@/lib/props3d";
+import { propsForRoom } from "@/lib/props3d";
 import { classmatesFor, TEACHER_CHARACTER } from "@/lib/characters";
 import { useAvatar } from "@/lib/profile";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,11 @@ export function ClassroomBeat() {
       { character: mates[1]!, x: 1.9, z: -0.2, rotation: Math.PI + 0.35, scale: 0.97 },
     ];
   }, [roomId, avatar]);
+
+  const roomProps = useMemo(
+    () => propsForRoom(`${classroom?.roomName ?? ""} ${roomId ?? ""}`),
+    [classroom?.roomName, roomId],
+  );
 
   const phase = classroom?.phase;
   // Hold the beat until the room has actually rendered, then let it play out.
@@ -81,7 +86,7 @@ export function ClassroomBeat() {
         <div data-testid="beat-teacher" className="absolute inset-x-0 bottom-0 top-1/4">
           <CharacterStage
             actors={cast}
-            props={CLASSROOM_PROPS}
+            props={roomProps}
             camera={{ y: 2.1, z: 6.2, lookY: 1.1, fov: 42 }}
             floorColor={0x8a6a45}
             height={420}
