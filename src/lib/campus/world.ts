@@ -634,6 +634,14 @@ function studyGardens(): ZoneMap {
         action: { kind: "travel", zone: "central-quad", spawnX: 1, spawnY: 14 },
       },
       {
+        id: "sg-west",
+        x: 0,
+        y: 10,
+        verb: "GO",
+        label: "Agricultural Science Field",
+        action: { kind: "travel", zone: "agricultural-field", spawnX: 28, spawnY: 10 },
+      },
+      {
         id: "sg-bench",
         x: 12,
         y: 15,
@@ -642,6 +650,7 @@ function studyGardens(): ZoneMap {
         action: { kind: "study" },
       },
     ],
+
   };
 }
 
