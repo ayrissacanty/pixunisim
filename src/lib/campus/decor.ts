@@ -117,107 +117,12 @@ export function decorFor(zone: ZoneMap): DecorPlacement[] {
 }
 
 /**
- * Interior dressing: planters, crates, side tables and wall pieces tucked into
- * the free floor of each room and along the corridor, never on doorways,
- * furniture, NPCs or the tiles a student needs to walk through.
+ * Interiors are now dressed entirely from the pixel interior sheets
+ * (`src/lib/campus/interiors.ts`): the scene draws real furniture sprites on
+ * the furniture tiles themselves, so the old outdoor prop scatter would only
+ * double up in a mismatched art style. Collision for interiors therefore comes
+ * purely from the tile solidity table.
  */
-function interiorDecorFor(zone: ZoneMap): DecorPlacement[] {
-  const blocked = new Set<string>();
-  const reserve = (x: number, y: number, r = 1) => {
-    for (let dy = -r; dy <= r; dy++)
-      for (let dx = -r; dx <= r; dx++) blocked.add(`${x + dx},${y + dy}`);
-  };
-  zone.interactables.forEach((i) => reserve(i.x, i.y, 1));
-  zone.npcs.forEach((n) => reserve(n.x, n.y, 1));
-  reserve(zone.defaultSpawn.x, zone.defaultSpawn.y, 2);
-  for (let y = 0; y < zone.height; y++)
-    for (let x = 0; x < zone.width; x++)
-      if (zone.tiles[y]?.[x] === "door") reserve(x, y, 2);
-
-  const out: DecorPlacement[] = [];
-  const seed = zone.id.length * 17 + zone.height;
-
-  // Pass 1 — dress every furniture tile of an educational interior with the
-  // matching prop sprite, so classrooms and the library read as furnished.
-  if (isEducationalInterior(zone)) {
-    for (let y = 0; y < zone.height; y++) {
-      for (let x = 0; x < zone.width; x++) {
-        const kind = zone.tiles[y]?.[x];
-        if (!kind) continue;
-        const spec = FURNISH[kind];
-        if (!spec) continue;
-        const frame = spec.frames[Math.floor(hash(x, y, seed + 3) * spec.frames.length) % spec.frames.length]!;
-        out.push({
-          frame,
-          px: x * TILE + TILE / 2,
-          py: (y + 1) * TILE,
-          scale: spec.scale,
-          solid: spec.solid,
-        });
-        reserve(x, y, 1);
-      }
-    }
-
-    // Pass 2 — a few free-standing pieces (lecterns, bookcases, study carts)
-    // in the clear floor of each room, always leaving the doorway lane open.
-    zone.rooms.forEach((room, ri) => {
-      for (let i = 0; i < 2; i++) {
-        const rx = room.x + 1 + Math.floor(hash(room.x + i, room.y, seed + 21 + ri) * Math.max(1, room.w - 2));
-        const ry = room.y + 1 + Math.floor(hash(room.x, room.y + i, seed + 29 + ri) * Math.max(1, room.h - 2));
-        const kind = zone.tiles[ry]?.[rx];
-        if (kind !== "floor" && kind !== "floorAlt") continue;
-        if (blocked.has(`${rx},${ry}`)) continue;
-        const frame =
-          CLASSROOM_EXTRA[Math.floor(hash(rx, ry, seed + 41) * CLASSROOM_EXTRA.length) % CLASSROOM_EXTRA.length]!;
-        out.push({
-          frame,
-          px: rx * TILE + TILE / 2,
-          py: (ry + 1) * TILE,
-          scale: 0.5,
-          solid: true,
-        });
-        reserve(rx, ry, 1);
-      }
-    });
-  }
-
-  for (let y = 1; y < zone.height - 1; y++) {
-    for (let x = 1; x < zone.width - 1; x++) {
-      const kind = zone.tiles[y]?.[x];
-      if (kind !== "floor" && kind !== "floorAlt") continue;
-      if (blocked.has(`${x},${y}`)) continue;
-
-      // Corners next to a wall read best; keep the middle of rooms clear.
-      const againstWall =
-        zone.tiles[y - 1]?.[x] === "wall" ||
-        zone.tiles[y]?.[x - 1] === "wall" ||
-        zone.tiles[y]?.[x + 1] === "wall";
-      if (!againstWall) continue;
-
-      const roll = hash(x, y, seed);
-      if (roll > 0.22) continue;
-
-      let crowded = false;
-      for (const p of out) {
-        if (Math.abs(p.px - (x * TILE + TILE / 2)) < TILE * 4 && Math.abs(p.py - (y + 1) * TILE) < TILE * 3) {
-          crowded = true;
-          break;
-        }
-      }
-      if (crowded) continue;
-
-      const pool = zone.tiles[y - 1]?.[x] === "wall" ? INDOOR_WALL : INDOOR;
-      const frame = pool[Math.floor(hash(x, y, seed + 5) * pool.length) % pool.length]!;
-
-      out.push({
-        frame,
-        px: x * TILE + TILE / 2,
-        py: (y + 1) * TILE,
-        scale: 0.5,
-        solid: true,
-      });
-      reserve(x, y, 1);
-    }
-  }
-  return out;
+function interiorDecorFor(_zone: ZoneMap): DecorPlacement[] {
+  return [];
 }
