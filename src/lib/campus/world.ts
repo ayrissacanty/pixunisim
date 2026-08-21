@@ -1428,7 +1428,109 @@ function personalSpaceZone(): ZoneMap {
 
 /* --------------------------------- registry -------------------------------- */
 
+/** Agricultural Science Field — outdoor teaching farm west of the gardens. */
+function agriculturalField(): ZoneMap {
+  const g = new Grid(30, 22, "grass");
+  const rnd = mulberry(97);
+  // roads
+  g.hLine(0, 29, 10, "path", 2);
+  g.vLine(10, 19, 14, "path");
+  g.hLine(2, 27, 19, "path");
+  // irrigation channel + water wheel pool
+  g.rect(16, 13, 5, 3, "water");
+  g.border(16, 13, 5, 3, "stone");
+  // structure footprints (art is drawn on top by the campus scene)
+  g.rect(11, 3, 6, 6, "buildingWall"); // red teaching barn
+  g.hLine(11, 16, 3, "buildingRoof");
+  g.rect(21, 4, 6, 6, "buildingWall"); // brown implement barn
+  g.hLine(21, 26, 4, "buildingRoof");
+  g.rect(6, 3, 5, 5, "buildingWall"); // grain silos
+  g.rect(2, 10, 5, 5, "buildingWall"); // thatched storage
+  g.rect(19, 13, 5, 5, "buildingWall"); // hay shed
+  g.rect(2, 4, 2, 4, "buildingWall"); // windmill tower
+  // planted rows + scattered greenery
+  for (let y = 12; y <= 17; y += 2)
+    for (let x = 8; x <= 13; x++) if (g.get(x, y) === "grass") g.set(x, y, "flower");
+  for (let i = 0; i < 70; i++) {
+    const x = Math.floor(rnd() * 30);
+    const y = Math.floor(rnd() * 22);
+    if (g.get(x, y) !== "grass") continue;
+    const r = rnd();
+    if (r > 0.86) g.set(x, y, "tree");
+    else if (r > 0.7) g.set(x, y, "hedge");
+  }
+  g.set(26, 11, "sign");
+  g.set(13, 11, "bench");
+
+  return {
+    id: "agricultural-field",
+    name: "Agricultural Science Field",
+    kind: "outdoor",
+    width: g.width,
+    height: g.height,
+    tiles: g.tiles,
+    defaultSpawn: { x: 28, y: 10 },
+    mapPos: { x: 0.04, y: 0.24 },
+    rooms: [],
+    npcs: [
+      {
+        id: "farm-agronomist",
+        x: 12,
+        y: 11,
+        name: "Dr. Hana Oyelaran",
+        role: "Agricultural Science",
+        behavior: "idle",
+        lines: [
+          "Welcome to the field station. Everything here is a live experiment.",
+          "The windmill pumps into the channel, and the wheel measures the flow — that is our energy unit in physical science.",
+        ],
+      },
+      {
+        id: "farm-student-tobi",
+        x: 9,
+        y: 16,
+        name: "Tobi Marsh",
+        role: "Student",
+        behavior: "walk",
+        lines: ["I log plant growth every morning. It counts toward my science objectives."],
+      },
+    ],
+    interactables: [
+      {
+        id: "af-east",
+        x: 29,
+        y: 10,
+        verb: "GO",
+        label: "Outdoor Study Gardens",
+        action: { kind: "travel", zone: "study-gardens", spawnX: 1, spawnY: 10 },
+      },
+      {
+        id: "af-sign",
+        x: 26,
+        y: 11,
+        verb: "READ",
+        label: "Field Station Sign",
+        action: {
+          kind: "read",
+          title: "Agricultural Science Field",
+          body: "Teaching barn, grain silos, irrigation channel and windmill. Plots are measured in square metres for the measurement unit; the water wheel logs flow rate for energy lessons.",
+        },
+      },
+      {
+        id: "af-bench",
+        x: 13,
+        y: 11,
+        verb: "STUDY",
+        label: "Field Notes Bench",
+        action: { kind: "study" },
+      },
+    ],
+  };
+}
+
 const builders: Record<string, () => ZoneMap> = {
+  "agricultural-field": agriculturalField,
+
   "welcome-plaza": welcomePlaza,
   "central-quad": centralQuad,
   "student-commons": studentCommons,
