@@ -14,6 +14,9 @@ export const INTERIOR_KEY = "interiors-demo";
 export const INTERIOR_URL = interiorsAsset.url;
 export const ITEMS_KEY = "tiles-items";
 export const ITEMS_URL = itemsAsset.url;
+/** School fittings sheet: chalkboards, lockers and hall windows. */
+export const SCHOOL_KEY = "school-interior";
+export const SCHOOL_URL = schoolAsset.url;
 
 export const INT_SRC = 16;
 export const INT_SCALE = 2;
