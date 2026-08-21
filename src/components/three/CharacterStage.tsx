@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { characterOf, CHARACTER_IDS, type CharacterId } from "@/lib/characters";
-import { PROP_MODELS, PROP_PALETTE_URL, type PropPlacement } from "@/lib/props3d";
+import { characterOf, type CharacterId } from "@/lib/characters";
+import { buildCharacter, type LowPolyCharacter } from "@/lib/lowpoly";
+import { PROP_MODELS, PROP_PALETTE_URL, SHELL_MODELS, type PropPlacement } from "@/lib/props3d";
 
 export interface StageActor {
   character: CharacterId;
@@ -12,6 +13,18 @@ export interface StageActor {
   rotation?: number;
   scale?: number;
   label?: string;
+}
+
+/** Styloo-style room shell: tiled floor with walls on three sides. */
+export interface RoomShell {
+  width: number;
+  depth: number;
+  /** Wall height in metres. */
+  height?: number;
+  /** Put a door segment in the middle of the back wall. */
+  door?: boolean;
+  /** Put window segments along the right-hand wall. */
+  windows?: boolean;
 }
 
 interface Props {
@@ -29,37 +42,37 @@ interface Props {
   /** Pull the camera back / raise it for furnished rooms. */
   camera?: { x?: number; y?: number; z?: number; lookY?: number; fov?: number };
   floorColor?: number;
+  /** Build Styloo walls and a tiled floor around the set. */
+  shell?: RoomShell;
 }
 
-/** Cache loaded FBX groups + textures so revisiting a classroom is instant. */
+/** Cache loaded model groups + textures so revisiting a classroom is instant. */
 const modelCache = new Map<string, Promise<unknown>>();
 
 /**
- * Warm the character cache ahead of time so the Layer 3 classroom beat does not
- * stall on a cold FBX download when the student walks through the door.
+ * Characters are generated at runtime, so there is nothing to download. The
+ * export is kept so callers can warm the heavy Three.js chunk early.
  */
-export async function prefetchCharacters(ids: CharacterId[] = CHARACTER_IDS) {
-  const { FBXLoader } = await import("three/examples/jsm/loaders/FBXLoader.js");
-  for (const id of ids) {
-    const url = characterOf(id).model;
-    if (!modelCache.has(url)) modelCache.set(url, new FBXLoader().loadAsync(url));
-  }
+export async function prefetchCharacters() {
+  await import("three");
 }
 
 /**
- * Shared Three.js stage that renders the uploaded FBX characters. Used by the
- * Layer 3 classroom beat, the Layer 4 lesson stage and the avatar picker.
+ * Shared Three.js stage: a Styloo-style room shell, low-poly furniture from the
+ * Styloo packs and the procedurally built cast. Used by the Layer 3 classroom
+ * beat, the Layer 4 lesson stage and the avatar picker.
  */
 export function CharacterStage({
   actors,
   height = 220,
-  background = 0x2b2118,
+  background = 0xdfe6ea,
   className,
   turntable = false,
   onReady,
   props: sceneProps,
   camera: cameraOpts,
-  floorColor = 0x6b4a2f,
+  floorColor = 0xc9b18d,
+  shell,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const onReadyRef = useRef(onReady);
@@ -69,6 +82,7 @@ export function CharacterStage({
   const key = actors.map((a) => `${a.character}:${a.x ?? 0}:${a.z ?? 0}`).join("|");
   const propKey = (sceneProps ?? []).map((p) => `${p.model}:${p.x ?? 0}:${p.z ?? 0}`).join("|");
   const camKey = JSON.stringify(cameraOpts ?? {});
+  const shellKey = JSON.stringify(shell ?? null);
 
   useEffect(() => {
     let disposed = false;
@@ -77,8 +91,6 @@ export function CharacterStage({
     void (async () => {
       try {
         const THREE = await import("three");
-        const { FBXLoader } = await import("three/examples/jsm/loaders/FBXLoader.js");
-        const { clone: cloneSkinned } = await import("three/examples/jsm/utils/SkeletonUtils.js");
         const host = hostRef.current;
         if (disposed || !host) return;
 
@@ -86,11 +98,7 @@ export function CharacterStage({
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(background);
         const camera = new THREE.PerspectiveCamera(cameraOpts?.fov ?? 38, width / height, 0.1, 200);
-        camera.position.set(
-          cameraOpts?.x ?? 0,
-          cameraOpts?.y ?? 1.55,
-          cameraOpts?.z ?? 4.4,
-        );
+        camera.position.set(cameraOpts?.x ?? 0, cameraOpts?.y ?? 1.55, cameraOpts?.z ?? 4.4);
         camera.lookAt(0, cameraOpts?.lookY ?? 1, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -98,13 +106,14 @@ export function CharacterStage({
         renderer.setSize(width, height);
         host.replaceChildren(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xfff3e0, 1.1));
-        const keyLight = new THREE.DirectionalLight(0xffe6bd, 1.5);
-        keyLight.position.set(2.5, 5, 4);
+        // Flat, bright, even lighting to match the pack's baked look.
+        scene.add(new THREE.HemisphereLight(0xfff6e8, 0x6b5a44, 1.5));
+        const keyLight = new THREE.DirectionalLight(0xffffff, 1.1);
+        keyLight.position.set(3, 6, 4);
         scene.add(keyLight);
-        const rim = new THREE.DirectionalLight(0x9fb08a, 0.6);
-        rim.position.set(-3, 2, -3);
-        scene.add(rim);
+        const fill = new THREE.DirectionalLight(0xd9e6f2, 0.5);
+        fill.position.set(-4, 3, -3);
+        scene.add(fill);
 
         const root = new THREE.Group();
         scene.add(root);
@@ -117,56 +126,145 @@ export function CharacterStage({
               ? import("three/examples/jsm/loaders/GLTFLoader.js").then(({ GLTFLoader }) =>
                   new GLTFLoader().loadAsync(url).then((gltf) => gltf.scene),
                 )
-              : new FBXLoader().loadAsync(url);
+              : import("three/examples/jsm/loaders/FBXLoader.js").then(({ FBXLoader }) =>
+                  new FBXLoader().loadAsync(url),
+                );
             modelCache.set(url, p);
           }
           return p as Promise<import("three").Group>;
         };
 
-        await Promise.all(
-          actors.map(async (actor) => {
-            const def = characterOf(actor.character);
-            const [fbx, map] = await Promise.all([
-              load(def.model),
-              texLoader.loadAsync(def.texture),
-            ]);
-            if (disposed) return;
-            map.colorSpace = THREE.SRGBColorSpace;
-            // FBX UVs expect the default (flipped) orientation.
-            map.flipY = true;
-            const model = cloneSkinned(fbx) as import("three").Group;
+        // ---- Cast ------------------------------------------------------
+        const built: LowPolyCharacter[] = [];
+        for (const actor of actors) {
+          const person = buildCharacter(THREE, characterOf(actor.character));
+          person.group.scale.setScalar(actor.scale ?? 1);
+          person.group.position.set(actor.x ?? 0, 0, actor.z ?? 0);
+          person.group.rotation.y = actor.rotation ?? 0;
+          root.add(person.group);
+          built.push(person);
+        }
 
-            model.traverse((child) => {
-              const mesh = child as import("three").Mesh;
-              if (!mesh.isMesh) return;
-              mesh.frustumCulled = false;
-              mesh.material = new THREE.MeshStandardMaterial({
-                map,
-                roughness: 0.8,
-                metalness: 0,
-              });
-            });
+        // ---- Room shell ------------------------------------------------
+        if (shell) {
+          const wallHeight = shell.height ?? 2.7;
+          const shellGroup = new THREE.Group();
+          scene.add(shellGroup);
 
-            // Normalise: models are authored in centimetres and off-origin.
-            const box = new THREE.Box3().setFromObject(model);
+          /** Normalise a Styloo piece: upright, centred, feet on the floor. */
+          const prep = (source: import("three").Group, targetH: number) => {
+            const piece = source.clone(true);
+            const wrap = new THREE.Group();
+            wrap.add(piece);
+            let bb = new THREE.Box3().setFromObject(wrap);
             const size = new THREE.Vector3();
-            box.getSize(size);
-            const unit = size.y > 0 ? 1.7 / size.y : 1;
-            model.scale.setScalar(unit * (actor.scale ?? 1));
-
-            const scaled = new THREE.Box3().setFromObject(model);
+            bb.getSize(size);
+            // Z-up authoring shows up as a piece that is deeper than it is tall.
+            if (size.z > size.y * 1.4 && size.z > size.x * 0.8) {
+              piece.rotation.x = -Math.PI / 2;
+              bb = new THREE.Box3().setFromObject(wrap);
+              bb.getSize(size);
+            }
+            const s = size.y > 0 ? targetH / size.y : 1;
+            wrap.scale.setScalar(s);
+            const scaled = new THREE.Box3().setFromObject(wrap);
             const centre = new THREE.Vector3();
             scaled.getCenter(centre);
-            model.position.x += (actor.x ?? 0) - centre.x;
-            model.position.z += (actor.z ?? 0) - centre.z;
-            model.position.y -= scaled.min.y;
-            // Source models face away from the camera by default.
-            model.rotation.y = Math.PI + (actor.rotation ?? 0);
-            root.add(model);
-          }),
-        );
+            wrap.position.x -= centre.x;
+            wrap.position.z -= centre.z;
+            wrap.position.y -= scaled.min.y;
+            const outSize = new THREE.Vector3();
+            scaled.getSize(outSize);
+            return { wrap, size: outSize };
+          };
 
-        // Furniture lives outside `root` so it stays still while the cast breathes.
+          try {
+            const [wallSrc, windowSrc, doorSrc, floorSrc] = await Promise.all([
+              load(SHELL_MODELS.wall),
+              load(SHELL_MODELS.wallWindow),
+              load(SHELL_MODELS.wallDoor),
+              load(SHELL_MODELS.floorTile),
+            ]);
+            if (disposed) return;
+
+            const probe = prep(wallSrc, wallHeight);
+            const segW = Math.max(probe.size.x, 0.5);
+
+            const placeWall = (
+              src: import("three").Group,
+              x: number,
+              z: number,
+              rotY: number,
+            ) => {
+              const { wrap } = prep(src, wallHeight);
+              const holder = new THREE.Group();
+              holder.add(wrap);
+              holder.position.set(x, 0, z);
+              holder.rotation.y = rotY;
+              shellGroup.add(holder);
+            };
+
+            // Back wall (behind the teacher) and the two side walls; the front
+            // is left open so the camera can look in.
+            const backCount = Math.max(1, Math.ceil(shell.width / segW));
+            const backSpan = backCount * segW;
+            for (let i = 0; i < backCount; i += 1) {
+              const x = -backSpan / 2 + segW / 2 + i * segW;
+              const middle = i === Math.floor(backCount / 2);
+              placeWall(shell.door && middle ? doorSrc : wallSrc, x, -shell.depth / 2, 0);
+            }
+            const sideCount = Math.max(1, Math.ceil(shell.depth / segW));
+            const sideSpan = sideCount * segW;
+            for (let i = 0; i < sideCount; i += 1) {
+              const z = -sideSpan / 2 + segW / 2 + i * segW;
+              placeWall(wallSrc, -shell.width / 2, z, Math.PI / 2);
+              placeWall(
+                shell.windows && i % 2 === 1 ? windowSrc : wallSrc,
+                shell.width / 2,
+                z,
+                -Math.PI / 2,
+              );
+            }
+
+            // Tiled floor.
+            const floorProbe = prep(floorSrc, 0.06);
+            const tileW = Math.max(floorProbe.size.x, 0.5);
+            const cols = Math.ceil(shell.width / tileW);
+            const rows = Math.ceil(shell.depth / tileW);
+            for (let c = 0; c < cols; c += 1) {
+              for (let r = 0; r < rows; r += 1) {
+                const { wrap } = prep(floorSrc, 0.06);
+                const holder = new THREE.Group();
+                holder.add(wrap);
+                holder.position.set(
+                  -(cols * tileW) / 2 + tileW / 2 + c * tileW,
+                  0,
+                  -(rows * tileW) / 2 + tileW / 2 + r * tileW,
+                );
+                shellGroup.add(holder);
+              }
+            }
+          } catch (err) {
+            console.error("Room shell unavailable, using plain walls", err);
+            const wallMat = new THREE.MeshLambertMaterial({ color: 0xe4dcc9 });
+            const back = new THREE.Mesh(
+              new THREE.BoxGeometry(shell.width, wallHeight, 0.12),
+              wallMat,
+            );
+            back.position.set(0, wallHeight / 2, -shell.depth / 2);
+            shellGroup.add(back);
+            for (const side of [-1, 1]) {
+              const w = new THREE.Mesh(
+                new THREE.BoxGeometry(0.12, wallHeight, shell.depth),
+                wallMat,
+              );
+              w.position.set((side * shell.width) / 2, wallHeight / 2, 0);
+              shellGroup.add(w);
+            }
+          }
+        }
+
+        // ---- Furniture --------------------------------------------------
         if (sceneProps?.length) {
           const paletteTex = await texLoader.loadAsync(PROP_PALETTE_URL);
           paletteTex.colorSpace = THREE.SRGBColorSpace;
@@ -204,7 +302,9 @@ export function CharacterStage({
                 box.getSize(size);
                 // FBX props are authored in centimetres; glTF props in metres.
                 const unit = placement.targetHeight
-                  ? (size.y > 0 ? placement.targetHeight / size.y : 1)
+                  ? size.y > 0
+                    ? placement.targetHeight / size.y
+                    : 1
                   : !isGltf && Math.max(size.x, size.y, size.z) > 12
                     ? 0.01
                     : 1;
@@ -229,12 +329,13 @@ export function CharacterStage({
         setReady(true);
         onReadyRef.current?.();
 
-        // Simple floor so the cast is grounded rather than floating.
+        // Ground plane under everything so nothing floats over the void.
         const floor = new THREE.Mesh(
-          new THREE.PlaneGeometry(40, 40),
-          new THREE.MeshStandardMaterial({ color: floorColor, roughness: 1 }),
+          new THREE.PlaneGeometry(60, 60),
+          new THREE.MeshLambertMaterial({ color: floorColor }),
         );
         floor.rotation.x = -Math.PI / 2;
+        floor.position.y = -0.01;
         scene.add(floor);
 
         let frame = 0;
@@ -242,8 +343,7 @@ export function CharacterStage({
         const tick = () => {
           const t = (Date.now() - start) / 1000;
           if (turntable) root.rotation.y = t * 0.5;
-          else root.rotation.y = Math.sin(t * 0.4) * 0.05;
-          root.position.y = Math.sin(t * 1.6) * 0.01;
+          for (const person of built) person.animate(t);
           renderer.render(scene, camera);
           frame = requestAnimationFrame(tick);
         };
@@ -273,7 +373,7 @@ export function CharacterStage({
       cleanup();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, propKey, camKey, height, background, turntable, floorColor]);
+  }, [key, propKey, camKey, shellKey, height, background, turntable, floorColor]);
 
   return (
     <div
@@ -284,7 +384,7 @@ export function CharacterStage({
       <div ref={hostRef} style={{ height }} className="w-full" />
       {!ready && (
         <p className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
-          {failed ? "Characters unavailable" : "Loading characters…"}
+          {failed ? "Characters unavailable" : "Loading room…"}
         </p>
       )}
     </div>
