@@ -7,6 +7,19 @@ import { npcPalette, type NpcPalette } from "@/lib/campus/npc-cast";
 import { useCampusStore } from "@/lib/campus/store";
 import { debugEnabled } from "@/lib/debug";
 import { bobScale, cameraLerp, useMotionStore } from "@/lib/a11y/motion";
+import {
+  BARN_KEY,
+  BARN_URL,
+  BLADE_FRAME,
+  BLADE_KEY,
+  BLADE_URL,
+  FARM_ANIMATED,
+  FARM_STRUCTURES,
+  FARM_ZONE,
+  WHEEL_FRAME,
+  WHEEL_KEY,
+  WHEEL_URL,
+} from "@/lib/campus/farm";
 import { currentMascot, mascotAccessoryOf, mascotColorOf, useMascotStore } from "@/lib/mascot";
 import {
   DECOR_KEY,
@@ -335,6 +348,60 @@ export class CampusScene extends Phaser.Scene {
     if (!this.textures.exists(DECOR_KEY)) this.load.image(DECOR_KEY, DECOR_URL);
     if (!this.textures.exists(INTERIOR_KEY)) this.load.image(INTERIOR_KEY, INTERIOR_URL);
     if (!this.textures.exists(ITEMS_KEY)) this.load.image(ITEMS_KEY, ITEMS_URL);
+    if (!this.textures.exists(BARN_KEY)) this.load.image(BARN_KEY, BARN_URL);
+    if (!this.textures.exists(BLADE_KEY))
+      this.load.spritesheet(BLADE_KEY, BLADE_URL, {
+        frameWidth: BLADE_FRAME.w,
+        frameHeight: BLADE_FRAME.h,
+      });
+    if (!this.textures.exists(WHEEL_KEY))
+      this.load.spritesheet(WHEEL_KEY, WHEEL_URL, {
+        frameWidth: WHEEL_FRAME.w,
+        frameHeight: WHEEL_FRAME.h,
+      });
+  }
+
+  /**
+   * Places the LPC farm buildings and the animated windmill / water wheel on
+   * the Agricultural Science Field. Footprints are already solid in world.ts.
+   */
+  private addFarm(zone: ZoneMap) {
+    if (zone.id !== FARM_ZONE || !this.textures.exists(BARN_KEY)) return;
+    const texture = this.textures.get(BARN_KEY);
+    FARM_STRUCTURES.forEach((piece) => {
+      const [sx, sy, sw, sh] = piece.rect;
+      const frame = `barn-${sx}-${sy}-${sw}-${sh}`;
+      if (!texture.has(frame)) texture.add(frame, 0, sx, sy, sw, sh);
+      const width = piece.w * TILE;
+      this.add
+        .image((piece.x + piece.w / 2) * TILE, (piece.y + piece.h) * TILE, BARN_KEY, frame)
+        .setOrigin(0.5, 1)
+        .setDisplaySize(width, (width / sw) * sh)
+        .setDepth(4);
+    });
+
+    const animate = bobScale() > 0;
+    FARM_ANIMATED.forEach((piece, index) => {
+      const key = piece.kind === "blade" ? BLADE_KEY : WHEEL_KEY;
+      const spec = piece.kind === "blade" ? BLADE_FRAME : WHEEL_FRAME;
+      if (!this.textures.exists(key)) return;
+      const animKey = `farm-${piece.kind}`;
+      if (!this.anims.exists(animKey)) {
+        this.anims.create({
+          key: animKey,
+          frames: this.anims.generateFrameNumbers(key, { start: 0, end: spec.count - 1 }),
+          frameRate: piece.fps,
+          repeat: -1,
+        });
+      }
+      const width = piece.tiles * TILE;
+      const sprite = this.add
+        .sprite(piece.tx * TILE + TILE / 2, piece.ty * TILE + TILE / 2, key)
+        .setDisplaySize(width, (width / spec.w) * spec.h)
+        .setDepth(piece.kind === "blade" ? 6 : 3);
+      if (animate) sprite.play({ key: animKey, startFrame: index % spec.count });
+      else sprite.setFrame(0);
+    });
   }
 
   /**
@@ -562,6 +629,7 @@ export class CampusScene extends Phaser.Scene {
     if (!outdoor) this.addInteriorProps(this.zone);
 
     this.addDecor(this.zone);
+    this.addFarm(this.zone);
 
     // room labels
     this.zone.rooms.forEach((room) => {

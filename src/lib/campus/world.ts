@@ -1,3 +1,4 @@
+import { FARM_STRUCTURES, WINDMILL_TOWER } from "@/lib/campus/farm";
 import { TileKind, isSolid } from "./tiles";
 
 export type InteractAction =
@@ -634,6 +635,14 @@ function studyGardens(): ZoneMap {
         action: { kind: "travel", zone: "central-quad", spawnX: 1, spawnY: 14 },
       },
       {
+        id: "sg-west",
+        x: 0,
+        y: 10,
+        verb: "GO",
+        label: "Agricultural Science Field",
+        action: { kind: "travel", zone: "agricultural-field", spawnX: 28, spawnY: 10 },
+      },
+      {
         id: "sg-bench",
         x: 12,
         y: 15,
@@ -642,6 +651,7 @@ function studyGardens(): ZoneMap {
         action: { kind: "study" },
       },
     ],
+
   };
 }
 
@@ -1428,7 +1438,113 @@ function personalSpaceZone(): ZoneMap {
 
 /* --------------------------------- registry -------------------------------- */
 
+/** Agricultural Science Field — outdoor teaching farm west of the gardens. */
+function agriculturalField(): ZoneMap {
+  const g = new Grid(30, 22, "grass");
+  const rnd = mulberry(97);
+  // roads
+  g.hLine(0, 29, 10, "path", 2);
+  g.vLine(12, 19, 14, "path");
+  g.hLine(2, 27, 19, "path");
+  // irrigation channel the water wheel sits on
+  g.rect(16, 13, 4, 2, "water");
+  g.border(16, 13, 4, 2, "stone");
+  // structure footprints (the barn art is drawn on top by the campus scene)
+  FARM_STRUCTURES.forEach((piece) => {
+    g.rect(piece.x, piece.y, piece.w, piece.h, "buildingWall");
+  });
+  // windmill tower, blades animate above it
+  g.rect(WINDMILL_TOWER.x, WINDMILL_TOWER.y, WINDMILL_TOWER.w, WINDMILL_TOWER.h, "buildingWall");
+  g.hLine(
+    WINDMILL_TOWER.x,
+    WINDMILL_TOWER.x + WINDMILL_TOWER.w - 1,
+    WINDMILL_TOWER.y,
+    "buildingRoof",
+  );
+  // planted rows
+  for (let y = 13; y <= 17; y += 2)
+    for (let x = 8; x <= 13; x++) if (g.get(x, y) === "grass") g.set(x, y, "flower");
+
+  for (let i = 0; i < 70; i++) {
+    const x = Math.floor(rnd() * 30);
+    const y = Math.floor(rnd() * 22);
+    if (g.get(x, y) !== "grass") continue;
+    const r = rnd();
+    if (r > 0.86) g.set(x, y, "tree");
+    else if (r > 0.7) g.set(x, y, "hedge");
+  }
+  g.set(26, 11, "sign");
+  g.set(13, 11, "bench");
+
+  return {
+    id: "agricultural-field",
+    name: "Agricultural Science Field",
+    kind: "outdoor",
+    width: g.width,
+    height: g.height,
+    tiles: g.tiles,
+    defaultSpawn: { x: 28, y: 10 },
+    mapPos: { x: 0.04, y: 0.24 },
+    rooms: [],
+    npcs: [
+      {
+        id: "farm-agronomist",
+        x: 12,
+        y: 11,
+        name: "Dr. Hana Oyelaran",
+        role: "Agricultural Science",
+        behavior: "idle",
+        lines: [
+          "Welcome to the field station. Everything here is a live experiment.",
+          "The windmill pumps into the channel, and the wheel measures the flow — that is our energy unit in physical science.",
+        ],
+      },
+      {
+        id: "farm-student-tobi",
+        x: 9,
+        y: 16,
+        name: "Tobi Marsh",
+        role: "Student",
+        behavior: "walk",
+        lines: ["I log plant growth every morning. It counts toward my science objectives."],
+      },
+    ],
+    interactables: [
+      {
+        id: "af-east",
+        x: 29,
+        y: 10,
+        verb: "GO",
+        label: "Outdoor Study Gardens",
+        action: { kind: "travel", zone: "study-gardens", spawnX: 1, spawnY: 10 },
+      },
+      {
+        id: "af-sign",
+        x: 26,
+        y: 11,
+        verb: "READ",
+        label: "Field Station Sign",
+        action: {
+          kind: "read",
+          title: "Agricultural Science Field",
+          body: "Teaching barn, grain silos, irrigation channel and windmill. Plots are measured in square metres for the measurement unit; the water wheel logs flow rate for energy lessons.",
+        },
+      },
+      {
+        id: "af-bench",
+        x: 13,
+        y: 11,
+        verb: "STUDY",
+        label: "Field Notes Bench",
+        action: { kind: "study" },
+      },
+    ],
+  };
+}
+
 const builders: Record<string, () => ZoneMap> = {
+  "agricultural-field": agriculturalField,
+
   "welcome-plaza": welcomePlaza,
   "central-quad": centralQuad,
   "student-commons": studentCommons,
@@ -1642,6 +1758,7 @@ export const ZONE_LABELS: Record<string, string> = {
   "central-quad": "Central Quad",
   "student-commons": "Student Commons",
   "study-gardens": "Outdoor Study Gardens",
+  "agricultural-field": "Agricultural Science Field",
   "university-library": "University Library",
   "student-center": "Student Center",
   "career-center": "Career Center",

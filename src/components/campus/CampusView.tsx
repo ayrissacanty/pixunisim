@@ -248,6 +248,7 @@ export function CampusView({
             steps: w.steps,
           };
         },
+        travel: (zoneId: string, x = 1, y = 1) => store.travel(zoneId, x, y),
         walkable: (zoneId: string, x: number, y: number) => isWalkableTile(getZone(zoneId), x, y),
         reachability: (zoneId?: string) =>
           reachabilityReport(getZone(zoneId ?? useCampusStore.getState().currentZone)),
