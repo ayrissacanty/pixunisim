@@ -118,30 +118,90 @@ export interface PropPlacement {
   rotation?: number;
   /** Multiplier on the metre-normalised size. */
   scale?: number;
+  /** Normalise the model so it stands this many metres tall. */
+  targetHeight?: number;
 }
 
-/** Layer 3/4 classroom: teacher desk at the board, student desks in rows. */
+/**
+ * Layer 3/4 classroom, furnished from the Styloo school pack: chalkboard wall
+ * at the front, teacher desk, and student desk-chair pairs in rows.
+ */
 export const CLASSROOM_PROPS: PropPlacement[] = [
-  { model: "desk", x: 0, z: -4.1, rotation: Math.PI, scale: 1.1 },
-  { model: "officeChair", x: 1.1, z: -4.6, rotation: Math.PI },
-  { model: "laptop", x: -0.3, z: -4.1, rotation: Math.PI, scale: 0.9 },
-  { model: "mug", x: 0.7, z: -4.0, scale: 0.85 },
-  { model: "shelf", x: -3.6, z: -3.6, rotation: Math.PI / 2 },
-  { model: "wallShelf", x: 3.6, z: -3.8, rotation: -Math.PI / 2 },
-  { model: "painting", x: -2.4, z: -4.9, rotation: Math.PI },
-  { model: "window", x: 2.2, z: -4.9, rotation: Math.PI },
+  { model: "clsBlackboard", x: 0, z: -5.0, rotation: 0, targetHeight: 1.35 },
+  { model: "clsChalk", x: -0.6, z: -4.75, targetHeight: 0.04 },
+  { model: "clsSponge", x: 0.5, z: -4.75, targetHeight: 0.08 },
+  { model: "clsDesk", x: 0, z: -4.0, rotation: Math.PI, targetHeight: 0.76 },
+  { model: "officeChair", x: 1.1, z: -4.5, rotation: Math.PI },
+  { model: "laptop", x: -0.3, z: -4.0, rotation: Math.PI, scale: 0.9 },
+  { model: "mug", x: 0.7, z: -3.95, scale: 0.85 },
+  { model: "clsClock", x: 2.6, z: -4.95, targetHeight: 0.3 },
+  { model: "clsBlackboardSmall", x: -2.9, z: -4.95, targetHeight: 0.7 },
+  { model: "clsShelf", x: -3.8, z: -3.4, rotation: Math.PI / 2, targetHeight: 1.6 },
+  { model: "clsLocker", x: 3.8, z: -3.2, rotation: -Math.PI / 2, targetHeight: 1.85 },
+  { model: "clsCurtains", x: 3.9, z: -0.6, rotation: -Math.PI / 2, targetHeight: 1.9 },
+  { model: "clsTv", x: -3.8, z: -1.2, rotation: Math.PI / 2, targetHeight: 0.7 },
   { model: "light", x: 0, z: -2.4 },
-  { model: "desk", x: -2.1, z: -0.9, scale: 0.95 },
-  { model: "chair", x: -2.1, z: -0.1 },
-  { model: "desk", x: 2.1, z: -0.9, scale: 0.95 },
-  { model: "chair", x: 2.1, z: -0.1 },
-  { model: "desk", x: 0, z: 1.7, scale: 0.95 },
-  { model: "chair", x: 0, z: 2.5 },
-  { model: "book", x: 0.35, z: 1.6, scale: 0.9 },
-  { model: "meetingTable", x: -3.2, z: 2.2, rotation: Math.PI / 2, scale: 0.9 },
-  { model: "trashCan", x: 3.9, z: -1.4, scale: 0.9 },
+  { model: "clsDesk", x: -2.1, z: -0.9, targetHeight: 0.74 },
+  { model: "clsChair", x: -2.1, z: -0.1, rotation: Math.PI, targetHeight: 0.9 },
+  { model: "clsDesk", x: 2.1, z: -0.9, targetHeight: 0.74 },
+  { model: "clsChair", x: 2.1, z: -0.1, rotation: Math.PI, targetHeight: 0.9 },
+  { model: "clsDesk", x: 0, z: 1.7, targetHeight: 0.74 },
+  { model: "clsChair", x: 0, z: 2.5, rotation: Math.PI, targetHeight: 0.9 },
+  { model: "clsBook", x: 0.35, z: 1.65, y: 0.75, targetHeight: 0.05 },
+  { model: "clsPencilCase", x: -0.3, z: 1.7, y: 0.75, targetHeight: 0.06 },
+  { model: "clsCart", x: -3.4, z: 2.2, rotation: Math.PI / 2, targetHeight: 1.0 },
+  { model: "trashCan", x: 3.9, z: 1.4, scale: 0.9 },
   { model: "carpet", x: 0, z: 0.4, scale: 1.6 },
 ];
+
+/** Computer lab variant — workstations instead of writing desks. */
+export const COMPUTER_LAB_PROPS: PropPlacement[] = [
+  { model: "clsBlackboard", x: 0, z: -5.0, targetHeight: 1.35 },
+  { model: "pcProjector", x: 0, z: -2.6, y: 1.9, targetHeight: 0.28 },
+  { model: "pcTable", x: -2.2, z: -1.0, rotation: Math.PI, targetHeight: 0.75 },
+  { model: "pcScreen", x: -2.2, z: -1.15, y: 0.75, targetHeight: 0.42 },
+  { model: "pcKeyboard", x: -2.2, z: -0.75, y: 0.75, targetHeight: 0.03 },
+  { model: "pcMouse", x: -1.75, z: -0.75, y: 0.75, targetHeight: 0.04 },
+  { model: "pcTower", x: -3.1, z: -1.0, targetHeight: 0.45 },
+  { model: "pcChair", x: -2.2, z: -0.1, rotation: Math.PI, targetHeight: 1.0 },
+  { model: "pcTable", x: 2.2, z: -1.0, rotation: Math.PI, targetHeight: 0.75 },
+  { model: "pcScreen", x: 2.2, z: -1.15, y: 0.75, targetHeight: 0.42 },
+  { model: "pcKeyboard", x: 2.2, z: -0.75, y: 0.75, targetHeight: 0.03 },
+  { model: "pcChair", x: 2.2, z: -0.1, rotation: Math.PI, targetHeight: 1.0 },
+  { model: "pcTable", x: 0, z: 1.8, rotation: Math.PI, targetHeight: 0.75 },
+  { model: "pcScreen", x: 0, z: 1.65, y: 0.75, targetHeight: 0.42 },
+  { model: "pcChair", x: 0, z: 2.6, rotation: Math.PI, targetHeight: 1.0 },
+  { model: "pcPrinter", x: 3.7, z: -3.0, rotation: -Math.PI / 2, targetHeight: 0.4 },
+  { model: "clsLocker", x: -3.9, z: -3.2, rotation: Math.PI / 2, targetHeight: 1.85 },
+  { model: "light", x: 0, z: -2.4 },
+  { model: "carpet", x: 0, z: 0.4, scale: 1.6 },
+];
+
+/** Student centre / dining hall variant. */
+export const CAFETERIA_PROPS: PropPlacement[] = [
+  { model: "cafVending", x: -3.7, z: -4.2, targetHeight: 1.9 },
+  { model: "cafCoffee", x: 3.6, z: -4.2, targetHeight: 0.45 },
+  { model: "cafTable", x: -2.0, z: -1.4, targetHeight: 0.75 },
+  { model: "cafChair", x: -2.0, z: -0.5, rotation: Math.PI, targetHeight: 0.9 },
+  { model: "cafChair", x: -2.0, z: -2.3, targetHeight: 0.9 },
+  { model: "cafTray", x: -2.0, z: -1.4, y: 0.76, targetHeight: 0.05 },
+  { model: "cafTable", x: 2.0, z: -1.4, targetHeight: 0.75 },
+  { model: "cafChair", x: 2.0, z: -0.5, rotation: Math.PI, targetHeight: 0.9 },
+  { model: "cafChair", x: 2.0, z: -2.3, targetHeight: 0.9 },
+  { model: "cafTable", x: 0, z: 1.9, targetHeight: 0.75 },
+  { model: "cafChair", x: 0, z: 2.8, rotation: Math.PI, targetHeight: 0.9 },
+  { model: "clsRadio", x: 3.7, z: -1.0, targetHeight: 0.25 },
+  { model: "light", x: 0, z: -2.4 },
+  { model: "carpet", x: 0, z: 0.4, scale: 1.6 },
+];
+
+/** Pick the furnishing set that fits the room the student walked into. */
+export function propsForRoom(name?: string): PropPlacement[] {
+  const n = (name ?? "").toLowerCase();
+  if (/comput|tech|lab|coding|digital/.test(n)) return COMPUTER_LAB_PROPS;
+  if (/cafe|dining|student center|commons|lounge/.test(n)) return CAFETERIA_PROPS;
+  return CLASSROOM_PROPS;
+}
 
 /** The student's personal space: bed, study desk, shelves and a sofa corner. */
 export const DORM_PROPS: PropPlacement[] = [
@@ -166,9 +226,9 @@ export const DORM_PROPS: PropPlacement[] = [
 
 /** Compact desk set behind the Layer 4 lesson cast. */
 export const LESSON_DESK_PROPS: PropPlacement[] = [
-  { model: "desk", x: -0.9, z: -1.6, rotation: Math.PI, scale: 0.9 },
-  { model: "desk", x: 0.9, z: -1.6, rotation: Math.PI, scale: 0.9 },
-  { model: "shelf", x: -2.6, z: -1.9, rotation: Math.PI / 2, scale: 0.9 },
-  { model: "painting", x: 2.3, z: -2.2, rotation: Math.PI },
+  { model: "clsDesk", x: -0.9, z: -1.6, rotation: Math.PI, targetHeight: 0.74 },
+  { model: "clsDesk", x: 0.9, z: -1.6, rotation: Math.PI, targetHeight: 0.74 },
+  { model: "clsBlackboardSmall", x: -2.5, z: -2.1, targetHeight: 0.7 },
+  { model: "clsShelf", x: 2.5, z: -2.0, rotation: -Math.PI / 2, targetHeight: 1.5 },
   { model: "carpet", x: 0, z: 0.3, scale: 1.2 },
 ];

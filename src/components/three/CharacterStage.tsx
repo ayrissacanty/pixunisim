@@ -198,7 +198,11 @@ export function CharacterStage({
                 const size = new THREE.Vector3();
                 box.getSize(size);
                 // FBX props are authored in centimetres; glTF props in metres.
-                const unit = !isGltf && Math.max(size.x, size.y, size.z) > 12 ? 0.01 : 1;
+                const unit = placement.targetHeight
+                  ? (size.y > 0 ? placement.targetHeight / size.y : 1)
+                  : !isGltf && Math.max(size.x, size.y, size.z) > 12
+                    ? 0.01
+                    : 1;
                 model.scale.setScalar(unit * (placement.scale ?? 1));
 
                 const scaled = new THREE.Box3().setFromObject(model);
