@@ -12,8 +12,9 @@ export function FamilyNews() {
   const { data: report, isLoading } = useFamilyReport();
   const { data: profile } = useProfile();
   const lines = useMemo(() => report?.script ?? [], [report]);
-  const { speak, stop, speaking, lineIndex, muted, setMuted, supported } =
+  const { speak, stop, speaking, loading, lineIndex, muted, setMuted, supported, usingCloud } =
     useBriefingSpeech(lines);
+
 
   const mascot = profile?.mascot ?? DEFAULT_MASCOT;
 
