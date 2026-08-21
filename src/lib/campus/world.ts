@@ -1443,23 +1443,27 @@ function agriculturalField(): ZoneMap {
   const rnd = mulberry(97);
   // roads
   g.hLine(0, 29, 10, "path", 2);
-  g.vLine(10, 19, 14, "path");
+  g.vLine(12, 19, 14, "path");
   g.hLine(2, 27, 19, "path");
-  // irrigation channel + water wheel pool
-  g.rect(16, 13, 5, 3, "water");
-  g.border(16, 13, 5, 3, "stone");
-  // structure footprints (art is drawn on top by the campus scene)
-  g.rect(11, 3, 6, 6, "buildingWall"); // red teaching barn
-  g.hLine(11, 16, 3, "buildingRoof");
-  g.rect(21, 4, 6, 6, "buildingWall"); // brown implement barn
-  g.hLine(21, 26, 4, "buildingRoof");
-  g.rect(6, 3, 5, 5, "buildingWall"); // grain silos
-  g.rect(2, 10, 5, 5, "buildingWall"); // thatched storage
-  g.rect(19, 13, 5, 5, "buildingWall"); // hay shed
-  g.rect(2, 4, 2, 4, "buildingWall"); // windmill tower
-  // planted rows + scattered greenery
-  for (let y = 12; y <= 17; y += 2)
+  // irrigation channel the water wheel sits on
+  g.rect(16, 13, 4, 2, "water");
+  g.border(16, 13, 4, 2, "stone");
+  // structure footprints (the barn art is drawn on top by the campus scene)
+  FARM_STRUCTURES.forEach((piece) => {
+    g.rect(piece.x, piece.y, piece.w, piece.h, "buildingWall");
+  });
+  // windmill tower, blades animate above it
+  g.rect(WINDMILL_TOWER.x, WINDMILL_TOWER.y, WINDMILL_TOWER.w, WINDMILL_TOWER.h, "buildingWall");
+  g.hLine(
+    WINDMILL_TOWER.x,
+    WINDMILL_TOWER.x + WINDMILL_TOWER.w - 1,
+    WINDMILL_TOWER.y,
+    "buildingRoof",
+  );
+  // planted rows
+  for (let y = 13; y <= 17; y += 2)
     for (let x = 8; x <= 13; x++) if (g.get(x, y) === "grass") g.set(x, y, "flower");
+
   for (let i = 0; i < 70; i++) {
     const x = Math.floor(rnd() * 30);
     const y = Math.floor(rnd() * 22);
