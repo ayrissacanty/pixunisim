@@ -56,11 +56,12 @@ export interface FarmAnimated {
 }
 
 export const FARM_ANIMATED: FarmAnimated[] = [
-  // Windmill blades on the tower west of the barn.
-  { kind: "blade", tx: 8, ty: 4.2, tiles: 4, fps: 10 },
+  // Windmill blades on the tower at the west edge.
+  { kind: "blade", tx: 3, ty: 4.2, tiles: 4, fps: 10 },
   // Water wheel on the irrigation channel.
-  { kind: "wheel", tx: 18, ty: 14.5, tiles: 2, fps: 8 },
+  { kind: "wheel", tx: 18, ty: 14.2, tiles: 2, fps: 8 },
 ];
+
 
 /** Zone the farm art belongs to. */
 export const FARM_ZONE = "agricultural-field";
