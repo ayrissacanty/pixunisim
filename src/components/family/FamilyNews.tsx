@@ -12,8 +12,9 @@ export function FamilyNews() {
   const { data: report, isLoading } = useFamilyReport();
   const { data: profile } = useProfile();
   const lines = useMemo(() => report?.script ?? [], [report]);
-  const { speak, stop, speaking, lineIndex, muted, setMuted, supported } =
+  const { speak, stop, speaking, loading, lineIndex, muted, setMuted, supported, usingCloud } =
     useBriefingSpeech(lines);
+
 
   const mascot = profile?.mascot ?? DEFAULT_MASCOT;
 
@@ -41,8 +42,8 @@ export function FamilyNews() {
         <div className="flex flex-wrap gap-2">
           <Button
             data-testid="news-play"
-            onClick={() => (speaking ? stop() : speak())}
-            disabled={!supported || muted || isLoading || lines.length === 0}
+            onClick={() => (speaking ? stop() : void speak())}
+            disabled={!supported || muted || isLoading || loading || lines.length === 0}
           >
             {speaking ? (
               <>
@@ -50,10 +51,11 @@ export function FamilyNews() {
               </>
             ) : (
               <>
-                <RotateCcw className="size-4" /> Play report
+                <RotateCcw className="size-4" /> {loading ? "Preparing voice…" : "Play report"}
               </>
             )}
           </Button>
+
           <Button
             variant="outline"
             data-testid="news-mute"
@@ -88,12 +90,19 @@ export function FamilyNews() {
             ))}
           </ol>
 
-          {!supported && (
+          {!supported ? (
             <p className="mt-3 text-xs font-semibold text-muted-foreground">
               This browser can&apos;t read the report aloud — the written briefing above is the
               full report.
             </p>
+          ) : (
+            !usingCloud && (
+              <p className="mt-3 text-xs font-semibold text-muted-foreground">
+                Studio voice unavailable right now — using this device&apos;s built-in voice.
+              </p>
+            )
           )}
+
         </div>
       </div>
 
