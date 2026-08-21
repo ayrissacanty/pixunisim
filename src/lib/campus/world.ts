@@ -1,3 +1,4 @@
+import { FARM_STRUCTURES, WINDMILL_TOWER } from "@/lib/campus/farm";
 import { TileKind, isSolid } from "./tiles";
 
 export type InteractAction =
