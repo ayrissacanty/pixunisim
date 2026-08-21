@@ -104,7 +104,13 @@ export const INTERIOR_PROPS: Partial<Record<TileKind, PropSprite[]>> = {
     { sheet: "interiors", rect: [240, 112, 16, 16], tiles: 0.7 },
     { sheet: "items", rect: [48, 140, 14, 20], tiles: 0.9 },
   ],
-  window: [{ sheet: "interiors", rect: [96, 0, 32, 32], tiles: 1 }],
+  window: [
+    { sheet: "interiors", rect: [96, 0, 32, 32], tiles: 1 },
+    // Wide school hall windows.
+    { sheet: "school", rect: [6, 383, 100, 60], tiles: 2 },
+    { sheet: "school", rect: [209, 383, 102, 60], tiles: 2 },
+    { sheet: "school", rect: [5, 281, 193, 52], tiles: 3 },
+  ],
   rug: [
     { sheet: "items", rect: [129, 80, 32, 14], tiles: 1.6 },
     { sheet: "items", rect: [132, 100, 38, 22], tiles: 1.8 },
