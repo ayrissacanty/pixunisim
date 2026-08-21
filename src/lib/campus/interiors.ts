@@ -25,7 +25,9 @@ export interface Frame {
 /** 16x16 tiling frames blitted into the interior ground bake. */
 export const INTERIOR_GROUND: Partial<Record<TileKind, Frame[]>> = {
   floor: [{ x: 112, y: 32 }],
-  floorAlt: [{ x: 96, y: 32 }],
+  // Wood boards throughout: the sheet's only alternate floor is a pale stone
+  // square, and checker-boarding it against the planks reads as noise.
+  floorAlt: [{ x: 112, y: 32 }],
   wall: [
     { x: 48, y: 16 },
     { x: 64, y: 16 },
