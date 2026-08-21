@@ -76,7 +76,7 @@ export const INTERIOR_PROPS: Partial<Record<TileKind, PropSprite[]>> = {
   chair: [
     { sheet: "interiors", rect: [128, 96, 16, 32], tiles: 0.9 },
     { sheet: "interiors", rect: [176, 96, 16, 32], tiles: 0.9 },
-    { sheet: "items", rect: [131, 143, 20, 26], tiles: 0.9 },
+    { sheet: "items", rect: [128, 142, 14, 18], tiles: 0.9 },
   ],
   shelf: [{ sheet: "interiors", rect: [160, 124, 32, 52], tiles: 1.6 }],
   board: [
