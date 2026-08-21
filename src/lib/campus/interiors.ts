@@ -1,5 +1,6 @@
 import interiorsAsset from "@/assets/interiors_demo.png.asset.json";
 import itemsAsset from "@/assets/tiles_and_items.png.asset.json";
+import schoolAsset from "@/assets/school_interior.png.asset.json";
 import type { TileKind } from "./tiles";
 
 /**
@@ -13,6 +14,9 @@ export const INTERIOR_KEY = "interiors-demo";
 export const INTERIOR_URL = interiorsAsset.url;
 export const ITEMS_KEY = "tiles-items";
 export const ITEMS_URL = itemsAsset.url;
+/** School fittings sheet: chalkboards, lockers and hall windows. */
+export const SCHOOL_KEY = "school-interior";
+export const SCHOOL_URL = schoolAsset.url;
 
 export const INT_SRC = 16;
 export const INT_SCALE = 2;
@@ -49,7 +53,7 @@ export const INTERIOR_GROUND: Partial<Record<TileKind, Frame[]>> = {
 
 export interface PropSprite {
   /** Which sheet the rect belongs to. */
-  sheet: "interiors" | "items";
+  sheet: "interiors" | "items" | "school";
   /** Source rect [x, y, w, h] in sheet pixels. */
   rect: [number, number, number, number];
   /** Drawn width in world tiles (height follows the source aspect). */
@@ -76,10 +80,19 @@ export const INTERIOR_PROPS: Partial<Record<TileKind, PropSprite[]>> = {
     { sheet: "interiors", rect: [176, 96, 16, 32], tiles: 0.9 },
     { sheet: "items", rect: [128, 142, 14, 18], tiles: 0.9 },
   ],
-  shelf: [{ sheet: "interiors", rect: [160, 124, 32, 52], tiles: 1.6 }],
+  shelf: [
+    { sheet: "interiors", rect: [160, 124, 32, 52], tiles: 1.6 },
+    // Corridor lockers (orange / yellow / blue banks).
+    { sheet: "school", rect: [194, 1, 61, 62], tiles: 1.6 },
+    { sheet: "school", rect: [258, 1, 61, 62], tiles: 1.6 },
+    { sheet: "school", rect: [322, 1, 61, 62], tiles: 1.6 },
+  ],
   board: [
-    { sheet: "interiors", rect: [240, 144, 16, 16], tiles: 1 },
-    { sheet: "interiors", rect: [240, 160, 16, 16], tiles: 1 },
+    // Teaching chalkboards: plain, diagrammed and written variants.
+    { sheet: "school", rect: [5, 5, 86, 44], tiles: 2 },
+    { sheet: "school", rect: [5, 70, 86, 44], tiles: 2 },
+    { sheet: "school", rect: [101, 70, 86, 44], tiles: 2 },
+    { sheet: "school", rect: [5, 134, 86, 44], tiles: 2 },
   ],
   computer: [{ sheet: "interiors", rect: [112, 160, 16, 16], tiles: 0.8 }],
   bed: [
@@ -91,7 +104,13 @@ export const INTERIOR_PROPS: Partial<Record<TileKind, PropSprite[]>> = {
     { sheet: "interiors", rect: [240, 112, 16, 16], tiles: 0.7 },
     { sheet: "items", rect: [48, 140, 14, 20], tiles: 0.9 },
   ],
-  window: [{ sheet: "interiors", rect: [96, 0, 32, 32], tiles: 1 }],
+  window: [
+    { sheet: "interiors", rect: [96, 0, 32, 32], tiles: 1 },
+    // Wide school hall windows.
+    { sheet: "school", rect: [6, 383, 100, 60], tiles: 2 },
+    { sheet: "school", rect: [209, 383, 102, 60], tiles: 2 },
+    { sheet: "school", rect: [5, 281, 193, 52], tiles: 3 },
+  ],
   rug: [
     { sheet: "items", rect: [129, 80, 32, 14], tiles: 1.6 },
     { sheet: "items", rect: [132, 100, 38, 22], tiles: 1.8 },

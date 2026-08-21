@@ -37,6 +37,8 @@ import {
   INT_SCALE,
   INT_SRC,
   ITEMS_KEY,
+  SCHOOL_KEY,
+  SCHOOL_URL,
   ITEMS_URL,
   pick as pickVariant,
 } from "@/lib/campus/interiors";
@@ -348,6 +350,7 @@ export class CampusScene extends Phaser.Scene {
     if (!this.textures.exists(DECOR_KEY)) this.load.image(DECOR_KEY, DECOR_URL);
     if (!this.textures.exists(INTERIOR_KEY)) this.load.image(INTERIOR_KEY, INTERIOR_URL);
     if (!this.textures.exists(ITEMS_KEY)) this.load.image(ITEMS_KEY, ITEMS_URL);
+    if (!this.textures.exists(SCHOOL_KEY)) this.load.image(SCHOOL_KEY, SCHOOL_URL);
     if (!this.textures.exists(BARN_KEY)) this.load.image(BARN_KEY, BARN_URL);
     if (!this.textures.exists(BLADE_KEY))
       this.load.spritesheet(BLADE_KEY, BLADE_URL, {
@@ -456,7 +459,9 @@ export class CampusScene extends Phaser.Scene {
         const options = INTERIOR_PROPS[kind];
         if (!options?.length) continue;
         const prop = pickVariant(options, x, y);
-        const key = prop.sheet === "items" ? ITEMS_KEY : INTERIOR_KEY;
+        const key =
+          prop.sheet === "items" ? ITEMS_KEY : prop.sheet === "school" ? SCHOOL_KEY : INTERIOR_KEY;
+        if (!this.textures.exists(key)) continue;
         const [sx, sy, sw, sh] = prop.rect;
         const frame = `${prop.sheet}-${sx}-${sy}-${sw}-${sh}`;
         const texture = this.textures.get(key);
