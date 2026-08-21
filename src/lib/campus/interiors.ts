@@ -80,10 +80,19 @@ export const INTERIOR_PROPS: Partial<Record<TileKind, PropSprite[]>> = {
     { sheet: "interiors", rect: [176, 96, 16, 32], tiles: 0.9 },
     { sheet: "items", rect: [128, 142, 14, 18], tiles: 0.9 },
   ],
-  shelf: [{ sheet: "interiors", rect: [160, 124, 32, 52], tiles: 1.6 }],
+  shelf: [
+    { sheet: "interiors", rect: [160, 124, 32, 52], tiles: 1.6 },
+    // Corridor lockers (orange / yellow / blue banks).
+    { sheet: "school", rect: [194, 1, 61, 62], tiles: 1.6 },
+    { sheet: "school", rect: [258, 1, 61, 62], tiles: 1.6 },
+    { sheet: "school", rect: [322, 1, 61, 62], tiles: 1.6 },
+  ],
   board: [
-    { sheet: "interiors", rect: [240, 144, 16, 16], tiles: 1 },
-    { sheet: "interiors", rect: [240, 160, 16, 16], tiles: 1 },
+    // Teaching chalkboards: plain, diagrammed and written variants.
+    { sheet: "school", rect: [5, 5, 86, 44], tiles: 2 },
+    { sheet: "school", rect: [5, 70, 86, 44], tiles: 2 },
+    { sheet: "school", rect: [101, 70, 86, 44], tiles: 2 },
+    { sheet: "school", rect: [5, 134, 86, 44], tiles: 2 },
   ],
   computer: [{ sheet: "interiors", rect: [112, 160, 16, 16], tiles: 0.8 }],
   bed: [
