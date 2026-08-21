@@ -372,9 +372,9 @@ export class CampusScene extends Phaser.Scene {
       const [sx, sy, sw, sh] = piece.rect;
       const frame = `barn-${sx}-${sy}-${sw}-${sh}`;
       if (!texture.has(frame)) texture.add(frame, 0, sx, sy, sw, sh);
-      const width = piece.tiles * TILE;
+      const width = piece.w * TILE;
       this.add
-        .image(piece.tx * TILE + TILE / 2, (piece.ty + 1) * TILE, BARN_KEY, frame)
+        .image((piece.x + piece.w / 2) * TILE, (piece.y + piece.h) * TILE, BARN_KEY, frame)
         .setOrigin(0.5, 1)
         .setDisplaySize(width, (width / sw) * sh)
         .setDepth(4);
