@@ -113,7 +113,11 @@ export function CharacterStage({
         const load = (url: string) => {
           let p = modelCache.get(url);
           if (!p) {
-            p = new FBXLoader().loadAsync(url);
+            p = url.endsWith(".glb")
+              ? import("three/examples/jsm/loaders/GLTFLoader.js").then(({ GLTFLoader }) =>
+                  new GLTFLoader().loadAsync(url).then((gltf) => gltf.scene),
+                )
+              : new FBXLoader().loadAsync(url);
             modelCache.set(url, p);
           }
           return p as Promise<import("three").Group>;
@@ -172,23 +176,38 @@ export function CharacterStage({
           await Promise.all(
             sceneProps.map(async (placement) => {
               try {
-                const fbx = await load(PROP_MODELS[placement.model]);
+                const url = PROP_MODELS[placement.model];
+                const isGltf = url.endsWith(".glb");
+                const source = await load(url);
                 if (disposed) return;
-                const model = fbx.clone(true);
-                model.traverse((child) => {
-                  const mesh = child as import("three").Mesh;
-                  if (!mesh.isMesh) return;
-                  mesh.material = new THREE.MeshStandardMaterial({
-                    map: paletteTex,
-                    roughness: 0.85,
-                    metalness: 0,
+                const raw = source.clone(true);
+                // Some glTF props are authored Z-up; tip them upright first so
+                // the bounding-box normalisation below measures real height.
+                const model = new THREE.Group();
+                if (placement.upAxis === "z") raw.rotation.x = -Math.PI / 2;
+                model.add(raw);
+                // glTF props ship their own baked materials; the FBX set all
+                // samples the shared low-poly palette texture.
+                if (!isGltf) {
+                  model.traverse((child) => {
+                    const mesh = child as import("three").Mesh;
+                    if (!mesh.isMesh) return;
+                    mesh.material = new THREE.MeshStandardMaterial({
+                      map: paletteTex,
+                      roughness: 0.85,
+                      metalness: 0,
+                    });
                   });
-                });
+                }
                 const box = new THREE.Box3().setFromObject(model);
                 const size = new THREE.Vector3();
                 box.getSize(size);
-                // Source props are authored in centimetres.
-                const unit = Math.max(size.x, size.y, size.z) > 12 ? 0.01 : 1;
+                // FBX props are authored in centimetres; glTF props in metres.
+                const unit = placement.targetHeight
+                  ? (size.y > 0 ? placement.targetHeight / size.y : 1)
+                  : !isGltf && Math.max(size.x, size.y, size.z) > 12
+                    ? 0.01
+                    : 1;
                 model.scale.setScalar(unit * (placement.scale ?? 1));
 
                 const scaled = new THREE.Box3().setFromObject(model);

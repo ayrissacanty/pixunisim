@@ -249,6 +249,16 @@ export function CampusView({
           };
         },
         travel: (zoneId: string, x = 1, y = 1) => store.travel(zoneId, x, y),
+        enterClassroom: (id: string) => {
+          const w = buildWalkthrough(WALKTHROUGHS[id]?.lessonId ?? id);
+          useCampusStore.getState().enterClassroom({
+            roomId: w.roomId,
+            roomName: w.roomId,
+            teacher: w.npc.name,
+            courseId: w.courseId,
+            lessonId: w.lessonId,
+          });
+        },
         walkable: (zoneId: string, x: number, y: number) => isWalkableTile(getZone(zoneId), x, y),
         reachability: (zoneId?: string) =>
           reachabilityReport(getZone(zoneId ?? useCampusStore.getState().currentZone)),
