@@ -1,5 +1,6 @@
 import interiorsAsset from "@/assets/interiors_demo.png.asset.json";
 import itemsAsset from "@/assets/tiles_and_items.png.asset.json";
+import schoolAsset from "@/assets/school_interior.png.asset.json";
 import type { TileKind } from "./tiles";
 
 /**
