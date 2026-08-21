@@ -1753,6 +1753,7 @@ export const ZONE_LABELS: Record<string, string> = {
   "central-quad": "Central Quad",
   "student-commons": "Student Commons",
   "study-gardens": "Outdoor Study Gardens",
+  "agricultural-field": "Agricultural Science Field",
   "university-library": "University Library",
   "student-center": "Student Center",
   "career-center": "Career Center",
