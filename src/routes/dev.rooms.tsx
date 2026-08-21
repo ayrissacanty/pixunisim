@@ -51,21 +51,19 @@ function RoomPreview() {
   );
   return (
     <main className="space-y-6 p-6">
-      <div className="grid grid-cols-4 gap-2" data-testid="single-props">
-        {single.map((id) => (
-          <div key={id}>
-            <p className="text-[10px] uppercase text-muted-foreground">{id}</p>
-            <CharacterStage
-              actors={[]}
-              props={[{ model: id, x: 0, z: 0, targetHeight: 1 }]}
-              camera={{ y: 1.1, z: 2.4, lookY: 0.5, fov: 45 }}
-              background={0x8a6a45}
-              floorColor={0x6b4a2f}
-              height={150}
-            />
-          </div>
-        ))}
-      </div>
+      <CharacterStage
+        actors={[]}
+        props={single.map((id, i) => ({
+          model: id,
+          x: (i % 8) * 1.6 - 5.6,
+          z: Math.floor(i / 8) * 1.8 - 3,
+          targetHeight: 1,
+        }))}
+        camera={{ y: 5.5, z: 9, lookY: 0.5, fov: 50 }}
+        background={0x8a6a45}
+        floorColor={0x6b4a2f}
+        height={520}
+      />
       {SETS.map((set) => (
         <section key={set.id} data-testid={`room-set-${set.id}`}>
           <h2 className="mb-2 font-display text-sm uppercase tracking-wide text-accent">
