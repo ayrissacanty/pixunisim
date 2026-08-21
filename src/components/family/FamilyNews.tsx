@@ -90,12 +90,19 @@ export function FamilyNews() {
             ))}
           </ol>
 
-          {!supported && (
+          {!supported ? (
             <p className="mt-3 text-xs font-semibold text-muted-foreground">
               This browser can&apos;t read the report aloud — the written briefing above is the
               full report.
             </p>
+          ) : (
+            !usingCloud && (
+              <p className="mt-3 text-xs font-semibold text-muted-foreground">
+                Studio voice unavailable right now — using this device&apos;s built-in voice.
+              </p>
+            )
           )}
+
         </div>
       </div>
 
