@@ -20,34 +20,6 @@ const WATER_SIDE = ["11", "17", "27", "28", "57", "59"];
 const GROVE = ["07", "08", "37", "47", "49", "56", "58"];
 const STRUCTURE = ["06", "13", "14", "19", "41", "43", "45", "51", "52", "54", "60"];
 
-/** Props that read as furnishings once they are indoors. */
-const INDOOR = ["21", "22", "29", "30", "35", "39", "40"];
-const INDOOR_WALL = ["23", "31", "33", "34"];
-
-/**
- * Educational interiors (academic halls, the library) are furnished from the
- * uploaded prop pack rather than flat coloured tiles: every furniture tile is
- * dressed with a matching sprite, and free floor picks up lecterns, bookcases
- * and study clutter. `solid` mirrors the physical footprint so the walkability
- * mask blocks exactly what is drawn.
- */
-const FURNISH: Partial<Record<TileKind, { frames: string[]; scale: number; solid: boolean }>> = {
-  desk: { frames: ["21", "22", "30"], scale: 0.52, solid: true },
-  table: { frames: ["22", "35", "39"], scale: 0.56, solid: true },
-  counter: { frames: ["30", "39", "40"], scale: 0.56, solid: true },
-  computer: { frames: ["35", "36", "38"], scale: 0.46, solid: true },
-  shelf: { frames: ["31", "33", "34"], scale: 0.62, solid: true },
-  board: { frames: ["23", "31"], scale: 0.6, solid: true },
-  bed: { frames: ["29", "30"], scale: 0.58, solid: true },
-  plant: { frames: ["03", "09", "24"], scale: 0.5, solid: true },
-  // Chairs stay walkable so students can slide into a seat.
-  chair: { frames: ["25", "26", "37"], scale: 0.38, solid: false },
-  rug: { frames: ["44", "48"], scale: 0.7, solid: false },
-};
-
-/** Free-standing pieces dropped into the clear floor of a classroom. */
-const CLASSROOM_EXTRA = ["21", "29", "35", "39", "40"];
-
 export function isEducationalInterior(zone: ZoneMap): boolean {
   return (
     zone.kind === "interior" &&
