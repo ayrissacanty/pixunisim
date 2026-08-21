@@ -18,6 +18,37 @@ import Sofa from "@/assets/props/Sofa_01_01.fbx.asset.json";
 import Tv from "@/assets/props/Smart_TV.fbx.asset.json";
 import TrashCan from "@/assets/props/Trash_Can_01.fbx.asset.json";
 import Mug from "@/assets/props/Mug_01.fbx.asset.json";
+import clsDesk from "@/assets/room3d/clsDesk.glb.asset.json";
+import clsChair from "@/assets/room3d/clsChair.glb.asset.json";
+import clsChairTable from "@/assets/room3d/clsChairTable.glb.asset.json";
+import clsBlackboard from "@/assets/room3d/clsBlackboard.glb.asset.json";
+import clsBlackboardSmall from "@/assets/room3d/clsBlackboardSmall.glb.asset.json";
+import clsLocker from "@/assets/room3d/clsLocker.glb.asset.json";
+import clsShelf from "@/assets/room3d/clsShelf.glb.asset.json";
+import clsLamp from "@/assets/room3d/clsLamp.glb.asset.json";
+import clsBook from "@/assets/room3d/clsBook.glb.asset.json";
+import clsCurtains from "@/assets/room3d/clsCurtains.glb.asset.json";
+import clsChalk from "@/assets/room3d/clsChalk.glb.asset.json";
+import clsSponge from "@/assets/room3d/clsSponge.glb.asset.json";
+import clsTv from "@/assets/room3d/clsTv.glb.asset.json";
+import clsPencilCase from "@/assets/room3d/clsPencilCase.glb.asset.json";
+import clsRadio from "@/assets/room3d/clsRadio.glb.asset.json";
+import clsClock from "@/assets/room3d/clsClock.glb.asset.json";
+import clsCompass from "@/assets/room3d/clsCompass.glb.asset.json";
+import clsCart from "@/assets/room3d/clsCart.glb.asset.json";
+import pcTable from "@/assets/room3d/pcTable.glb.asset.json";
+import pcTower from "@/assets/room3d/pcTower.glb.asset.json";
+import pcScreen from "@/assets/room3d/pcScreen.glb.asset.json";
+import pcKeyboard from "@/assets/room3d/pcKeyboard.glb.asset.json";
+import pcMouse from "@/assets/room3d/pcMouse.glb.asset.json";
+import pcChair from "@/assets/room3d/pcChair.glb.asset.json";
+import pcProjector from "@/assets/room3d/pcProjector.glb.asset.json";
+import pcPrinter from "@/assets/room3d/pcPrinter.glb.asset.json";
+import cafTable from "@/assets/room3d/cafTable.glb.asset.json";
+import cafChair from "@/assets/room3d/cafChair.glb.asset.json";
+import cafTray from "@/assets/room3d/cafTray.glb.asset.json";
+import cafVending from "@/assets/room3d/cafVending.glb.asset.json";
+import cafCoffee from "@/assets/room3d/cafCoffee.glb.asset.json";
 
 /** Shared low-poly palette texture every prop samples from. */
 export const PROP_PALETTE_URL = palette.url;
@@ -42,6 +73,39 @@ export const PROP_MODELS = {
   tv: Tv.url,
   trashCan: TrashCan.url,
   mug: Mug.url,
+
+  // Styloo classroom pack (glTF) — school-specific furnishings.
+  clsDesk: clsDesk.url,
+  clsChair: clsChair.url,
+  clsChairTable: clsChairTable.url,
+  clsBlackboard: clsBlackboard.url,
+  clsBlackboardSmall: clsBlackboardSmall.url,
+  clsLocker: clsLocker.url,
+  clsShelf: clsShelf.url,
+  clsLamp: clsLamp.url,
+  clsBook: clsBook.url,
+  clsCurtains: clsCurtains.url,
+  clsChalk: clsChalk.url,
+  clsSponge: clsSponge.url,
+  clsTv: clsTv.url,
+  clsPencilCase: clsPencilCase.url,
+  clsRadio: clsRadio.url,
+  clsClock: clsClock.url,
+  clsCompass: clsCompass.url,
+  clsCart: clsCart.url,
+  pcTable: pcTable.url,
+  pcTower: pcTower.url,
+  pcScreen: pcScreen.url,
+  pcKeyboard: pcKeyboard.url,
+  pcMouse: pcMouse.url,
+  pcChair: pcChair.url,
+  pcProjector: pcProjector.url,
+  pcPrinter: pcPrinter.url,
+  cafTable: cafTable.url,
+  cafChair: cafChair.url,
+  cafTray: cafTray.url,
+  cafVending: cafVending.url,
+  cafCoffee: cafCoffee.url,
 } as const;
 
 export type PropId = keyof typeof PROP_MODELS;
