@@ -46,8 +46,8 @@ interface Props {
   shell?: RoomShell;
 }
 
-/** Cache loaded model groups + textures so revisiting a classroom is instant. */
-const modelCache = new Map<string, Promise<unknown>>();
+/** Texture cache; models are cached centrally in `@/lib/room-assets`. */
+const textureCache = new Map<string, Promise<import("three").Texture>>();
 
 /**
  * Characters are generated at runtime, so there is nothing to download. The
