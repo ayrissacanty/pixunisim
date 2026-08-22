@@ -96,7 +96,13 @@ export function CampusView({
 
       const store = useCampusStore.getState();
 
-      const enterZone = (zoneId: string, x: number, y: number) => {
+      /**
+       * Walk through a door. Doors carry their own landing tile, so the
+       * student always steps out of the matching doorway on the other side —
+       * the remembered position is only a fallback for map travel, which has
+       * no door of its own.
+       */
+      const enterZone = (zoneId: string, x: number, y: number, exact = true) => {
         const target = getZone(zoneId);
         const current = useCampusStore.getState();
         if (current.transition) return;
@@ -105,10 +111,13 @@ export function CampusView({
           current.playerPosition.x,
           current.playerPosition.y,
         );
-        const remembered = current.zoneMemory[zoneId];
+        const remembered = exact ? undefined : current.zoneMemory[zoneId];
         const spawnX = remembered?.x ?? x;
         const spawnY = remembered?.y ?? y;
         const indoors = target.kind === "interior";
+        // The room the student is about to walk into is warmed while the door
+        // animation plays, so its 3D beat opens without a download hitch.
+        if (indoors) prefetchRoomAssets(target.name);
         store.beginTransition({
           kind: indoors ? "door" : "fade",
           label: indoors

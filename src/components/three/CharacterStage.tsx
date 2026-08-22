@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { characterOf, type CharacterId } from "@/lib/characters";
 import { buildCharacter, type LowPolyCharacter } from "@/lib/lowpoly";
 import { PROP_MODELS, PROP_PALETTE_URL, SHELL_MODELS, type PropPlacement } from "@/lib/props3d";
+import { loadModel } from "@/lib/room-assets";
 
 export interface StageActor {
   character: CharacterId;
@@ -46,8 +47,8 @@ interface Props {
   shell?: RoomShell;
 }
 
-/** Cache loaded model groups + textures so revisiting a classroom is instant. */
-const modelCache = new Map<string, Promise<unknown>>();
+/** Texture cache; models are cached centrally in `@/lib/room-assets`. */
+const textureCache = new Map<string, Promise<import("three").Texture>>();
 
 /**
  * Characters are generated at runtime, so there is nothing to download. The
@@ -119,19 +120,17 @@ export function CharacterStage({
         scene.add(root);
 
         const texLoader = new THREE.TextureLoader();
-        const load = (url: string) => {
-          let p = modelCache.get(url);
+        // Models come from the shared session cache, so a room the student has
+        // already visited (or that was prefetched from the corridor) is built
+        // from memory with no network work and no parse hitch.
+        const load = (url: string) => loadModel(url) as Promise<import("three").Group>;
+        const loadTexture = (url: string) => {
+          let p = textureCache.get(url);
           if (!p) {
-            p = url.endsWith(".glb")
-              ? import("three/examples/jsm/loaders/GLTFLoader.js").then(({ GLTFLoader }) =>
-                  new GLTFLoader().loadAsync(url).then((gltf) => gltf.scene),
-                )
-              : import("three/examples/jsm/loaders/FBXLoader.js").then(({ FBXLoader }) =>
-                  new FBXLoader().loadAsync(url),
-                );
-            modelCache.set(url, p);
+            p = texLoader.loadAsync(url);
+            textureCache.set(url, p);
           }
-          return p as Promise<import("three").Group>;
+          return p;
         };
 
         // ---- Cast ------------------------------------------------------
@@ -266,7 +265,7 @@ export function CharacterStage({
 
         // ---- Furniture --------------------------------------------------
         if (sceneProps?.length) {
-          const paletteTex = await texLoader.loadAsync(PROP_PALETTE_URL);
+          const paletteTex = await loadTexture(PROP_PALETTE_URL);
           paletteTex.colorSpace = THREE.SRGBColorSpace;
           paletteTex.flipY = true;
           const set = new THREE.Group();
