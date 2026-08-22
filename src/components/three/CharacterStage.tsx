@@ -265,7 +265,7 @@ export function CharacterStage({
 
         // ---- Furniture --------------------------------------------------
         if (sceneProps?.length) {
-          const paletteTex = await texLoader.loadAsync(PROP_PALETTE_URL);
+          const paletteTex = await loadTexture(PROP_PALETTE_URL);
           paletteTex.colorSpace = THREE.SRGBColorSpace;
           paletteTex.flipY = true;
           const set = new THREE.Group();
