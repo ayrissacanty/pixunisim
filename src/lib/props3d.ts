@@ -49,9 +49,21 @@ import cafChair from "@/assets/room3d/cafChair.glb.asset.json";
 import cafTray from "@/assets/room3d/cafTray.glb.asset.json";
 import cafVending from "@/assets/room3d/cafVending.glb.asset.json";
 import cafCoffee from "@/assets/room3d/cafCoffee.glb.asset.json";
+import shellWall from "@/assets/room3d/wall.glb.asset.json";
+import shellWallWindow from "@/assets/room3d/wallWindow.glb.asset.json";
+import shellWallDoor from "@/assets/room3d/wallDoor.glb.asset.json";
+import shellFloorTile from "@/assets/room3d/floorTile.glb.asset.json";
 
 /** Shared low-poly palette texture every prop samples from. */
 export const PROP_PALETTE_URL = palette.url;
+
+/** Styloo room-shell pieces used to build walls and tiled floors at runtime. */
+export const SHELL_MODELS = {
+  wall: shellWall.url,
+  wallWindow: shellWallWindow.url,
+  wallDoor: shellWallDoor.url,
+  floorTile: shellFloorTile.url,
+} as const;
 
 export const PROP_MODELS = {
   desk: Desk.url,
