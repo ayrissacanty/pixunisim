@@ -842,6 +842,27 @@ export class CampusScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Move the player to a tile inside the current zone without reloading it —
+   * used when stepping back out of a classroom, so they reappear at that
+   * room's doorway instead of wherever they last stood.
+   */
+  placePlayer(tileX: number, tileY: number) {
+    if (!this.player) return;
+    const spot = this.canStand(tileX * TILE + 16, tileY * TILE + 16)
+      ? { x: tileX, y: tileY }
+      : this.nearestWalkable(tileX, tileY);
+    this.player.setPosition(spot.x * TILE + 16, spot.y * TILE + 16);
+    this.vx = 0;
+    this.vy = 0;
+    // Do not let the doorway we just landed on fire a transition immediately.
+    this.doorCooldown = 900;
+    this.doorArmed = false;
+    this.cameras.main.centerOn(this.player.x, this.player.y);
+    this.streamDecor(true);
+    useCampusStore.getState().setPlayer(spot.x, spot.y, "down");
+  }
+
   /** Breadth-first search for the closest walkable tile to a spawn point. */
   private nearestWalkable(tx: number, ty: number) {
     for (let r = 1; r < 12; r++) {
