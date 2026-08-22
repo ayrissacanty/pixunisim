@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { characterOf, type CharacterId } from "@/lib/characters";
 import { buildCharacter, type LowPolyCharacter } from "@/lib/lowpoly";
 import { PROP_MODELS, PROP_PALETTE_URL, SHELL_MODELS, type PropPlacement } from "@/lib/props3d";
+import { loadModel } from "@/lib/room-assets";
 
 export interface StageActor {
   character: CharacterId;
