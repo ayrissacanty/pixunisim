@@ -70,8 +70,8 @@ export function ClassroomBeat() {
               : `Welcome to ${roomName ?? "class"}. Today we cover ${lesson?.title ?? "our next topic"}.`),
         ];
     const outline = lesson?.summary ? [lesson.summary] : [];
-    const firstStep = lesson?.sections?.[0]?.title
-      ? [`We'll start with: ${lesson.sections[0]!.title}. Take a seat when you're ready.`]
+    const firstStep = lesson?.sections?.[0]?.heading
+      ? [`We'll start with: ${lesson.sections[0]!.heading}. Take a seat when you're ready.`]
       : ["Take a seat when you're ready and we'll begin."];
     return [...opening, ...outline, ...firstStep];
     // eslint-disable-next-line react-hooks/exhaustive-deps
