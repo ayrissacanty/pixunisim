@@ -53,6 +53,14 @@ import cafCoffee from "@/assets/room3d/cafCoffee.glb.asset.json";
 /** Shared low-poly palette texture every prop samples from. */
 export const PROP_PALETTE_URL = palette.url;
 
+/** Styloo room-shell pieces used to build walls and tiled floors at runtime. */
+export const SHELL_MODELS = {
+  wall: shellWall.url,
+  wallWindow: shellWallWindow.url,
+  wallDoor: shellWallDoor.url,
+  floorTile: shellFloorTile.url,
+} as const;
+
 export const PROP_MODELS = {
   desk: Desk.url,
   chair: Chair.url,
