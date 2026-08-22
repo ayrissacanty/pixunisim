@@ -119,19 +119,17 @@ export function CharacterStage({
         scene.add(root);
 
         const texLoader = new THREE.TextureLoader();
-        const load = (url: string) => {
-          let p = modelCache.get(url);
+        // Models come from the shared session cache, so a room the student has
+        // already visited (or that was prefetched from the corridor) is built
+        // from memory with no network work and no parse hitch.
+        const load = (url: string) => loadModel(url) as Promise<import("three").Group>;
+        const loadTexture = (url: string) => {
+          let p = textureCache.get(url);
           if (!p) {
-            p = url.endsWith(".glb")
-              ? import("three/examples/jsm/loaders/GLTFLoader.js").then(({ GLTFLoader }) =>
-                  new GLTFLoader().loadAsync(url).then((gltf) => gltf.scene),
-                )
-              : import("three/examples/jsm/loaders/FBXLoader.js").then(({ FBXLoader }) =>
-                  new FBXLoader().loadAsync(url),
-                );
-            modelCache.set(url, p);
+            p = texLoader.loadAsync(url);
+            textureCache.set(url, p);
           }
-          return p as Promise<import("three").Group>;
+          return p;
         };
 
         // ---- Cast ------------------------------------------------------
