@@ -135,6 +135,7 @@ export function CampusView({
         courseId: string;
         teacher: string;
       }) => {
+        prefetchRoomAssets(`${c.roomName} ${c.roomId}`);
         store.beginTransition({ kind: "wipe", label: `Entering ${c.roomName}`, toLayer: 3 });
         window.setTimeout(() => {
           store.endTransition();
