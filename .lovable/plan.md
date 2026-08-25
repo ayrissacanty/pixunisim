@@ -1,39 +1,55 @@
-# Fix campus animation stutter and mobile lag
+# Go fully 2D: remove the 3D pack, restyle the campus
 
-## Goal
-Make the motion setting produce visibly and measurably different rendering paths, and remove unnecessary work from the Phaser and React/Three.js loops—especially on mobile and lower-power devices.
+## What 2D art the project already has (confirmed)
 
-## Changes
-1. **Turn Motion into a real performance mode**
-   - Keep Full as the complete experience.
-   - Reduced will cap the campus loop near 30 FPS, remove NPC idle/walk bob, disable character limb/bob updates, snap or simplify camera follow, shorten transitions, and lower prop streaming density.
-   - Off will remove decorative character animation and transition animation entirely, use a static camera response, and render only essential nearby props.
-   - Apply changes live when the setting changes, without reloading the scene.
+These are all live and stay:
 
-2. **Fix Phaser hot-loop costs**
-   - Stop publishing player position to Zustand every rendered frame; update only when the tile/direction changes and at a controlled cadence for minimap/persistence.
-   - Throttle interaction, room, and door proximity scans instead of scanning every interactable/NPC/room every frame.
-   - Replace repeated `Math.hypot` distance checks with squared-distance comparisons.
-   - Stop writing unchanged character-part transforms/visibility every frame, and skip NPC animation work outside the camera or while overlays pause play.
-   - Pause the Phaser scene when the page is hidden and resume it when visible.
-   - Use lower mobile pixel density / renderer settings and a reduced target FPS where appropriate.
+- `punyworld-overworld-tileset.png` — outdoor terrain/paths/water, used by `src/lib/campus/tileset.ts` (the campus base tiles).
+- `env_props.png` (+ `src/lib/campus/env-atlas.json`) — outdoor decor scatter, `src/lib/campus/decor.ts`.
+- `interiors_demo.png`, `tiles_and_items.png`, `school_interior.png` — building interiors, `src/lib/campus/interiors.ts`.
+- `barn.png`, `blade.png`, `water-wheel.png` — Agricultural Science field, `src/lib/campus/farm.ts`.
+- `16x16_modern_mixed_*.png`, `16x16_walls_*.png` — extra interior tiles.
+- `paperdoll/*` (skin, eyes, hair, clothes) — layered dialogue portraits, `src/lib/portrait.ts`.
+- Player + NPC movement sprites are drawn procedurally in `src/game/CampusScene.ts` (4-direction walk cycle), not from a 3D pack.
 
-3. **Reduce prop-streaming churn**
-   - Use squared distances and a lower-frequency stream pass.
-   - Make stream radius depend on motion/performance mode and mobile capability.
-   - Hide/reuse streamed prop sprites instead of repeatedly destroying and recreating them at room boundaries where practical.
+So: the campus map, buildings, decor, interiors, movement and portraits are already 100% 2D Phaser. No GLTF is used on the campus map itself.
 
-4. **Fix layered UI and 3D animation work**
-   - Ensure transitions use only transform/opacity and respect Reduced/Off.
-   - Pause the campus renderer whenever dialogue, maps, classroom, or lesson overlays fully cover/block play.
-   - Stop Three.js classroom/avatar render loops when hidden; in Reduced/Off, render static or low-frequency frames rather than continuous idle animation.
-   - Avoid repeatedly repainting the entire minimap tile grid when only the player marker moves by caching the static map layer.
+## What actually depends on the 3D pack (what breaks)
 
-5. **Verify behavior**
-   - Add focused tests for motion-mode helpers and scene performance decisions.
-   - Run typecheck/tests and use browser instrumentation to confirm Reduced/Off change actual renderer behavior, position updates are throttled, hidden/blocked scenes pause, and the production debug UI remains absent without `?debug=1`.
+The 3D pack is only used *after* you enter a room — Layer 3 and 4 — plus two workspace screens:
+
+| File | Role | Fate |
+| --- | --- | --- |
+| `src/components/three/CharacterStage.tsx` | Three.js room + character renderer | delete |
+| `src/components/lesson/Lesson3DStage.tsx` | 3D lesson visual | delete |
+| `src/lib/props3d.ts`, `src/lib/room-assets.ts`, `src/lib/lowpoly.ts` | GLB/FBX registry, loader cache, procedural low-poly bodies | delete |
+| `src/routes/dev.rooms.tsx` | 3D room preview route | delete |
+| `src/components/campus/ClassroomBeat.tsx` | Layer 3 classroom beat | rebuild as a 2D illustrated scene |
+| `src/components/lesson/LessonPlayer.tsx` | Layer 4 lesson | drop 3D stage, keep lesson content + portraits |
+| `src/routes/_authenticated/workspace.room.tsx` | 3D dorm room | rebuild as 2D room view |
+| `src/routes/_authenticated/workspace.avatar.tsx` | 3D avatar preview | switch to the paperdoll portrait |
+| `src/components/campus/CampusView.tsx` | calls `prefetchCharacters` / `prefetchRoomAssets` | remove those calls |
+| `src/lib/characters.ts` | character specs feeding the 3D rig | trim to 2D portrait/sprite specs |
+
+Also removed: the `three` dependency, `src/assets/room3d/*` (31 GLB pointers), `src/assets/props/*` (20 FBX), `src/assets/characters/*.fbx`. Character `.png` textures are kept if usable as 2D portraits.
+
+Nothing in the database changes — `campus_zones → campus_buildings → campus_rooms/courses → lessons` is untouched.
+
+## Replacement for the 3D rooms
+
+- **Classroom beat (Layer 3):** a 2D illustrated classroom card — chalkboard header, teacher portrait, classmate portrait row, the existing paced dialogue and "Start the class" button. Same flow, no canvas.
+- **Lesson (Layer 4):** lesson content with the teacher portrait panel; no 3D stage.
+- **Dorm room:** 2D room panel built from the interior tilesheets already in the project.
+
+## Visual restyle: warm storybook + blocky sandbox
+
+- Retune tokens in `src/styles.css` to a bright saturated base — coral, sunflower yellow, grass green, sky blue — with Bordeaux, Terracotta, Ochre and Sage demoted to accents only.
+- Keep the chunky `block-panel` / `block-btn` look (solid drop shadows, thick rounded borders), warmed up: rounder corners, higher-contrast labels.
+- Campus map reads as an illustrated Adventure Academy–style board: zone tinting, clear building signposts/labels on the map, bright pathways, and hover/selected states on interactable buildings.
+- HUD, minimap, dialogue box and objective tracker restyled to match.
 
 ## Technical notes
-- No curriculum, navigation, collision rules, or saved progress behavior will change.
-- Existing accessibility preferences remain persisted; this work makes those preferences control the full rendering pipeline rather than only camera lerp and player bob.
-- On small/coarse-pointer devices, Reduced will be the default only when there is no saved user choice, while honoring `prefers-reduced-motion` first.
+
+- Remove `three` from `package.json`; verify no import remains via a repo-wide search.
+- Delete stale asset pointers with `lovable-assets delete` so no orphaned CDN objects are left.
+- Existing tests (`Minimap.test.tsx`, walkability, walkthrough, Playwright flow) must still pass; the Playwright walkthrough gets updated selectors for the new 2D classroom beat.
