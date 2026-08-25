@@ -326,6 +326,25 @@ export function CampusView({
 
   const layer = useCampusStore((s) => s.layer);
 
+  // Stepping back out of a classroom returns the student to that room's own
+  // doorway rather than wherever they happened to stand before.
+  const classroom = useCampusStore((s) => s.classroom);
+  const lastRoomRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (classroom) {
+      lastRoomRef.current = classroom.roomId;
+      return;
+    }
+    const roomId = lastRoomRef.current;
+    lastRoomRef.current = null;
+    if (!roomId || !sceneRef.current) return;
+    const zone = getZone(useCampusStore.getState().currentZone);
+    const door = zone.interactables.find(
+      (i) => i.action.kind === "classroom" && i.action.roomId === roomId,
+    );
+    if (door) sceneRef.current.placePlayer(door.x, door.y);
+  }, [classroom]);
+
   const move = useCallback((x: number, y: number) => {
     if (sceneRef.current) sceneRef.current.joystick = { x, y };
   }, []);
