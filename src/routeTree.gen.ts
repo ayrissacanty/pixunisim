@@ -14,7 +14,6 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedCampusRouteImport } from './routes/_authenticated/campus'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
-import { Route as DevRoomsRouteImport } from './routes/dev.rooms'
 import { Route as AuthenticatedWorkspaceIndexRouteImport } from './routes/_authenticated/workspace.index'
 import { Route as AuthenticatedWorkspaceAchievementsRouteImport } from './routes/_authenticated/workspace.achievements'
 import { Route as AuthenticatedWorkspaceAvatarRouteImport } from './routes/_authenticated/workspace.avatar'
@@ -44,11 +43,6 @@ const AuthenticatedFamilyRoute = AuthenticatedFamilyRouteImport.update({
   id: '/family',
   path: '/family',
   getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const DevRoomsRoute = DevRoomsRouteImport.update({
-  id: '/dev/rooms',
-  path: '/dev/rooms',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWorkspaceIndexRoute =
   AuthenticatedWorkspaceIndexRouteImport.update({
@@ -86,7 +80,6 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/campus': typeof AuthenticatedCampusRoute
   '/family': typeof AuthenticatedFamilyRoute
-  '/dev/rooms': typeof DevRoomsRoute
   '/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
   '/workspace/room': typeof AuthenticatedWorkspaceRoomRoute
@@ -98,7 +91,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/campus': typeof AuthenticatedCampusRoute
   '/family': typeof AuthenticatedFamilyRoute
-  '/dev/rooms': typeof DevRoomsRoute
   '/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
   '/workspace/room': typeof AuthenticatedWorkspaceRoomRoute
@@ -112,7 +104,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/campus': typeof AuthenticatedCampusRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
-  '/dev/rooms': typeof DevRoomsRoute
   '/_authenticated/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/_authenticated/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
   '/_authenticated/workspace/room': typeof AuthenticatedWorkspaceRoomRoute
@@ -126,7 +117,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/campus'
     | '/family'
-    | '/dev/rooms'
     | '/workspace/achievements'
     | '/workspace/avatar'
     | '/workspace/room'
@@ -138,7 +128,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/campus'
     | '/family'
-    | '/dev/rooms'
     | '/workspace/achievements'
     | '/workspace/avatar'
     | '/workspace/room'
@@ -151,7 +140,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/campus'
     | '/_authenticated/family'
-    | '/dev/rooms'
     | '/_authenticated/workspace/achievements'
     | '/_authenticated/workspace/avatar'
     | '/_authenticated/workspace/room'
@@ -163,7 +151,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
-  DevRoomsRoute: typeof DevRoomsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -202,13 +189,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/family'
       preLoaderRoute: typeof AuthenticatedFamilyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/dev/rooms': {
-      id: '/dev/rooms'
-      path: '/dev/rooms'
-      fullPath: '/dev/rooms'
-      preLoaderRoute: typeof DevRoomsRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/workspace/': {
       id: '/_authenticated/workspace/'
@@ -277,7 +257,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
-  DevRoomsRoute: DevRoomsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

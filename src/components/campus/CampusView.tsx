@@ -18,8 +18,6 @@ import { LayerTransition } from "@/components/campus/LayerTransition";
 import { PerfOverlay, type CampusPerfStats } from "@/components/campus/PerfOverlay";
 import { useCampusObjectives } from "@/lib/campus/objectives";
 import { useOfflineSync } from "@/lib/data";
-import { prefetchCharacters } from "@/components/three/CharacterStage";
-import { prefetchRoomAssets } from "@/lib/room-assets";
 
 export function CampusView({
   initialZone = "welcome-plaza",
@@ -32,10 +30,6 @@ export function CampusView({
   const gameRef = useRef<Phaser.Game | null>(null);
   const sceneRef = useRef<CampusScene | null>(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    void prefetchCharacters();
-  }, []);
 
   const [ready, setReady] = useState(false);
   const [tourStep, setTourStep] = useState<{ label: string; index: number; total: number } | null>(
@@ -116,9 +110,6 @@ export function CampusView({
         const spawnX = remembered?.x ?? x;
         const spawnY = remembered?.y ?? y;
         const indoors = target.kind === "interior";
-        // The room the student is about to walk into is warmed while the door
-        // animation plays, so its 3D beat opens without a download hitch.
-        if (indoors) prefetchRoomAssets(target.name);
         store.beginTransition({
           kind: indoors ? "door" : "fade",
           label: indoors
@@ -136,7 +127,6 @@ export function CampusView({
         courseId: string;
         teacher: string;
       }) => {
-        prefetchRoomAssets(`${c.roomName} ${c.roomId}`);
         store.beginTransition({ kind: "wipe", label: `Entering ${c.roomName}`, toLayer: 3 });
         window.setTimeout(() => {
           store.endTransition();

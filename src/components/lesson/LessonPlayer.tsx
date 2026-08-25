@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress as ProgressBar } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { AiTeacher } from "@/components/lesson/AiTeacher";
-import { Lesson3DStage } from "@/components/lesson/Lesson3DStage";
-import { CharacterStage } from "@/components/three/CharacterStage";
-import { LESSON_DESK_PROPS } from "@/lib/props3d";
+import { CharacterAvatar } from "@/components/campus/CharacterAvatar";
 import { TEACHER_CHARACTER } from "@/lib/characters";
 import { useAvatar } from "@/lib/profile";
 import { useCampusStore } from "@/lib/campus/store";
@@ -186,29 +184,13 @@ export function LessonPlayer({
         </div>
 
         {lesson.render_mode === "3d" && (
-          <div className="mb-4 grid gap-3 sm:grid-cols-2">
-            <Lesson3DStage
-              shape={lesson.course_id === "intro-life-science" ? "cell" : "polyhedron"}
-              label={`3D manipulative — ${lesson.title}`}
-            />
-            <figure className="overflow-hidden rounded-md border border-border bg-card">
-              <CharacterStage
-                actors={[
-                  { character: TEACHER_CHARACTER, x: -0.85, z: -0.6, rotation: 0.35 },
-                  { character: avatar, x: 0.85, z: 0, rotation: -0.3 },
-                ]}
-                props={LESSON_DESK_PROPS}
-                camera={{ y: 1.8, z: 5.2, lookY: 1, fov: 40 }}
-                floorColor={0x3d3227}
-                height={220}
-                background={0x1d2a24}
-                className="overflow-hidden"
-              />
-              <figcaption className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
-                Alley works through this one with you.
-              </figcaption>
-            </figure>
-          </div>
+          <figure className="mb-4 flex items-end gap-4 overflow-hidden rounded-md border border-border bg-sage/25 p-4">
+            <CharacterAvatar character={TEACHER_CHARACTER} size={84} />
+            <CharacterAvatar character={avatar} size={76} facing="side" />
+            <figcaption className="self-center text-xs text-muted-foreground">
+              Alley works through this one with you.
+            </figcaption>
+          </figure>
         )}
 
         {!onQuiz && section && (

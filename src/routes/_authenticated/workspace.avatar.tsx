@@ -11,7 +11,7 @@ import {
 } from "@/lib/profile";
 import { MASCOT_ACCESSORIES, MASCOT_COLORS, type Mascot } from "@/lib/mascot";
 import { MascotView } from "@/components/campus/MascotView";
-import { CharacterStage } from "@/components/three/CharacterStage";
+import { CharacterAvatar } from "@/components/campus/CharacterAvatar";
 import { PortraitView } from "@/components/campus/PortraitView";
 import {
   PORTRAIT_LAYERS,
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_authenticated/workspace/avatar")({
       {
         name: "description",
         content:
-          "Pick the student character who represents you in Unify University classrooms and 3D lessons.",
+          "Pick the student character who represents you in Unify University classrooms and lessons.",
       },
       { property: "og:title", content: "Choose your character — Unify University" },
       {
@@ -55,7 +55,7 @@ function AvatarPicker() {
         <div>
           <h1 className="text-3xl font-bold">Choose your character</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            This is who sits in the classroom with Alley and appears in your 3D lessons.
+            This is who sits in the classroom with Alley and appears in your lessons.
           </p>
         </div>
         <Button asChild variant="outline">
@@ -64,12 +64,9 @@ function AvatarPicker() {
       </div>
 
       <div className="mt-6 grid gap-6 md:grid-cols-[1fr_320px]">
-        <CharacterStage
-          actors={[{ character: current }]}
-          height={360}
-          background={0x2b2118}
-          turntable
-        />
+        <div className="block-panel-lg flex h-[360px] items-center justify-center border-warm-brown bg-sage/30">
+          <CharacterAvatar character={current} size={180} />
+        </div>
 
         <div className="space-y-3">
           {CHARACTER_IDS.map((id) => {

@@ -4,9 +4,9 @@ export type HairStyle = "bob" | "bun" | "crop" | "curls" | "ponytail" | "wrap";
 export type Build = "slim" | "regular" | "sturdy";
 
 /**
- * Low-poly cast, authored to sit inside the Styloo classroom pack: flat matte
- * colours, chunky proportions, no textures. Every character is built from
- * boxes at runtime (see `src/lib/lowpoly.ts`) so the whole campus shares one
+ * Blocky 2D cast: flat saturated colours and chunky proportions. Every
+ * character is drawn from simple SVG shapes (see
+ * `src/components/campus/CharacterAvatar.tsx`), so the campus shares one
  * consistent art direction and nothing has to be downloaded.
  */
 export interface CharacterDef {

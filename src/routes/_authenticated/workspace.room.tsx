@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CharacterStage } from "@/components/three/CharacterStage";
+import { CharacterAvatar } from "@/components/campus/CharacterAvatar";
 import { PortraitView } from "@/components/campus/PortraitView";
 import { MascotView } from "@/components/campus/MascotView";
-import { DORM_PROPS } from "@/lib/props3d";
 import { useAvatar, useMascot, usePortrait, useProfile } from "@/lib/profile";
 import { useCourses, useLessons, useProgress } from "@/lib/data";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/workspace/room")({
       { property: "og:title", content: "Your student space — Unify University" },
       {
         property: "og:description",
-        content: "A personal 3D study room where your character rests between classes.",
+        content: "A personal study room where your character rests between classes.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -66,14 +65,27 @@ function StudentSpace() {
       </div>
 
       <div className="mt-6 grid gap-6 md:grid-cols-[1fr_260px]">
-        <CharacterStage
-          actors={[{ character: avatar, x: 0, z: 0.2, rotation: 0 }]}
-          props={DORM_PROPS}
-          camera={{ x: 0, y: 2.4, z: 6.4, lookY: 1, fov: 44 }}
-          background={0x241c15}
-          floorColor={0x7a5a3c}
-          height={400}
-        />
+        <section
+          data-testid="dorm-room"
+          className="block-panel-lg relative overflow-hidden border-warm-brown bg-[var(--linen)]"
+        >
+          <div className="relative h-[400px]">
+            <div className="absolute inset-x-0 bottom-0 h-[38%] bg-warm-brown" />
+            <div className="absolute left-[8%] top-[12%] block-panel size-24 border-warm-brown bg-[var(--sky)]" aria-hidden />
+            <div className="absolute right-[10%] top-[14%] block-panel h-28 w-36 border-warm-brown bg-ochre/70" aria-hidden>
+              <div className="mt-2 space-y-2 px-2">
+                <div className="h-3 rounded-sm bg-bordeaux/70" />
+                <div className="h-3 rounded-sm bg-deep-green/70" />
+                <div className="h-3 rounded-sm bg-terracotta/70" />
+              </div>
+            </div>
+            <div className="absolute bottom-[30%] left-[12%] block-panel h-16 w-40 border-warm-brown bg-sage" aria-hidden />
+            <div className="absolute bottom-[28%] right-[14%] block-panel h-14 w-28 border-warm-brown bg-terracotta/80" aria-hidden />
+            <div className="absolute bottom-[10%] left-1/2 -translate-x-1/2">
+              <CharacterAvatar character={avatar} size={140} />
+            </div>
+          </div>
+        </section>
 
         <aside className="space-y-4">
           <div className="flex flex-col items-center rounded-md border border-border bg-card p-3">
