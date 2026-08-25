@@ -19,6 +19,7 @@ import { PerfOverlay, type CampusPerfStats } from "@/components/campus/PerfOverl
 import { useCampusObjectives } from "@/lib/campus/objectives";
 import { useOfflineSync } from "@/lib/data";
 import { prefetchCharacters } from "@/components/three/CharacterStage";
+import { prefetchRoomAssets } from "@/lib/room-assets";
 
 export function CampusView({
   initialZone = "welcome-plaza",
