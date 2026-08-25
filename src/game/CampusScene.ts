@@ -123,7 +123,7 @@ function paintTile(g: Phaser.GameObjects.Graphics, kind: TileKind, px: number, p
       g.fillRect(px + 13, py + 20, 6, 12);
       g.fillStyle(base, 1);
       g.fillCircle(px + 16, py + 14, 13);
-      g.fillStyle(0x3f6446, 1);
+      g.fillStyle(0x5fb264, 1);
       g.fillCircle(px + 11, py + 11, 6);
       break;
     case "flower":
@@ -614,7 +614,7 @@ export class CampusScene extends Phaser.Scene {
 
   create(data: { zoneId: string; x: number; y: number }) {
     this.zone = getZone(data.zoneId);
-    this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#5d7047" : "#cbb894");
+    this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#76bd57" : "#f5e8cd");
 
     const outdoor = this.zone.kind === "outdoor";
     const groundKey = outdoor ? this.bakeGround(this.zone) : this.bakeInterior(this.zone);
@@ -637,20 +637,29 @@ export class CampusScene extends Phaser.Scene {
     this.addFarm(this.zone);
 
     // room labels
+    // Illustrated-map signposts: every room/building reads as a labelled
+    // plaque on the map, the way an illustrated campus board would.
     this.zone.rooms.forEach((room) => {
       this.add
-        .text(room.x * TILE + 8, room.y * TILE + 6, room.name.toUpperCase(), {
+        .text(room.x * TILE + 8, room.y * TILE + 4, room.name.toUpperCase(), {
           fontFamily: "monospace",
+          fontStyle: "bold",
           fontSize: "11px",
-          color: "#5a2429",
+          color: "#4a2a12",
+          backgroundColor: "#fff3d8",
+          padding: { x: 6, y: 3 },
         })
-        .setDepth(1);
+        .setStroke("#8a5730", 3)
+        .setShadow(0, 2, "#00000055", 0, true, true)
+        .setDepth(2);
     });
 
     // interactable markers
     this.zone.interactables.forEach((i) => {
       const marker = this.add.graphics().setDepth(1);
-      marker.fillStyle(0xd9a441, 0.85);
+      marker.fillStyle(0xffffff, 0.9);
+      marker.fillCircle(i.x * TILE + 16, i.y * TILE + 16, 6);
+      marker.fillStyle(0xf7cf5f, 1);
       marker.fillCircle(i.x * TILE + 16, i.y * TILE + 16, 4);
     });
 
