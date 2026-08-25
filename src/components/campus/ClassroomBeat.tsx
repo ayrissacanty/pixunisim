@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCampusStore } from "@/lib/campus/store";
 import { useAlleyDialogue, useLesson, useProgress, progressFor } from "@/lib/data";
-import { CharacterStage, type StageActor } from "@/components/three/CharacterStage";
-import { propsForRoom } from "@/lib/props3d";
-import { prefetchRoomAssets } from "@/lib/room-assets";
-import { classmatesFor, TEACHER_CHARACTER } from "@/lib/characters";
+import { CharacterAvatar } from "@/components/campus/CharacterAvatar";
+import { classmatesFor, characterOf, TEACHER_CHARACTER } from "@/lib/characters";
 import { useAvatar } from "@/lib/profile";
 import { Button } from "@/components/ui/button";
 
 /**
- * Layer 3 — the classroom beat. The teacher greets the student, talks through
- * a short scripted exchange, and the student explicitly starts the class; the
- * first objective of the lesson is shown before they commit.
+ * Layer 3 — the classroom beat, drawn entirely in 2D.
+ *
+ * An illustrated storybook classroom: chalkboard behind the teacher, the
+ * student and two classmates at their desks, and the paced teacher dialogue
+ * the student clicks through before choosing to start the class.
  */
 export function ClassroomBeat() {
   const classroom = useCampusStore((s) => s.classroom);
@@ -28,27 +28,7 @@ export function ClassroomBeat() {
   const roomName = classroom?.roomName;
   const phase = classroom?.phase;
 
-  // Alley at the board, the student front-and-centre, classmates either side.
-  const cast = useMemo<StageActor[]>(() => {
-    const mates = classmatesFor(roomId ?? "room", 2, avatar);
-    return [
-      { character: TEACHER_CHARACTER, x: 0, z: -3, rotation: 0, scale: 1.02 },
-      { character: avatar, x: 0, z: 0.8, rotation: Math.PI },
-      { character: mates[0]!, x: -1.9, z: -0.2, rotation: Math.PI - 0.35, scale: 0.97 },
-      { character: mates[1]!, x: 1.9, z: -0.2, rotation: Math.PI + 0.35, scale: 0.97 },
-    ];
-  }, [roomId, avatar]);
-
-  const roomProps = useMemo(
-    () => propsForRoom(`${roomName ?? ""} ${roomId ?? ""}`),
-    [roomName, roomId],
-  );
-
-  // Warm this room's models the moment the beat mounts (they are usually
-  // already cached from the corridor prefetch).
-  useEffect(() => {
-    if (roomId) prefetchRoomAssets(`${roomName ?? ""} ${roomId}`);
-  }, [roomId, roomName]);
+  const mates = useMemo(() => classmatesFor(roomId ?? "room", 2, avatar), [roomId, avatar]);
 
   const seen = progressFor(progress, classroom?.lessonId ?? "");
   const context = phase === "dismiss" ? "completion" : seen ? "lesson_resume" : "lesson_start";
@@ -80,23 +60,20 @@ export function ClassroomBeat() {
   const [step, setStep] = useState(0);
   useEffect(() => setStep(0), [roomId, phase, script.length]);
 
-  // Hold the beat until the room has actually rendered.
-  const [castReady, setCastReady] = useState(false);
-  useEffect(() => setCastReady(false), [roomId, phase]);
-
   // Only the goodbye beat plays itself out; starting a class is always the
   // student's own decision.
   useEffect(() => {
     if (!classroom || lessonOpen || phase !== "dismiss") return;
-    const timer = window.setTimeout(() => leaveClassroom(), castReady ? 4000 : 9000);
+    const timer = window.setTimeout(() => leaveClassroom(), 4000);
     return () => window.clearTimeout(timer);
-  }, [classroom, phase, lessonOpen, castReady, leaveClassroom]);
+  }, [classroom, phase, lessonOpen, leaveClassroom]);
 
   if (!classroom || lessonOpen) return null;
 
   const atEnd = step >= script.length - 1;
   const line = script[Math.min(step, script.length - 1)] ?? "";
   const start = () => openLesson(classroom.lessonId, classroom.courseId, classroom.roomId);
+  const teacher = characterOf(TEACHER_CHARACTER);
 
   return (
     <div
@@ -105,25 +82,57 @@ export function ClassroomBeat() {
       data-room={classroom.roomId}
       data-line-index={step}
       data-line-total={script.length}
-      className="absolute inset-0 z-40 flex flex-col justify-end bg-[#2b2118]"
+      className="absolute inset-0 z-40 flex flex-col justify-end overflow-hidden bg-[var(--sky)]"
     >
-      <div className="absolute inset-0 overflow-hidden">
-        <div data-testid="beat-teacher" className="absolute inset-0">
-          <CharacterStage
-            actors={cast}
-            props={roomProps}
-            shell={{ width: 9.4, depth: 11.5, height: 2.8, door: true, windows: true }}
-            camera={{ y: 2.3, z: 6.6, lookY: 1.1, fov: 42 }}
-            floorColor={0x8a6a45}
-            height={520}
-            onReady={() => setCastReady(true)}
-            background={0x8a6a45}
-            className="h-full w-full overflow-hidden"
-          />
+      {/* Illustrated classroom backdrop */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-x-0 top-0 h-[62%] bg-[var(--linen)]" />
+        {/* windows */}
+        <div className="absolute left-[6%] top-[12%] flex gap-3">
+          {[0, 1].map((i) => (
+            <div
+              key={i}
+              className="block-panel size-16 border-warm-brown bg-[var(--sky)] sm:size-20"
+              aria-hidden
+            />
+          ))}
+        </div>
+        {/* chalkboard */}
+        <div
+          className="block-panel-lg absolute left-1/2 top-[9%] w-[46%] max-w-md -translate-x-1/2 border-warm-brown bg-deep-green p-3 text-center"
+          aria-hidden
+        >
+          <p className="font-display text-sm font-bold text-linen">{classroom.roomName}</p>
+          <p className="mt-1 truncate text-[11px] text-linen/80">{lesson?.title ?? "Today's class"}</p>
+        </div>
+        {/* floor */}
+        <div className="absolute inset-x-0 bottom-0 h-[38%] bg-warm-brown" />
+        <div className="absolute inset-x-0 bottom-[38%] h-1.5 bg-[var(--block-edge-strong)]" aria-hidden />
+      </div>
+
+      {/* Cast */}
+      <div className="relative z-10 flex items-end justify-center gap-6 pb-2 sm:gap-12">
+        <div data-testid="beat-teacher" className="flex flex-col items-center">
+          <CharacterAvatar character={TEACHER_CHARACTER} size={104} />
+          <span className="block-chip mt-1 border-warm-brown bg-ochre px-2 py-0.5 font-display text-[11px] font-bold text-[var(--warm-brown)]">
+            {classroom.teacher ?? teacher.name}
+          </span>
+        </div>
+        <div className="hidden flex-col items-center sm:flex">
+          <CharacterAvatar character={mates[0]} size={80} facing="side" />
+        </div>
+        <div className="flex flex-col items-center">
+          <CharacterAvatar character={avatar} size={92} />
+          <span className="block-chip mt-1 border-warm-brown bg-linen px-2 py-0.5 font-display text-[11px] font-bold text-[var(--warm-brown)]">
+            You
+          </span>
+        </div>
+        <div className="hidden flex-col items-center sm:flex">
+          <CharacterAvatar character={mates[1]} size={80} facing="side" />
         </div>
       </div>
 
-      <div className="relative z-10 m-3 rounded-md border-2 border-accent bg-sidebar/95 p-4 text-sidebar-foreground shadow-2xl sm:m-6">
+      <div className="relative z-10 m-3 block-panel-lg border-accent bg-sidebar/95 p-4 text-sidebar-foreground sm:m-6">
         <p className="font-display text-xs uppercase tracking-wide text-accent">
           {classroom.roomName}
         </p>
