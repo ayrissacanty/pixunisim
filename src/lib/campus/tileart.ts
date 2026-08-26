@@ -101,13 +101,26 @@ function paintGround(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
   switch (kind) {
     case "grass":
     case "grassAlt": {
-      ctx.fillStyle = detail;
-      const gx = px + 4 + Math.floor(n * 20);
-      const gy = py + 6 + Math.floor(tileNoise(x, y, 3) * 18);
-      ctx.fillRect(gx, gy, 2, 5);
-      ctx.fillRect(gx + 3, gy + 2, 2, 4);
-      ctx.fillStyle = shade(c.base, -0.12);
-      ctx.fillRect(px + 22, py + 22, 4, 2);
+      // Dithered two-tone bed so large lawns don't read as flat color.
+      ctx.fillStyle = shade(c.base, 0.06);
+      for (let dy = 0; dy < TILE; dy += 4) {
+        for (let dx = ((y + dy / 4) % 2) * 4; dx < TILE; dx += 8) {
+          ctx.fillRect(px + dx, py + dy, 4, 4);
+        }
+      }
+      // Three deterministic tufts with a darker root pixel each.
+      for (let i = 0; i < 3; i += 1) {
+        const gx = px + 3 + Math.floor(tileNoise(x, y, i * 5 + 1) * 25);
+        const gy = py + 4 + Math.floor(tileNoise(x, y, i * 7 + 3) * 22);
+        ctx.fillStyle = shade(c.base, -0.22);
+        ctx.fillRect(gx, gy + 4, 2, 2);
+        ctx.fillStyle = detail;
+        ctx.fillRect(gx, gy, 2, 4);
+        ctx.fillRect(gx + 2, gy + 2, 2, 3);
+      }
+      // Soft top-light band.
+      ctx.fillStyle = shade(c.base, 0.12);
+      ctx.fillRect(px, py, TILE, 2);
       break;
     }
     case "flower": {
@@ -115,10 +128,22 @@ function paintGround(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
       ctx.fillRect(px, py, TILE, TILE);
       ctx.fillStyle = hex(TILE_COLORS.grass.detail ?? TILE_COLORS.grass.base);
       ctx.fillRect(px + 6, py + 22, 2, 5);
-      disc(ctx, px + 10, py + 13, 3, detail);
-      disc(ctx, px + 21, py + 20, 3, "#ff8fa8");
+      ctx.fillRect(px + 20, py + 24, 2, 4);
+      // Petal rosettes: four petals + contrasting center.
+      const bloom = (bx: number, by: number, petal: string, core: string) => {
+        ctx.fillStyle = petal;
+        ctx.fillRect(bx - 3, by - 1, 2, 3);
+        ctx.fillRect(bx + 2, by - 1, 2, 3);
+        ctx.fillRect(bx - 1, by - 4, 3, 2);
+        ctx.fillRect(bx - 1, by + 2, 3, 2);
+        ctx.fillStyle = core;
+        ctx.fillRect(bx - 1, by - 1, 3, 3);
+      };
+      bloom(px + 10, py + 13, detail, "#ffffff");
+      bloom(px + 21, py + 20, "#ff8fa8", "#ffe9a8");
       break;
     }
+
     case "path":
     case "stone":
     case "brick": {
