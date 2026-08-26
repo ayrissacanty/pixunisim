@@ -25,7 +25,7 @@ export function MobileA11ySettings() {
   const cycleMotion = useMotionStore((s) => s.cycle);
 
   return (
-    <div className="pointer-events-auto md:hidden">
+    <div className="pointer-events-auto">
       <button
         type="button"
         onClick={() => setOpen(true)}
