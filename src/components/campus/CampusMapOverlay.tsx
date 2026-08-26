@@ -28,11 +28,28 @@ export function CampusMapOverlay() {
   const current = useCampusStore((s) => s.currentZone);
   const discovered = useCampusStore((s) => s.discovered);
   const travel = useCampusStore((s) => s.travel);
+
+  // Escape closes the map, matching every other overlay in the campus.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, setOpen]);
+
   if (!open) return null;
 
   return (
-    <div className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center bg-black/60 p-4">
+    <div
+      className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center bg-black/60 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) setOpen(false);
+      }}
+    >
       <div className="block-panel-lg w-full max-w-2xl border-accent bg-card p-5">
+
         <div className="flex items-center gap-2">
           <Map className="size-4 text-primary" />
           <h2 className="font-display text-lg font-bold">Campus Map</h2>
