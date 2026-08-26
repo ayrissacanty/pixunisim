@@ -111,6 +111,7 @@ export function CampusHud({
           <Button
             size="sm"
             variant="secondary"
+            className="block-btn h-10 border-secondary-foreground/25 px-3 font-black uppercase tracking-wide"
             aria-label="Open the campus map"
             data-testid="hud-map"
             onClick={() => setMapOpen(true)}
@@ -118,13 +119,19 @@ export function CampusHud({
             <Map className="size-4" /> <span className="hidden sm:inline">Map</span>
           </Button>
           <MobileA11ySettings />
-          <Button asChild size="sm" variant="outline">
+          <Button
+            asChild
+            size="sm"
+            variant="default"
+            className="block-btn h-10 border-primary-foreground/25 px-3 font-black uppercase tracking-wide"
+          >
             <Link to="/workspace" aria-label="Go to your workspace" data-testid="hud-workspace">
               <LayoutDashboard className="size-4" />{" "}
               <span className="hidden sm:inline">Workspace</span>
             </Link>
           </Button>
         </div>
+
       </div>
 
       {/* Spacer keeps the bottom rail anchored without absolute stacking. */}
