@@ -330,12 +330,13 @@ export function CampusView({
     }
     const roomId = lastRoomRef.current;
     lastRoomRef.current = null;
-    if (!roomId || !sceneRef.current) return;
+    const scene = gameRef.current?.scene.getScene("campus") as CampusScene | null;
+    if (!roomId || !scene) return;
     const zone = getZone(useCampusStore.getState().currentZone);
     const door = zone.interactables.find(
       (i) => i.action.kind === "classroom" && i.action.roomId === roomId,
     );
-    if (door) sceneRef.current.placePlayer(door.x, door.y);
+    if (door) scene.placePlayer(door.x, door.y);
   }, [classroom]);
 
   /**
