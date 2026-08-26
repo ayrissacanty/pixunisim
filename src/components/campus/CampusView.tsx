@@ -265,6 +265,8 @@ export function CampusView({
           reachabilityReport(getZone(zoneId ?? useCampusStore.getState().currentZone)),
         collisionDebug: (on: boolean) => sceneRef.current?.setCollisionDebug(on),
         perf: () => sceneRef.current?.perfStats(),
+        interact: () => sceneRef.current?.interact(),
+        hasScene: () => !!sceneRef.current,
         perfOverlay: (on: boolean) => useCampusStore.getState().setPerfOpen(on),
         state: () => {
           const s = useCampusStore.getState();
