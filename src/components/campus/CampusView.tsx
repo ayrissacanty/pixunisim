@@ -411,6 +411,7 @@ export function CampusView({
         getStats={getPerfStats}
         onReset={resetPerfStats}
       />
+      <AssetDebugPanel getReport={getAssetReport} />
     </div>
   );
 }
