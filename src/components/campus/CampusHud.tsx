@@ -50,14 +50,18 @@ export function CampusHud({
           Two independent columns so panels can never stack over each other. */}
       <div className="flex items-start justify-between gap-3 px-3">
         <div className="pointer-events-auto flex min-w-0 flex-col gap-2">
-          <div className="block-panel border-accent/70 bg-sidebar/95 px-3.5 py-2.5">
-            <p className="font-display text-sm font-bold leading-tight text-accent">
-              {ZONE_LABELS[zone] ?? zone}
-            </p>
-            <p className="truncate text-[11px] text-sidebar-foreground/80">
-              {roomName ?? "Unify University"}
-            </p>
+          <div className="block-panel flex items-center gap-2 border-accent/70 bg-sidebar/95 px-3.5 py-2.5">
+            <Compass className="size-4 shrink-0 text-accent" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="font-display text-sm font-black uppercase tracking-wide leading-tight text-accent">
+                {ZONE_LABELS[zone] ?? zone}
+              </p>
+              <p className="truncate text-[11px] font-semibold text-sidebar-foreground/80">
+                {roomName ?? "Unify University"}
+              </p>
+            </div>
           </div>
+
           <MemoizedObjectiveTracker />
           {debug && (
             <div className="flex flex-col gap-2">
@@ -107,6 +111,7 @@ export function CampusHud({
           <Button
             size="sm"
             variant="secondary"
+            className="block-btn h-10 border-secondary-foreground/25 px-3 font-black uppercase tracking-wide"
             aria-label="Open the campus map"
             data-testid="hud-map"
             onClick={() => setMapOpen(true)}
@@ -114,13 +119,19 @@ export function CampusHud({
             <Map className="size-4" /> <span className="hidden sm:inline">Map</span>
           </Button>
           <MobileA11ySettings />
-          <Button asChild size="sm" variant="outline">
+          <Button
+            asChild
+            size="sm"
+            variant="default"
+            className="block-btn h-10 border-primary-foreground/25 px-3 font-black uppercase tracking-wide"
+          >
             <Link to="/workspace" aria-label="Go to your workspace" data-testid="hud-workspace">
               <LayoutDashboard className="size-4" />{" "}
               <span className="hidden sm:inline">Workspace</span>
             </Link>
           </Button>
         </div>
+
       </div>
 
       {/* Spacer keeps the bottom rail anchored without absolute stacking. */}

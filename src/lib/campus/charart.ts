@@ -168,13 +168,25 @@ function drawFrame(ctx: Ctx, ox: number, oy: number, look: CharacterLook, dir: S
     box(ctx, ox + 17, oy + legTop + 6 - Math.max(0, -swing), 4, 2, shoes);
   }
 
-  // Torso.
+  // Torso with collar, side shading and a belt.
   const torsoY = 12 + bob;
   box(ctx, ox + 10, oy + torsoY, 12, 11, shirt);
-  ctx.fillStyle = shade(look.shirt, 0.22);
+  ctx.fillStyle = shade(look.shirt, 0.24);
   ctx.fillRect(ox + 10, oy + torsoY, 12, 2);
-  ctx.fillStyle = shade(look.shirt, -0.2);
+  ctx.fillRect(ox + 10, oy + torsoY, 2, 9);
+  ctx.fillStyle = shade(look.shirt, -0.22);
+  ctx.fillRect(ox + 20, oy + torsoY + 1, 2, 10);
+  // Accent collar / trim so each character reads distinctly.
+  ctx.fillStyle = hex(look.accent);
+  if (dir === "down") {
+    ctx.fillRect(ox + 14, oy + torsoY, 4, 2);
+  } else if (dir !== "up") {
+    ctx.fillRect(ox + 12, oy + torsoY, 8, 2);
+  }
+  ctx.fillStyle = shade(look.pants, 0.1);
   ctx.fillRect(ox + 10, oy + torsoY + 9, 12, 2);
+  ctx.fillStyle = OUTLINE;
+  ctx.fillRect(ox + 10, oy + torsoY + 11, 12, 1);
 
   // Arms.
   if (dir === "left") {
@@ -190,26 +202,45 @@ function drawFrame(ctx: Ctx, ox: number, oy: number, look: CharacterLook, dir: S
     box(ctx, ox + 22, oy + torsoY + 9 + swing, 3, 3, skin);
   }
 
-  // Head.
+  // Head with jaw shading and a lit cheek.
   const headY = 3 + bob;
   box(ctx, ox + 10, oy + headY, 12, 11, skin);
-  ctx.fillStyle = shade(look.skin, -0.16);
+  ctx.fillStyle = shade(look.skin, -0.18);
   ctx.fillRect(ox + 10, oy + headY + 9, 12, 2);
+  ctx.fillRect(ox + 20, oy + headY + 2, 2, 8);
+  ctx.fillStyle = shade(look.skin, 0.2);
+  ctx.fillRect(ox + 11, oy + headY + 2, 2, 6);
+  // Neck.
+  ctx.fillStyle = shade(look.skin, -0.28);
+  ctx.fillRect(ox + 14, oy + headY + 11, 4, 1);
 
-  // Face.
+  // Face: eye whites + pupil, blush, mouth.
   if (dir !== "up") {
-    ctx.fillStyle = OUTLINE;
+    const eye = (ex: number) => {
+      ctx.fillStyle = "#fdfaf4";
+      ctx.fillRect(ox + ex, oy + headY + 5, 3, 2);
+      ctx.fillStyle = OUTLINE;
+      ctx.fillRect(ox + ex + 1, oy + headY + 5, 2, 2);
+    };
     if (dir === "left") {
-      ctx.fillRect(ox + 11, oy + headY + 5, 2, 2);
+      eye(11);
+      ctx.fillStyle = shade(look.skin, -0.32);
+      ctx.fillRect(ox + 11, oy + headY + 8, 3, 1);
     } else if (dir === "right") {
-      ctx.fillRect(ox + 19, oy + headY + 5, 2, 2);
+      eye(18);
+      ctx.fillStyle = shade(look.skin, -0.32);
+      ctx.fillRect(ox + 18, oy + headY + 8, 3, 1);
     } else {
-      ctx.fillRect(ox + 12, oy + headY + 5, 2, 2);
-      ctx.fillRect(ox + 18, oy + headY + 5, 2, 2);
-      ctx.fillStyle = shade(look.skin, -0.3);
+      eye(12);
+      eye(17);
+      ctx.fillStyle = "rgba(230,120,110,0.45)";
+      ctx.fillRect(ox + 11, oy + headY + 7, 2, 2);
+      ctx.fillRect(ox + 19, oy + headY + 7, 2, 2);
+      ctx.fillStyle = shade(look.skin, -0.34);
       ctx.fillRect(ox + 14, oy + headY + 8, 4, 1);
     }
   }
+
 
   drawHair(ctx, ox, oy + bob, look, dir);
 }
