@@ -48,7 +48,7 @@ export function CampusMapOverlay() {
         if (e.target === e.currentTarget) setOpen(false);
       }}
     >
-      <div className="block-panel-lg w-full max-w-2xl border-accent bg-card p-5">
+      <div className="block-panel-lg max-h-[85dvh] w-full max-w-2xl overflow-y-auto border-accent bg-card p-5">
 
         <div className="flex items-center gap-2">
           <Map className="size-4 text-primary" />
