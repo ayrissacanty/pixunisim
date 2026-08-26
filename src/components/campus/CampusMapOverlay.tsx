@@ -144,6 +144,9 @@ export function CampusMapOverlay() {
   const drag = useRef<{ id: number; x: number; y: number; moved: boolean } | null>(null);
 
   const onPointerDown = (e: React.PointerEvent) => {
+    // Pointer capture retargets the follow-up click, which would swallow the
+    // zoom buttons rendered inside the surface.
+    if ((e.target as HTMLElement).closest("button")) return;
     drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
