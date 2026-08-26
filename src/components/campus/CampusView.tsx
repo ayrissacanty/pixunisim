@@ -207,6 +207,7 @@ export function CampusView({
             action: () => void navigate({ to: npc.route as string }),
           });
         }
+        store.logEvent("npc", `Talked to ${npc.name}`);
         store.openDialogue({
           speaker: npc.name,
           role: npc.role,

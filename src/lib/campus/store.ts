@@ -49,7 +49,7 @@ export interface ClassroomState {
 /** One line in the on-screen objective tracker's activity feed. */
 export interface TrackerEvent {
   id: number;
-  kind: "room" | "lesson" | "assessment" | "travel";
+  kind: "room" | "lesson" | "assessment" | "travel" | "npc";
   text: string;
   at: number;
 }
@@ -179,7 +179,8 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   closeReading: () => set({ reading: undefined }),
   setMapOpen: (open) => set({ mapOpen: open }),
   openLesson: (lessonId, courseId, roomId) => {
-    get().logEvent("lesson", `Lesson opened — ${lessonId}`);
+    // The lesson player logs the human-readable title once it loads, in both
+    // the campus overlay and the Workspace route.
     set({
       lessonOpen: { lessonId, courseId, ...(roomId ? { roomId } : {}) },
       dialogue: undefined,
