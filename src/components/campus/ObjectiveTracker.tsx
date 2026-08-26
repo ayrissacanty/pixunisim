@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { CheckCircle2, DoorOpen, GraduationCap, Target } from "lucide-react";
+import { CheckCircle2, DoorOpen, GraduationCap, MessageCircle, Target } from "lucide-react";
 import { useCampusStore, type TrackerEvent } from "@/lib/campus/store";
 
 const ICON: Record<TrackerEvent["kind"], typeof Target> = {
@@ -7,6 +7,7 @@ const ICON: Record<TrackerEvent["kind"], typeof Target> = {
   lesson: GraduationCap,
   assessment: CheckCircle2,
   travel: Target,
+  npc: MessageCircle,
 };
 
 /**

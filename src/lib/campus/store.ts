@@ -49,7 +49,7 @@ export interface ClassroomState {
 /** One line in the on-screen objective tracker's activity feed. */
 export interface TrackerEvent {
   id: number;
-  kind: "room" | "lesson" | "assessment" | "travel";
+  kind: "room" | "lesson" | "assessment" | "travel" | "npc";
   text: string;
   at: number;
 }
@@ -58,9 +58,12 @@ interface CampusState {
   events: TrackerEvent[];
   lastDoor?: string | undefined;
   perfOpen: boolean;
+  /** In-app asset inspector (debug builds) listing loaded Phaser textures. */
+  assetsOpen: boolean;
   logEvent: (kind: TrackerEvent["kind"], text: string) => void;
   setLastDoor: (label?: string | undefined) => void;
   setPerfOpen: (open: boolean) => void;
+  setAssetsOpen: (open: boolean) => void;
   layer: CampusLayer;
   transition?: TransitionState | undefined;
   classroom?: ClassroomState | undefined;
@@ -121,6 +124,7 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   zoneMemory: {},
   events: [],
   perfOpen: false,
+  assetsOpen: false,
 
   logEvent: (kind, text) =>
     set((s) => {
@@ -131,6 +135,7 @@ export const useCampusStore = create<CampusState>((set, get) => ({
     }),
   setLastDoor: (label) => set({ lastDoor: label }),
   setPerfOpen: (open) => set({ perfOpen: open }),
+  setAssetsOpen: (open) => set({ assetsOpen: open }),
 
 
   setLayer: (layer) => set({ layer }),
@@ -174,7 +179,8 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   closeReading: () => set({ reading: undefined }),
   setMapOpen: (open) => set({ mapOpen: open }),
   openLesson: (lessonId, courseId, roomId) => {
-    get().logEvent("lesson", `Lesson opened — ${lessonId}`);
+    // The lesson player logs the human-readable title once it loads, in both
+    // the campus overlay and the Workspace route.
     set({
       lessonOpen: { lessonId, courseId, ...(roomId ? { roomId } : {}) },
       dialogue: undefined,
@@ -214,6 +220,8 @@ export interface PersistedCampus {
   zoneMemory: Record<string, { x: number; y: number }>;
   discovered: string[];
   events: TrackerEvent[];
+  currentObjective?: string | undefined;
+  objectiveTargetZone?: string | undefined;
 }
 
 /** Reads the saved exploration snapshot, if the student has one. */
@@ -244,15 +252,30 @@ export function hydrateCampus(): PersistedCampus | null {
     zoneMemory: snap.zoneMemory ?? {},
     discovered: snap.discovered?.length ? snap.discovered : ["welcome-plaza"],
     events: snap.events ?? [],
+    currentObjective: snap.currentObjective,
+    objectiveTargetZone: snap.objectiveTargetZone,
   });
   return snap;
 }
 
 let writeTimer: number | undefined;
+let persistRefs = 0;
+let persistStop: (() => void) | undefined;
 
-/** Throttled writer: movement fires constantly, storage should not. */
+/**
+ * Throttled writer: movement fires constantly, storage should not.
+ * Ref-counted so the campus view and the app shell can both ask for it
+ * without double-writing the snapshot.
+ */
 export function startCampusPersistence(): () => void {
   if (typeof window === "undefined") return () => undefined;
+  persistRefs += 1;
+  if (persistRefs > 1) {
+    return () => {
+      persistRefs -= 1;
+      if (persistRefs === 0) persistStop?.();
+    };
+  }
   const unsub = useCampusStore.subscribe((s) => {
     if (writeTimer) return;
     writeTimer = window.setTimeout(() => {
@@ -268,6 +291,8 @@ export function startCampusPersistence(): () => void {
         zoneMemory: cur.zoneMemory,
         discovered: cur.discovered,
         events: cur.events,
+        currentObjective: cur.currentObjective,
+        objectiveTargetZone: cur.objectiveTargetZone,
       };
       try {
         window.localStorage.setItem(PERSIST_KEY, JSON.stringify(snapshot));
@@ -277,9 +302,14 @@ export function startCampusPersistence(): () => void {
     }, 600);
     void s;
   });
-  return () => {
+  persistStop = () => {
     unsub();
     if (writeTimer) window.clearTimeout(writeTimer);
     writeTimer = undefined;
+    persistStop = undefined;
+  };
+  return () => {
+    persistRefs -= 1;
+    if (persistRefs === 0) persistStop?.();
   };
 }
