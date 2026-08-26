@@ -263,8 +263,11 @@ export function CampusView({
         walkable: (zoneId: string, x: number, y: number) => isWalkableTile(getZone(zoneId), x, y),
         reachability: (zoneId?: string) =>
           reachabilityReport(getZone(zoneId ?? useCampusStore.getState().currentZone)),
-        collisionDebug: (on: boolean) => sceneRef.current?.setCollisionDebug(on),
-        perf: () => sceneRef.current?.perfStats(),
+        collisionDebug: (on: boolean) =>
+          (gameRef.current?.scene.getScene("campus") as CampusScene | null)?.setCollisionDebug(on),
+        perf: () => (gameRef.current?.scene.getScene("campus") as CampusScene | null)?.perfStats(),
+        interact: () =>
+          (gameRef.current?.scene.getScene("campus") as CampusScene | null)?.interact(),
         perfOverlay: (on: boolean) => useCampusStore.getState().setPerfOpen(on),
         state: () => {
           const s = useCampusStore.getState();
@@ -327,24 +330,42 @@ export function CampusView({
     }
     const roomId = lastRoomRef.current;
     lastRoomRef.current = null;
-    if (!roomId || !sceneRef.current) return;
+    const scene = gameRef.current?.scene.getScene("campus") as CampusScene | null;
+    if (!roomId || !scene) return;
     const zone = getZone(useCampusStore.getState().currentZone);
     const door = zone.interactables.find(
       (i) => i.action.kind === "classroom" && i.action.roomId === roomId,
     );
-    if (door) sceneRef.current.placePlayer(door.x, door.y);
+    if (door) scene.placePlayer(door.x, door.y);
   }, [classroom]);
 
-  const move = useCallback((x: number, y: number) => {
-    if (sceneRef.current) sceneRef.current.joystick = { x, y };
-  }, []);
+  /**
+   * Always resolve the live scene from the game instance. A cached ref can be
+   * nulled by an effect cleanup (React strict double-mount, HMR), which used
+   * to silently break the ACT button and the joystick.
+   */
+  const getScene = useCallback(
+    () => (gameRef.current?.scene.getScene("campus") as CampusScene | null) ?? null,
+    [],
+  );
+
+  const move = useCallback(
+    (x: number, y: number) => {
+      const scene = getScene();
+      if (scene) scene.joystick = { x, y };
+    },
+    [getScene],
+  );
 
   const interact = useCallback(() => {
-    sceneRef.current?.interact();
-  }, []);
+    getScene()?.interact();
+  }, [getScene]);
 
-  const getPerfStats = useCallback(() => sceneRef.current?.perfStats() as CampusPerfStats | undefined, []);
-  const resetPerfStats = useCallback(() => sceneRef.current?.resetPerfStats(), []);
+  const getPerfStats = useCallback(
+    () => getScene()?.perfStats() as CampusPerfStats | undefined,
+    [getScene],
+  );
+  const resetPerfStats = useCallback(() => getScene()?.resetPerfStats(), [getScene]);
 
   return (
     <div

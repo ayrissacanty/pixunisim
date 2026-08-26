@@ -81,9 +81,11 @@ export function TouchControls({
     onMove(0, 0);
   };
 
-  const zoneClass = hc
-    ? "border-4 border-foreground bg-background/85"
-    : "border-[3px] border-accent/35 bg-sidebar/30";
+  const zoneClass = stick
+    ? hc
+      ? "border-4 border-foreground bg-background/70"
+      : "border-[3px] border-accent/35 bg-sidebar/25"
+    : "border-[3px] border-transparent bg-transparent";
   const baseClass = hc
     ? "border-4 border-foreground bg-background/90"
     : "border-[3px] border-accent/70 bg-sidebar/55";
