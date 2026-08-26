@@ -48,7 +48,7 @@ export const ObjectiveTracker = memo(function ObjectiveTracker() {
       </div>
 
       {events.length > 0 && (
-        <ul className="mt-2 space-y-1 border-t-[3px] border-border pt-2">
+        <ul className="mx-3 mt-2 space-y-1 border-t-[3px] border-dashed border-border pt-2">
           {events.slice(0, 4).map((e) => {
             const Icon = ICON[e.kind];
             return (
@@ -57,13 +57,14 @@ export const ObjectiveTracker = memo(function ObjectiveTracker() {
                 data-event-kind={e.kind}
                 className="flex items-start gap-1.5 text-[11px] text-muted-foreground"
               >
-                <Icon className="mt-0.5 size-3 shrink-0 text-accent" aria-hidden="true" />
+                <Icon className="mt-0.5 size-3 shrink-0 text-primary" aria-hidden="true" />
                 <span className="text-foreground/80">{e.text}</span>
               </li>
             );
           })}
         </ul>
       )}
+
     </div>
   );
 });
