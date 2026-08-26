@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Link } from "@tanstack/react-router";
-import { Accessibility, Compass, Gauge, LayoutDashboard, Map, MoveDiagonal } from "lucide-react";
+import { Accessibility, Boxes, Compass, Gauge, LayoutDashboard, Map, MoveDiagonal } from "lucide-react";
 import { useCampusStore } from "@/lib/campus/store";
 import { ZONE_LABELS } from "@/lib/campus/world";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,8 @@ export function CampusHud({
   const prompt = useCampusStore((s) => s.interactionTarget);
   const perfOpen = useCampusStore((s) => s.perfOpen);
   const setPerfOpen = useCampusStore((s) => s.setPerfOpen);
+  const assetsOpen = useCampusStore((s) => s.assetsOpen);
+  const setAssetsOpen = useCampusStore((s) => s.setAssetsOpen);
   const setMapOpen = useCampusStore((s) => s.setMapOpen);
   const busy = useCampusStore((s) => !!(s.dialogue || s.reading || s.lessonOpen || s.mapOpen));
   const motion = useMotionStore((s) => s.setting);

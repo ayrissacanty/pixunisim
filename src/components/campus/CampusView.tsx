@@ -8,7 +8,7 @@ import { getZone, ZONE_LABELS, type InteractAction, type NpcSpawn } from "@/lib/
 import { WALKTHROUGHS, buildWalkthrough } from "@/lib/campus/walkthrough";
 import { isWalkableTile, reachabilityReport } from "@/lib/campus/walkable";
 
-import type { CampusScene } from "@/game/CampusScene";
+import type { CampusScene, CampusAssetReport } from "@/game/CampusScene";
 import { CampusHud } from "@/components/campus/CampusHud";
 import { DialogueBox, ReadingBox } from "@/components/campus/DialogueBox";
 import { CampusMapOverlay } from "@/components/campus/CampusMapOverlay";
@@ -16,6 +16,7 @@ import { LessonOverlay } from "@/components/campus/LessonOverlay";
 import { ClassroomBeat } from "@/components/campus/ClassroomBeat";
 import { LayerTransition } from "@/components/campus/LayerTransition";
 import { PerfOverlay, type CampusPerfStats } from "@/components/campus/PerfOverlay";
+import { AssetDebugPanel } from "@/components/campus/AssetDebugPanel";
 import { useCampusObjectives } from "@/lib/campus/objectives";
 import { useOfflineSync } from "@/lib/data";
 
@@ -266,6 +267,9 @@ export function CampusView({
         collisionDebug: (on: boolean) =>
           (gameRef.current?.scene.getScene("campus") as CampusScene | null)?.setCollisionDebug(on),
         perf: () => (gameRef.current?.scene.getScene("campus") as CampusScene | null)?.perfStats(),
+        assets: () =>
+          (gameRef.current?.scene.getScene("campus") as CampusScene | null)?.assetReport(),
+        assetPanel: (on: boolean) => useCampusStore.getState().setAssetsOpen(on),
         interact: () =>
           (gameRef.current?.scene.getScene("campus") as CampusScene | null)?.interact(),
         perfOverlay: (on: boolean) => useCampusStore.getState().setPerfOpen(on),
@@ -366,6 +370,10 @@ export function CampusView({
     [getScene],
   );
   const resetPerfStats = useCallback(() => getScene()?.resetPerfStats(), [getScene]);
+  const getAssetReport = useCallback(
+    () => getScene()?.assetReport() as CampusAssetReport | undefined,
+    [getScene],
+  );
 
   return (
     <div
