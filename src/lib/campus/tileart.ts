@@ -231,18 +231,40 @@ function paintObject(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
 
   switch (kind) {
     case "tree": {
+      // Cast shadow on the ground first.
+      ctx.fillStyle = "rgba(30,20,14,0.20)";
+      ctx.beginPath();
+      ctx.ellipse(px + 16, py + 29, 10, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Trunk with bark shading.
       box(ctx, px + 14, py + 18, 5, 13, hex(c.detail ?? 0x8a5a34));
-      disc(ctx, px + 16, py + 14, 12, base);
-      ctx.fillStyle = shade(c.base, 0.22);
+      ctx.fillStyle = shade(c.detail ?? 0x8a5a34, -0.25);
+      ctx.fillRect(px + 17, py + 18, 2, 13);
+      // Layered canopy: three overlapping clusters for a fuller silhouette.
+      disc(ctx, px + 16, py + 15, 12, base);
+      disc(ctx, px + 9, py + 12, 7, base);
+      disc(ctx, px + 23, py + 13, 7, base);
+      // Sunlit crown.
+      ctx.fillStyle = shade(c.base, 0.26);
       ctx.beginPath();
-      ctx.arc(px + 12, py + 10, 6, 0, Math.PI * 2);
+      ctx.arc(px + 12, py + 9, 6, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = shade(c.base, -0.2);
+      ctx.fillStyle = shade(c.base, 0.42);
       ctx.beginPath();
-      ctx.arc(px + 21, py + 19, 5, 0, Math.PI * 2);
+      ctx.arc(px + 11, py + 7, 3, 0, Math.PI * 2);
       ctx.fill();
+      // Shadowed underside.
+      ctx.fillStyle = shade(c.base, -0.24);
+      ctx.beginPath();
+      ctx.arc(px + 21, py + 20, 5, 0, Math.PI * 2);
+      ctx.fill();
+      // Leaf speckle.
+      ctx.fillStyle = shade(c.base, 0.16);
+      ctx.fillRect(px + 18, py + 11, 2, 2);
+      ctx.fillRect(px + 7, py + 16, 2, 2);
       break;
     }
+
     case "hedge": {
       box(ctx, px + 1, py + 6, 30, 24, base);
       ctx.fillStyle = shade(c.base, 0.2);
