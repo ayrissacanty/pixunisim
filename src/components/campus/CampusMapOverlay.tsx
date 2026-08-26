@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Compass, Map, Minus, Navigation, Plus, RotateCcw, X } from "lucide-react";
+import { Compass, Map as MapIcon, Minus, Navigation, Plus, RotateCcw, X } from "lucide-react";
 import { useCampusStore } from "@/lib/campus/store";
 import { ZONE_LABELS, getZone } from "@/lib/campus/world";
 import { buildWalkthrough } from "@/lib/campus/walkthrough";
@@ -194,7 +194,7 @@ export function CampusMapOverlay() {
     >
       <div className="block-panel-lg flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden border-accent bg-card">
         <div className="flex items-center gap-2 border-b-[3px] border-border px-4 py-3">
-          <Map className="size-4 text-primary" />
+          <MapIcon className="size-4 text-primary" />
           <h2 className="font-display text-lg font-bold">Campus Map</h2>
           <span className="block-chip border-border bg-muted px-2 py-0.5 text-[10px] font-bold">
             {discovered.filter((d) => OVERVIEW.includes(d)).length}/{OVERVIEW.length} discovered
