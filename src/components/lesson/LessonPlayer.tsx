@@ -98,6 +98,7 @@ export function LessonPlayer({
   const [results, setResults] = useState<Record<string, boolean>>({});
   const [tutorOpen, setTutorOpen] = useState(false);
   const resumed = useRef(false);
+  const logged = useRef(false);
 
   const existing = progressFor(progress, lessonId);
 
@@ -110,6 +111,17 @@ export function LessonPlayer({
     const max = (lesson.sections?.length ?? 0) + 1;
     if (saved > 0) setStep(Math.min(saved, Math.max(max - 1, 0)));
   }, [progress, lesson, existing]);
+  // Tracker feed is shared by both views: opening a lesson in the Workspace
+  // shows up on the campus HUD exactly like starting it in class does.
+  useEffect(() => {
+    if (logged.current || !lesson) return;
+    logged.current = true;
+    const done = existing?.status === "completed";
+    useCampusStore
+      .getState()
+      .logEvent("lesson", `${done ? "Reviewing" : "Studying"} ${lesson.title}`);
+  }, [lesson, existing]);
+
   const sections = lesson?.sections ?? [];
   const checks = useMemo(() => (questions ?? []).filter((q) => q.kind === "check"), [questions]);
   const practice = useMemo(

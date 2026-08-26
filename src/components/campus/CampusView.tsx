@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type Phaser from "phaser";
-import { useCampusStore, hydrateCampus, startCampusPersistence } from "@/lib/campus/store";
+import { useCampusStore, hydrateCampus } from "@/lib/campus/store";
 import { motionDuration } from "@/lib/a11y/motion";
 import { debugEnabled } from "@/lib/debug";
 import { getZone, ZONE_LABELS, type InteractAction, type NpcSpawn } from "@/lib/campus/world";
@@ -17,8 +17,6 @@ import { ClassroomBeat } from "@/components/campus/ClassroomBeat";
 import { LayerTransition } from "@/components/campus/LayerTransition";
 import { PerfOverlay, type CampusPerfStats } from "@/components/campus/PerfOverlay";
 import { AssetDebugPanel } from "@/components/campus/AssetDebugPanel";
-import { useCampusObjectives } from "@/lib/campus/objectives";
-import { useOfflineSync } from "@/lib/data";
 
 export function CampusView({
   initialZone = "welcome-plaza",
@@ -36,10 +34,8 @@ export function CampusView({
   const [tourStep, setTourStep] = useState<{ label: string; index: number; total: number } | null>(
     null,
   );
-  useCampusObjectives();
-  useOfflineSync();
-
-  useEffect(() => startCampusPersistence(), []);
+  // Objectives, offline sync and persistence run in the authenticated shell so
+  // the Workspace shares them; the campus only needs to read the saved state.
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
