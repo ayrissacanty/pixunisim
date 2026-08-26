@@ -147,26 +147,34 @@ function paintGround(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
     case "path":
     case "stone":
     case "brick": {
-      ctx.fillStyle = shade(c.base, -0.06);
+      // Mortar bed.
+      ctx.fillStyle = shade(c.base, -0.16);
       ctx.fillRect(px, py, TILE, TILE);
-      // Staggered flagstones with soft top highlight.
-      const rows = kind === "brick" ? 2 : 2;
+      const stoneH = kind === "brick" ? 10 : 14;
+      const stoneW = kind === "brick" ? 15 : 14;
+      const rows = Math.ceil(TILE / stoneH) + 1;
       for (let r = 0; r < rows; r++) {
-        const offset = (y + r) % 2 === 0 ? 0 : -8;
+        const offset = (y * 2 + r) % 2 === 0 ? 0 : -Math.floor(stoneW / 2);
         for (let cIdx = -1; cIdx < 3; cIdx++) {
-          const sx = px + offset + cIdx * 16 + 1;
-          const sy = py + r * 16 + 1;
-          const w = 14;
-          const h = 14;
+          const sx = px + offset + cIdx * (stoneW + 2) + 1;
+          const sy = py + r * stoneH + 1;
           const left = Math.max(px, sx);
-          const right = Math.min(px + TILE, sx + w);
-          if (right <= left) continue;
-          ctx.fillStyle = base;
-          ctx.fillRect(left, sy, right - left, h);
-          ctx.fillStyle = shade(c.base, 0.16);
-          ctx.fillRect(left, sy, right - left, 2);
-          ctx.fillStyle = hex(c.detail ?? c.base);
-          ctx.fillRect(left, sy + h - 2, right - left, 2);
+          const right = Math.min(px + TILE, sx + stoneW);
+          const top = Math.max(py, sy);
+          const bottom = Math.min(py + TILE, sy + stoneH - 2);
+          if (right <= left || bottom <= top) continue;
+          const w = right - left;
+          const h = bottom - top;
+          const tint = tileNoise(x * 4 + cIdx, y * 4 + r) * 0.12 - 0.05;
+          ctx.fillStyle = shade(c.base, tint);
+          ctx.fillRect(left, top, w, h);
+          // Bevel: light top-left, dark bottom-right.
+          ctx.fillStyle = shade(c.base, 0.22);
+          ctx.fillRect(left, top, w, 1);
+          ctx.fillRect(left, top, 1, h);
+          ctx.fillStyle = shade(c.base, -0.22);
+          ctx.fillRect(left, top + h - 1, w, 1);
+          ctx.fillRect(left + w - 1, top, 1, h);
         }
       }
       break;
@@ -174,25 +182,38 @@ function paintGround(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
     case "water": {
       ctx.fillStyle = base;
       ctx.fillRect(px, py, TILE, TILE);
-      ctx.fillStyle = shade(c.base, -0.18);
+      // Depth gradient bands.
+      ctx.fillStyle = shade(c.base, -0.1);
+      ctx.fillRect(px, py + 18, TILE, 8);
+      ctx.fillStyle = shade(c.base, -0.2);
       ctx.fillRect(px, py + TILE - 6, TILE, 6);
-      ctx.fillStyle = detail;
-      ctx.fillRect(px + 4, py + 8, 11, 2);
-      ctx.fillRect(px + 17, py + 19, 9, 2);
-      ctx.fillStyle = shade(c.detail ?? c.base, 0.4);
-      ctx.fillRect(px + 6, py + 9, 5, 1);
+      // Ripple crests with a bright caps line above each.
+      const rip = (rx: number, ry: number, w: number) => {
+        ctx.fillStyle = detail;
+        ctx.fillRect(rx, ry, w, 2);
+        ctx.fillStyle = shade(c.detail ?? c.base, 0.45);
+        ctx.fillRect(rx + 1, ry, Math.max(2, w - 6), 1);
+      };
+      rip(px + 3 + Math.floor(tileNoise(x, y) * 4), py + 7, 12);
+      rip(px + 16, py + 18, 10);
+      rip(px + 6, py + 26, 7);
       break;
     }
     case "floor":
     case "floorAlt": {
       ctx.fillStyle = base;
       ctx.fillRect(px, py, TILE, TILE);
+      // Plank/tile seams with a warm bevel.
+      ctx.fillStyle = shade(c.base, -0.1);
+      ctx.fillRect(px, py + 15, TILE, 1);
       ctx.fillStyle = detail;
       ctx.fillRect(px, py + TILE - 2, TILE, 2);
-      ctx.fillStyle = shade(c.base, 0.18);
+      ctx.fillStyle = shade(c.base, 0.2);
       ctx.fillRect(px, py, TILE, 2);
+      ctx.fillRect(px, py + 16, TILE, 1);
       break;
     }
+
     default:
       break;
   }
