@@ -27,6 +27,27 @@ const TAP_ARRIVE = 6;
 
 export type Direction = SpriteDirection;
 
+export interface CampusAssetEntry {
+  key: string;
+  group: "zone" | "interior" | "character" | "system";
+  width: number;
+  height: number;
+  frames: number;
+  source: "procedural canvas" | "file";
+  url?: string;
+  suspect3d: boolean;
+}
+
+export interface CampusAssetReport {
+  zone: string;
+  zoneKind: "outdoor" | "interior";
+  rooms: string[];
+  entries: CampusAssetEntry[];
+  suspect: number;
+}
+
+
+
 interface Actor {
   sprite: Phaser.GameObjects.Sprite;
   label: Phaser.GameObjects.Text;
@@ -162,6 +183,49 @@ export class CampusScene extends Phaser.Scene {
 
   reachability() {
     return reachabilityReport(this.zone);
+  }
+
+  /**
+   * Every texture Phaser currently holds, grouped the way the campus uses
+   * them. Feeds the in-app asset debug screen so it is provable that nothing
+   * 3D (GLB/GLTF/FBX) is ever loaded — all art is baked canvas or sprite
+   * sheets generated at runtime.
+   */
+  assetReport(): CampusAssetReport {
+    const entries: CampusAssetEntry[] = [];
+    for (const key of this.textures.getTextureKeys()) {
+      const tex = this.textures.get(key);
+      const src = tex.source[0];
+      const image = src?.image as { src?: string } | undefined;
+      const url = typeof image?.src === "string" ? image.src : "";
+      const external = /^https?:|^\/|^blob:/.test(url) && !url.startsWith("data:");
+      const zoneId = key.startsWith("zone-") ? key.slice(5) : undefined;
+      const group: CampusAssetEntry["group"] = key.startsWith("zone-")
+        ? getZone(zoneId!).kind === "interior"
+          ? "interior"
+          : "zone"
+        : key.startsWith("char-")
+          ? "character"
+          : "system";
+      entries.push({
+        key,
+        group,
+        width: src?.width ?? 0,
+        height: src?.height ?? 0,
+        frames: tex.frameTotal,
+        source: external ? "file" : "procedural canvas",
+        ...(external ? { url } : {}),
+        suspect3d: /\.(glb|gltf|fbx|obj)(\?|$)/i.test(url),
+      });
+    }
+    entries.sort((a, b) => a.group.localeCompare(b.group) || a.key.localeCompare(b.key));
+    return {
+      zone: this.zone?.id ?? "—",
+      zoneKind: this.zone?.kind ?? "outdoor",
+      rooms: (this.zone?.rooms ?? []).map((r) => r.name),
+      entries,
+      suspect: entries.filter((e) => e.suspect3d).length,
+    };
   }
 
   /* ---------------------------------------------------------------- *
