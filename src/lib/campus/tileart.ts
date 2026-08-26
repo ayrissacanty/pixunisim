@@ -310,11 +310,18 @@ function paintObject(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
     case "buildingWall": {
       ctx.fillStyle = base;
       ctx.fillRect(px, py, TILE, TILE);
-      ctx.fillStyle = shade(c.base, 0.14);
+      // Plaster blocks with soft mortar lines.
+      ctx.fillStyle = shade(c.base, -0.08);
+      ctx.fillRect(px, py + 15, TILE, 1);
+      for (let i = 0; i < 2; i += 1) {
+        const bx = px + ((y + i) % 2 === 0 ? 10 : 22);
+        ctx.fillRect(bx, py + i * 16, 1, 15);
+      }
+      ctx.fillStyle = shade(c.base, 0.18);
       ctx.fillRect(px, py, TILE, 3);
       ctx.fillStyle = detail;
-      ctx.fillRect(px, py + 15, TILE, 2);
-      ctx.fillStyle = "rgba(42,29,22,0.22)";
+      ctx.fillRect(px, py + 16, TILE, 2);
+      ctx.fillStyle = "rgba(42,29,22,0.24)";
       ctx.fillRect(px, py + TILE - 2, TILE, 2);
       ctx.fillRect(px + TILE - 2, py, 2, TILE);
       break;
@@ -322,19 +329,27 @@ function paintObject(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
     case "buildingRoof": {
       ctx.fillStyle = base;
       ctx.fillRect(px, py, TILE, TILE);
-      ctx.fillStyle = detail;
-      // Shingle rows.
-      for (let r = 0; r < 2; r++) {
-        const sy = py + r * 16;
-        const offset = (y + r) % 2 === 0 ? 0 : 8;
-        for (let i = -1; i < 3; i++) {
-          ctx.fillRect(px + offset + i * 16, sy + 13, 15, 3);
+      // Scalloped shingle rows: rounded caps + shaded lip.
+      for (let r = 0; r < 3; r++) {
+        const sy = py + r * 11;
+        const offset = (y * 3 + r) % 2 === 0 ? 0 : 6;
+        for (let i = -1; i < 4; i++) {
+          const sx = px + offset + i * 12;
+          ctx.fillStyle = shade(c.base, 0.1);
+          ctx.fillRect(sx, sy, 11, 9);
+          ctx.fillStyle = detail;
+          ctx.fillRect(sx, sy + 7, 11, 3);
+          ctx.fillStyle = shade(c.base, 0.3);
+          ctx.fillRect(sx + 1, sy + 1, 4, 2);
         }
       }
-      ctx.fillStyle = shade(c.base, 0.18);
+      ctx.fillStyle = shade(c.base, 0.34);
       ctx.fillRect(px, py, TILE, 2);
+      ctx.fillStyle = "rgba(42,29,22,0.18)";
+      ctx.fillRect(px, py + TILE - 1, TILE, 1);
       break;
     }
+
     case "window": {
       ctx.fillStyle = hex(TILE_COLORS.buildingWall.base);
       ctx.fillRect(px, py, TILE, TILE);
