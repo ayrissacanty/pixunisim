@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { Link } from "@tanstack/react-router";
+
 import { Map, X } from "lucide-react";
 import { useCampusStore } from "@/lib/campus/store";
 import { ZONE_LABELS, getZone } from "@/lib/campus/world";
