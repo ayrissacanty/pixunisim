@@ -39,11 +39,17 @@ export function CampusView({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() !== "p" || e.metaKey || e.ctrlKey) return;
-      if (!debugEnabled()) return;
-      const s = useCampusStore.getState();
-      if (s.dialogue || s.reading || s.lessonOpen) return;
-      s.setPerfOpen(!s.perfOpen);
+      if (e.key.toLowerCase() === "p" && !e.metaKey && !e.ctrlKey) {
+        if (!debugEnabled()) return;
+        const s = useCampusStore.getState();
+        if (s.dialogue || s.reading || s.lessonOpen) return;
+        s.setPerfOpen(!s.perfOpen);
+      }
+      if (e.key.toLowerCase() === "a" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+        e.preventDefault();
+        const s = useCampusStore.getState();
+        if (!s.dialogue && !s.reading && !s.lessonOpen) s.setAssetsOpen(!s.assetsOpen);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -376,7 +382,7 @@ export function CampusView({
     <div
       data-testid="campus-root"
       data-layer={layer}
-      className="relative h-[100dvh] w-full overflow-hidden bg-[#5d7047]"
+      className="relative h-[100dvh] w-full overflow-hidden bg-grass"
     >
       <div ref={containerRef} className="absolute inset-0" aria-label="Campus world" />
       {!ready && (

@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Link } from "@tanstack/react-router";
-import { Accessibility, Boxes, Compass, Gauge, LayoutDashboard, Map, MoveDiagonal } from "lucide-react";
+import { Accessibility, Boxes, Compass, Gauge, LayoutDashboard, Map, MoveDiagonal, Palette } from "lucide-react";
 import { useCampusStore } from "@/lib/campus/store";
 import { ZONE_LABELS } from "@/lib/campus/world";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { ObjectiveTracker } from "@/components/campus/ObjectiveTracker";
 import { MOTION_LABELS, useMotionStore } from "@/lib/a11y/motion";
 import { ASSIST_LABEL, useAssistStore } from "@/lib/a11y/assist";
 import { useDebugMode } from "@/lib/debug";
+import { useStyleStore, STYLE_LABELS } from "@/lib/a11y/style";
 import { TouchControls } from "@/components/campus/TouchControls";
 import { MobileA11ySettings } from "@/components/campus/MobileA11ySettings";
 
@@ -36,6 +37,8 @@ export function CampusHud({
   const cycleMotion = useMotionStore((s) => s.cycle);
   const assist = useAssistStore((s) => s.assist);
   const toggleAssist = useAssistStore((s) => s.toggle);
+  const style = useStyleStore((s) => s.style);
+  const toggleStyle = useStyleStore((s) => s.toggle);
   const debug = useDebugMode();
 
   return (
@@ -130,6 +133,20 @@ export function CampusHud({
             onClick={() => setMapOpen(true)}
           >
             <Map className="size-4" /> <span className="hidden sm:inline">Map</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="block-btn h-10 px-3 font-black uppercase tracking-wide"
+            aria-label={`${STYLE_LABELS[style]} — click to change campus visual style`}
+            data-testid="style-toggle"
+            data-style={style}
+            onClick={toggleStyle}
+          >
+            <Palette className="size-4" /> <span className="hidden sm:inline">{style === "storybook" ? "Bright" : "Focus"}</span>
+          </Button>
+          <Button size="sm" variant="outline" className="block-btn h-10 px-3 font-black uppercase tracking-wide" aria-label="Open the loaded 2D asset inspector" data-testid="hud-assets" data-assets={assetsOpen ? "on" : "off"} onClick={() => setAssetsOpen(!assetsOpen)}>
+            <Boxes className="size-4" /> <span className="hidden sm:inline">Assets</span>
           </Button>
           <MobileA11ySettings />
           <Button
