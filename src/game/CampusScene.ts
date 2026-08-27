@@ -233,7 +233,8 @@ export class CampusScene extends Phaser.Scene {
       const image = this.add
         .image(at.x, at.y, key)
         .setOrigin(0.5, 1)
-        .setScale(placement.scale * 0.16)
+        // The source art is 816px square; 0.16 maps its 32px footprint to one tile.
+        .setScale(placement.scale * (TILE / 204))
         .setDepth(at.y + 7);
       this.propImages.push(image);
     }
