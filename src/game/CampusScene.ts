@@ -106,7 +106,13 @@ export class CampusScene extends Phaser.Scene {
   private lastSentFacing: Direction | null = null;
   private scanTimer = 0;
   private debugGraphics?: Phaser.GameObjects.Graphics | undefined;
+  private debugDynamic?: Phaser.GameObjects.Graphics | undefined;
+  private debugTexts: Phaser.GameObjects.Text[] = [];
   private debugOn = false;
+  private panMode = false;
+  private pinchDist = 0;
+  private recenterTimer?: Phaser.Time.TimerEvent | undefined;
+
   /** Tap / drag-to-walk destination in world pixels. */
   private moveTarget: { x: number; y: number } | null = null;
   private tapMarker?: Phaser.GameObjects.Graphics | undefined;
