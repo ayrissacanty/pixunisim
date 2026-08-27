@@ -221,6 +221,27 @@
   --block-edge-strong: oklch(0.1 0.02 30 / 0.85);
 }
 
+/* Focus mode keeps the world readable without changing the interaction model. */
+[data-campus-style="focus"] {
+  --primary: oklch(0.56 0.13 32);
+  --primary-foreground: oklch(0.99 0.015 95);
+  --secondary: oklch(0.62 0.12 145);
+  --secondary-foreground: oklch(0.2 0.05 150);
+  --accent: oklch(0.74 0.12 88);
+  --accent-foreground: oklch(0.24 0.05 45);
+  --muted: oklch(0.89 0.02 92);
+  --muted-foreground: oklch(0.38 0.04 60);
+  --border: oklch(0.64 0.05 70);
+  --ring: oklch(0.56 0.13 32);
+}
+
+[data-campus-style="focus"] .block-panel,
+[data-campus-style="focus"] .block-panel-lg {
+  box-shadow:
+    0 4px 0 0 var(--block-edge-strong),
+    0 8px 16px -8px var(--block-edge-strong);
+}
+
 @utility block-panel {
   border-width: 3px;
   border-radius: 1.1rem;

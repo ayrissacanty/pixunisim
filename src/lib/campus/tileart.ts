@@ -1,4 +1,5 @@
-import { TILE, TILE_COLORS, isSolid, type TileKind } from "./tiles";
+import { TILE, type TileKind } from "./tiles";
+import { paintTheme, themedColors, type PaintTheme } from "./themes";
 
 /**
  * Original procedural tile art — no third-party tilesets.
@@ -90,8 +91,16 @@ function bedFor(kind: TileKind): TileKind | null {
   }
 }
 
-function paintGround(ctx: Ctx, kind: TileKind, px: number, py: number, x: number, y: number) {
-  const c = TILE_COLORS[kind];
+function paintGround(
+  ctx: Ctx,
+  kind: TileKind,
+  px: number,
+  py: number,
+  x: number,
+  y: number,
+  theme: PaintTheme,
+) {
+  const c = themedColors(kind, theme);
   const base = hex(c.base);
   const detail = hex(c.detail ?? c.base);
   ctx.fillStyle = base;
@@ -124,9 +133,9 @@ function paintGround(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
       break;
     }
     case "flower": {
-      ctx.fillStyle = hex(TILE_COLORS.grass.base);
+      ctx.fillStyle = hex(themedColors("grass", theme).base);
       ctx.fillRect(px, py, TILE, TILE);
-      ctx.fillStyle = hex(TILE_COLORS.grass.detail ?? TILE_COLORS.grass.base);
+      ctx.fillStyle = hex(themedColors("grass", theme).detail);
       ctx.fillRect(px + 6, py + 22, 2, 5);
       ctx.fillRect(px + 20, py + 24, 2, 4);
       // Petal rosettes: four petals + contrasting center.
@@ -147,34 +156,45 @@ function paintGround(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
     case "path":
     case "stone":
     case "brick": {
-      // Mortar bed.
+      // Each district gets a readable masonry rhythm while retaining the same
+      // 32px grid and strong top-down bevels.
       ctx.fillStyle = shade(c.base, -0.16);
       ctx.fillRect(px, py, TILE, TILE);
-      const stoneH = kind === "brick" ? 10 : 14;
-      const stoneW = kind === "brick" ? 15 : 14;
-      const rows = Math.ceil(TILE / stoneH) + 1;
-      for (let r = 0; r < rows; r++) {
-        const offset = (y * 2 + r) % 2 === 0 ? 0 : -Math.floor(stoneW / 2);
-        for (let cIdx = -1; cIdx < 3; cIdx++) {
-          const sx = px + offset + cIdx * (stoneW + 2) + 1;
-          const sy = py + r * stoneH + 1;
-          const left = Math.max(px, sx);
-          const right = Math.min(px + TILE, sx + stoneW);
-          const top = Math.max(py, sy);
-          const bottom = Math.min(py + TILE, sy + stoneH - 2);
-          if (right <= left || bottom <= top) continue;
-          const w = right - left;
-          const h = bottom - top;
-          const tint = tileNoise(x * 4 + cIdx, y * 4 + r) * 0.12 - 0.05;
-          ctx.fillStyle = shade(c.base, tint);
-          ctx.fillRect(left, top, w, h);
-          // Bevel: light top-left, dark bottom-right.
-          ctx.fillStyle = shade(c.base, 0.22);
-          ctx.fillRect(left, top, w, 1);
-          ctx.fillRect(left, top, 1, h);
-          ctx.fillStyle = shade(c.base, -0.22);
-          ctx.fillRect(left, top + h - 1, w, 1);
-          ctx.fillRect(left + w - 1, top, 1, h);
+      if (theme.path === "boardwalk") {
+        for (let r = 0; r < 4; r += 1) {
+          const top = py + r * 8;
+          ctx.fillStyle = shade(c.base, r % 2 ? -0.03 : 0.06);
+          ctx.fillRect(px, top + 1, TILE, 6);
+          ctx.fillStyle = shade(c.base, -0.2);
+          ctx.fillRect(px, top + 7, TILE, 1);
+          ctx.fillStyle = shade(c.base, 0.18);
+          ctx.fillRect(px + 1, top + 1, TILE - 2, 1);
+        }
+      } else {
+        const stoneH = theme.path === "herringbone" ? 9 : theme.path === "cobble" ? 10 : kind === "brick" ? 10 : 14;
+        const stoneW = theme.path === "herringbone" ? 11 : theme.path === "cobble" ? 12 : kind === "brick" ? 15 : 14;
+        const rows = Math.ceil(TILE / stoneH) + 1;
+        for (let r = 0; r < rows; r += 1) {
+          const stagger = theme.path === "herringbone" ? (r % 2 ? 5 : -3) : (y * 2 + r) % 2 === 0 ? 0 : -Math.floor(stoneW / 2);
+          for (let cIdx = -1; cIdx < 4; cIdx += 1) {
+            const sx = px + stagger + cIdx * (stoneW + 2) + 1;
+            const sy = py + r * stoneH + 1;
+            const left = Math.max(px, sx);
+            const right = Math.min(px + TILE, sx + stoneW);
+            const top = Math.max(py, sy);
+            const bottom = Math.min(py + TILE, sy + stoneH - 2);
+            if (right <= left || bottom <= top) continue;
+            const w = right - left;
+            const h = bottom - top;
+            ctx.fillStyle = shade(c.base, tileNoise(x * 4 + cIdx, y * 4 + r) * 0.12 - 0.05);
+            ctx.fillRect(left, top, w, h);
+            ctx.fillStyle = shade(c.base, 0.22);
+            ctx.fillRect(left, top, w, 1);
+            ctx.fillRect(left, top, 1, h);
+            ctx.fillStyle = shade(c.base, -0.22);
+            ctx.fillRect(left, top + h - 1, w, 1);
+            ctx.fillRect(left + w - 1, top, 1, h);
+          }
         }
       }
       break;
@@ -224,8 +244,16 @@ function paintGround(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
   ctx.fillRect(px + TILE - 1, py, 1, TILE);
 }
 
-function paintObject(ctx: Ctx, kind: TileKind, px: number, py: number, x: number, y: number) {
-  const c = TILE_COLORS[kind];
+function paintObject(
+  ctx: Ctx,
+  kind: TileKind,
+  px: number,
+  py: number,
+  x: number,
+  y: number,
+  theme: PaintTheme,
+) {
+  const c = themedColors(kind, theme);
   const base = hex(c.base);
   const detail = hex(c.detail ?? c.base);
 
@@ -240,10 +268,21 @@ function paintObject(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
       box(ctx, px + 14, py + 18, 5, 13, hex(c.detail ?? 0x8a5a34));
       ctx.fillStyle = shade(c.detail ?? 0x8a5a34, -0.25);
       ctx.fillRect(px + 17, py + 18, 2, 13);
-      // Layered canopy: three overlapping clusters for a fuller silhouette.
-      disc(ctx, px + 16, py + 15, 12, base);
-      disc(ctx, px + 9, py + 12, 7, base);
-      disc(ctx, px + 23, py + 13, 7, base);
+      // District-specific silhouettes: pine tiers, broadleaf spread, or a
+      // round storybook canopy with a tiny blossom highlight.
+      if (theme.foliage === "pine") {
+        box(ctx, px + 5, py + 8, 22, 5, base);
+        box(ctx, px + 7, py + 4, 18, 6, base);
+        box(ctx, px + 10, py + 1, 12, 6, base);
+      } else if (theme.foliage === "broadleaf") {
+        disc(ctx, px + 16, py + 14, 13, base);
+        disc(ctx, px + 7, py + 15, 6, base);
+        disc(ctx, px + 25, py + 12, 7, base);
+      } else {
+        disc(ctx, px + 16, py + 15, 12, base);
+        disc(ctx, px + 9, py + 12, 7, base);
+        disc(ctx, px + 23, py + 13, 7, base);
+      }
       // Sunlit crown.
       ctx.fillStyle = shade(c.base, 0.26);
       ctx.beginPath();
@@ -301,9 +340,9 @@ function paintObject(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
       break;
     }
     case "fountain": {
-      disc(ctx, px + 16, py + 16, 14, hex(TILE_COLORS.stone.base));
-      disc(ctx, px + 16, py + 16, 10, hex(TILE_COLORS.water.base), false);
-      ctx.fillStyle = shade(TILE_COLORS.water.detail ?? TILE_COLORS.water.base, 0.3);
+      disc(ctx, px + 16, py + 16, 14, hex(themedColors("stone", theme).base));
+      disc(ctx, px + 16, py + 16, 10, hex(themedColors("water", theme).base), false);
+      ctx.fillStyle = shade(themedColors("water", theme).detail, 0.3);
       ctx.fillRect(px + 13, py + 8, 6, 10);
       break;
     }
@@ -329,18 +368,20 @@ function paintObject(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
     case "buildingRoof": {
       ctx.fillStyle = base;
       ctx.fillRect(px, py, TILE, TILE);
-      // Scalloped shingle rows: rounded caps + shaded lip.
-      for (let r = 0; r < 3; r++) {
-        const sy = py + r * 11;
-        const offset = (y * 3 + r) % 2 === 0 ? 0 : 6;
-        for (let i = -1; i < 4; i++) {
-          const sx = px + offset + i * 12;
-          ctx.fillStyle = shade(c.base, 0.1);
-          ctx.fillRect(sx, sy, 11, 9);
+      // Roof coverings vary by district: tile, thatch, slate or classic shingles.
+      const roofH = theme.roof === "thatch" ? 8 : theme.roof === "slate" ? 9 : 11;
+      const roofW = theme.roof === "slate" ? 10 : theme.roof === "tile" ? 12 : 11;
+      for (let r = 0; r < Math.ceil(TILE / roofH) + 1; r += 1) {
+        const sy = py + r * roofH;
+        const offset = (y * 3 + r) % 2 === 0 ? 0 : Math.floor(roofW / 2);
+        for (let i = -1; i < 4; i += 1) {
+          const sx = px + offset + i * (roofW + 1);
+          ctx.fillStyle = shade(c.base, theme.roof === "thatch" ? 0.05 : 0.1);
+          ctx.fillRect(sx, sy, roofW, roofH - 2);
           ctx.fillStyle = detail;
-          ctx.fillRect(sx, sy + 7, 11, 3);
+          ctx.fillRect(sx, sy + roofH - 3, roofW, 2);
           ctx.fillStyle = shade(c.base, 0.3);
-          ctx.fillRect(sx + 1, sy + 1, 4, 2);
+          ctx.fillRect(sx + 1, sy + 1, Math.max(3, Math.floor(roofW / 3)), 2);
         }
       }
       ctx.fillStyle = shade(c.base, 0.34);
@@ -351,7 +392,7 @@ function paintObject(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
     }
 
     case "window": {
-      ctx.fillStyle = hex(TILE_COLORS.buildingWall.base);
+      ctx.fillStyle = hex(themedColors("buildingWall", theme).base);
       ctx.fillRect(px, py, TILE, TILE);
       box(ctx, px + 5, py + 7, 22, 19, base);
       ctx.fillStyle = shade(c.base, 0.35);
@@ -432,8 +473,8 @@ function paintObject(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
     }
     case "plant": {
       box(ctx, px + 10, py + 20, 12, 10, base);
-      disc(ctx, px + 16, py + 13, 9, hex(TILE_COLORS.hedge.base));
-      ctx.fillStyle = shade(TILE_COLORS.hedge.base, 0.25);
+      disc(ctx, px + 16, py + 13, 9, hex(themedColors("hedge", theme).base));
+      ctx.fillStyle = shade(themedColors("hedge", theme).base, 0.25);
       ctx.fillRect(px + 11, py + 8, 5, 3);
       break;
     }
@@ -443,18 +484,24 @@ function paintObject(ctx: Ctx, kind: TileKind, px: number, py: number, x: number
 }
 
 /** Draw a single tile (ground bed + object) into a canvas context. */
-export function drawTile(ctx: Ctx, kind: TileKind, x: number, y: number) {
+export function drawTile(
+  ctx: Ctx,
+  kind: TileKind,
+  x: number,
+  y: number,
+  theme: PaintTheme = paintTheme("default", "storybook"),
+) {
   const px = x * TILE;
   const py = y * TILE;
   const bed = bedFor(kind);
   if (bed) {
-    paintGround(ctx, bed, px, py, x, y);
-    paintObject(ctx, kind, px, py, x, y);
+    paintGround(ctx, bed, px, py, x, y, theme);
+    paintObject(ctx, kind, px, py, x, y, theme);
     return;
   }
   if (kind === "wall" || kind === "buildingWall" || kind === "buildingRoof" || kind === "window") {
-    paintObject(ctx, kind, px, py, x, y);
+    paintObject(ctx, kind, px, py, x, y, theme);
     return;
   }
-  paintGround(ctx, kind, px, py, x, y);
+  paintGround(ctx, kind, px, py, x, y, theme);
 }

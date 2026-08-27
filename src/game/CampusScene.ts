@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import { TILE, type TileKind } from "@/lib/campus/tiles";
 import { drawTile } from "@/lib/campus/tileart";
+import { paintTheme, themeKey } from "@/lib/campus/themes";
+import { useStyleStore, visualStyle } from "@/lib/a11y/style";
 import { getZone, type Interactable, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
 import { canStandBox } from "@/lib/campus/walkable";
 import { interactRadius, doorTriggerRadius } from "@/lib/a11y/assist";
@@ -44,6 +46,9 @@ export interface CampusAssetReport {
   rooms: string[];
   entries: CampusAssetEntry[];
   suspect: number;
+  /** Keys that would be rejected if an unsafe 3D source reached the loader. */
+  blockedAssetKeys: string[];
+  blockedReason: string;
 }
 
 
@@ -75,10 +80,13 @@ export class CampusScene extends Phaser.Scene {
   private doorArmed = false;
   private motionUnsub?: (() => void) | undefined;
   private mascotUnsub?: (() => void) | undefined;
+  private styleUnsub?: (() => void) | undefined;
+  private groundImage?: Phaser.GameObjects.Image | undefined;
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private npcs: NpcActor[] = [];
+  private interactionMarkers = new Map<string, Phaser.GameObjects.Graphics>();
   private lastPromptId: string | null = null;
   private lastRoomId: string | null = null;
   private lastSentTx = -1;
@@ -132,8 +140,9 @@ export class CampusScene extends Phaser.Scene {
    * ---------------------------------------------------------------- */
 
   /** Bakes the whole zone into one canvas texture of original 32px tiles. */
-  private bakeZone(zone: ZoneMap): string | null {
-    const key = `zone-${zone.id}`;
+  private bakeZone(zone: ZoneMap, style = visualStyle()): string | null {
+    const theme = paintTheme(zone.id, style);
+    const key = `zone-${zone.id}-${themeKey(theme)}`;
     if (this.textures.exists(key)) return key;
     const tex = this.textures.createCanvas(key, zone.width * TILE, zone.height * TILE);
     if (!tex) return null;
@@ -141,7 +150,7 @@ export class CampusScene extends Phaser.Scene {
     ctx.imageSmoothingEnabled = false;
     for (let y = 0; y < zone.height; y++) {
       for (let x = 0; x < zone.width; x++) {
-        drawTile(ctx, zone.tiles[y]![x]! as TileKind, x, y);
+        drawTile(ctx, zone.tiles[y]![x]! as TileKind, x, y, theme);
       }
     }
     tex.refresh();
@@ -199,9 +208,12 @@ export class CampusScene extends Phaser.Scene {
       const image = src?.image as { src?: string } | undefined;
       const url = typeof image?.src === "string" ? image.src : "";
       const external = /^https?:|^\/|^blob:/.test(url) && !url.startsWith("data:");
-      const zoneId = key.startsWith("zone-") ? key.slice(5) : undefined;
+      // Theme-aware zone textures are keyed as zone-{id}-{style}-{path}… .
+      const zoneId = key.startsWith("zone-")
+        ? key.slice(5).split(/-(?:storybook|focus)-/)[0]
+        : undefined;
       const group: CampusAssetEntry["group"] = key.startsWith("zone-")
-        ? getZone(zoneId!).kind === "interior"
+        ? zoneId && getZone(zoneId).kind === "interior"
           ? "interior"
           : "zone"
         : key.startsWith("char-")
@@ -219,12 +231,15 @@ export class CampusScene extends Phaser.Scene {
       });
     }
     entries.sort((a, b) => a.group.localeCompare(b.group) || a.key.localeCompare(b.key));
+    const blockedAssetKeys = entries.filter((e) => e.suspect3d).map((e) => e.key);
     return {
       zone: this.zone?.id ?? "—",
       zoneKind: this.zone?.kind ?? "outdoor",
       rooms: (this.zone?.rooms ?? []).map((r) => r.name),
       entries,
-      suspect: entries.filter((e) => e.suspect3d).length,
+      suspect: blockedAssetKeys.length,
+      blockedAssetKeys,
+      blockedReason: "The build-time 2D guard rejects GLTF, GLB, FBX, OBJ and Three.js sources before Phaser can load them.",
     };
   }
 
@@ -236,8 +251,18 @@ export class CampusScene extends Phaser.Scene {
     this.zone = getZone(data.zoneId);
     this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#7ec850" : "#fff0d2");
 
-    const groundKey = this.bakeZone(this.zone);
-    if (groundKey) this.add.image(0, 0, groundKey).setOrigin(0, 0).setDepth(-1);
+    const drawGround = (style = visualStyle()) => {
+      const groundKey = this.bakeZone(this.zone, style);
+      if (!groundKey) return;
+      this.groundImage?.destroy();
+      this.groundImage = this.add.image(0, 0, groundKey).setOrigin(0, 0).setDepth(-1);
+    };
+    drawGround();
+    this.styleUnsub?.();
+    this.styleUnsub = useStyleStore.subscribe((s) => {
+      this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? (s.style === "focus" ? "#6eaa58" : "#7ec850") : (s.style === "focus" ? "#e6dfc7" : "#fff0d2"));
+      drawGround(s.style);
+    });
 
     // Room signposts — chunky plaques the way an illustrated campus board reads.
     this.zone.rooms.forEach((room) => {
@@ -256,6 +281,7 @@ export class CampusScene extends Phaser.Scene {
     });
 
     // Interaction markers.
+    this.interactionMarkers.clear();
     this.zone.interactables.forEach((i) => {
       const marker = this.add.graphics().setDepth(1);
       marker.fillStyle(0x241812, 0.35);
@@ -264,6 +290,7 @@ export class CampusScene extends Phaser.Scene {
       marker.fillCircle(i.x * TILE + 16, i.y * TILE + 16, 6);
       marker.fillStyle(0xfff3d8, 1);
       marker.fillCircle(i.x * TILE + 14, i.y * TILE + 14, 2);
+      this.interactionMarkers.set(i.id, marker);
       if (bobScale() > 0) {
         this.tweens.add({
           targets: marker,
@@ -345,6 +372,9 @@ export class CampusScene extends Phaser.Scene {
       this.motionUnsub = undefined;
       this.mascotUnsub?.();
       this.mascotUnsub = undefined;
+      this.styleUnsub?.();
+      this.styleUnsub = undefined;
+      this.groundImage = undefined;
       this.debugGraphics?.destroy();
       this.debugGraphics = undefined;
       this.tapMarker?.destroy();
@@ -720,9 +750,15 @@ export class CampusScene extends Phaser.Scene {
         this.lastPromptId = prompt.id;
         store.setPrompt(prompt);
       }
+      this.interactionMarkers.forEach((marker, id) => {
+        const active = hit.kind === "object" && id === prompt.id;
+        marker.setScale(active ? 1.16 : 1);
+        marker.setAlpha(active ? 1 : 0.8);
+      });
     } else if (this.lastPromptId) {
       this.lastPromptId = null;
       store.setPrompt(undefined);
+      this.interactionMarkers.forEach((marker) => marker.setScale(1).setAlpha(0.8));
     }
 
     const tx = this.player.sprite.x / TILE;
