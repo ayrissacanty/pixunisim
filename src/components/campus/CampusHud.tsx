@@ -13,6 +13,8 @@ import { useStyleStore } from "@/lib/a11y/style";
 import { STYLE_LABELS } from "@/lib/campus/themes";
 import { TouchControls } from "@/components/campus/TouchControls";
 import { MobileA11ySettings } from "@/components/campus/MobileA11ySettings";
+import { CampusCameraControls } from "@/components/campus/CampusCameraControls";
+
 
 const MemoizedMinimap = memo(Minimap);
 const MemoizedObjectiveTracker = memo(ObjectiveTracker);
