@@ -21,9 +21,12 @@ import { AssetDebugPanel } from "@/components/campus/AssetDebugPanel";
 export function CampusView({
   initialZone = "welcome-plaza",
   tour,
+  preview = false,
 }: {
   initialZone?: string;
   tour?: string | undefined;
+  /** Preview mode: no auth required, debug tools always available. */
+  preview?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
@@ -31,9 +34,12 @@ export function CampusView({
   const navigate = useNavigate();
 
   const [ready, setReady] = useState(false);
+  const [panMode, setPanMode] = useState(false);
+  const [gridOn, setGridOn] = useState(false);
   const [tourStep, setTourStep] = useState<{ label: string; index: number; total: number } | null>(
     null,
   );
+
   // Objectives, offline sync and persistence run in the authenticated shell so
   // the Workspace shares them; the campus only needs to read the saved state.
 
