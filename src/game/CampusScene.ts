@@ -46,6 +46,9 @@ export interface CampusAssetReport {
   rooms: string[];
   entries: CampusAssetEntry[];
   suspect: number;
+  /** Keys that would be rejected if an unsafe 3D source reached the loader. */
+  blockedAssetKeys: string[];
+  blockedReason: string;
 }
 
 
@@ -83,6 +86,7 @@ export class CampusScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private npcs: NpcActor[] = [];
+  private interactionMarkers = new Map<string, Phaser.GameObjects.Graphics>();
   private lastPromptId: string | null = null;
   private lastRoomId: string | null = null;
   private lastSentTx = -1;
@@ -224,12 +228,15 @@ export class CampusScene extends Phaser.Scene {
       });
     }
     entries.sort((a, b) => a.group.localeCompare(b.group) || a.key.localeCompare(b.key));
+    const blockedAssetKeys = entries.filter((e) => e.suspect3d).map((e) => e.key);
     return {
       zone: this.zone?.id ?? "—",
       zoneKind: this.zone?.kind ?? "outdoor",
       rooms: (this.zone?.rooms ?? []).map((r) => r.name),
       entries,
-      suspect: entries.filter((e) => e.suspect3d).length,
+      suspect: blockedAssetKeys.length,
+      blockedAssetKeys,
+      blockedReason: "The build-time 2D guard rejects GLTF, GLB, FBX, OBJ and Three.js sources before Phaser can load them.",
     };
   }
 
@@ -271,6 +278,7 @@ export class CampusScene extends Phaser.Scene {
     });
 
     // Interaction markers.
+    this.interactionMarkers.clear();
     this.zone.interactables.forEach((i) => {
       const marker = this.add.graphics().setDepth(1);
       marker.fillStyle(0x241812, 0.35);
@@ -279,6 +287,7 @@ export class CampusScene extends Phaser.Scene {
       marker.fillCircle(i.x * TILE + 16, i.y * TILE + 16, 6);
       marker.fillStyle(0xfff3d8, 1);
       marker.fillCircle(i.x * TILE + 14, i.y * TILE + 14, 2);
+      this.interactionMarkers.set(i.id, marker);
       if (bobScale() > 0) {
         this.tweens.add({
           targets: marker,
@@ -738,9 +747,15 @@ export class CampusScene extends Phaser.Scene {
         this.lastPromptId = prompt.id;
         store.setPrompt(prompt);
       }
+      this.interactionMarkers.forEach((marker, id) => {
+        const active = hit.kind === "object" && id === prompt.id;
+        marker.setScale(active ? 1.16 : 1);
+        marker.setAlpha(active ? 1 : 0.8);
+      });
     } else if (this.lastPromptId) {
       this.lastPromptId = null;
       store.setPrompt(undefined);
+      this.interactionMarkers.forEach((marker) => marker.setScale(1).setAlpha(0.8));
     }
 
     const tx = this.player.sprite.x / TILE;

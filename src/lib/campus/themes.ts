@@ -76,9 +76,9 @@ function hash(id: string) {
 export function zoneTheme(zoneId: string): ZoneTheme {
   const h = hash(zoneId);
   const fallback: ZoneTheme = {
-    path: PATHS[h % PATHS.length]!,
-    roof: ROOFS[(h >> 3) % ROOFS.length]!,
-    foliage: FOLIAGE[(h >> 6) % FOLIAGE.length]!,
+    path: PATHS[h % PATHS.length] ?? "flagstone",
+    roof: ROOFS[(h >> 3) % ROOFS.length] ?? "shingle",
+    foliage: FOLIAGE[(h >> 6) % FOLIAGE.length] ?? "round",
     hue: ((h >> 9) % 33) - 16,
     sat: 0.94 + ((h >> 12) % 16) / 100,
     light: 0,
