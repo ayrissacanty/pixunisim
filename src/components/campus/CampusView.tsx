@@ -17,6 +17,8 @@ import { ClassroomBeat } from "@/components/campus/ClassroomBeat";
 import { LayerTransition } from "@/components/campus/LayerTransition";
 import { PerfOverlay, type CampusPerfStats } from "@/components/campus/PerfOverlay";
 import { AssetDebugPanel } from "@/components/campus/AssetDebugPanel";
+import { IsoDebugOverlay, type IsoDebugSnapshot } from "@/components/campus/IsoDebugOverlay";
+
 
 export function CampusView({
   initialZone = "welcome-plaza",
