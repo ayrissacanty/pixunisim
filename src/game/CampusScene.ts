@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import { TILE, type TileKind } from "@/lib/campus/tiles";
 import { drawTile } from "@/lib/campus/tileart";
+import { paintTheme, themeKey } from "@/lib/campus/themes";
+import { useStyleStore, visualStyle } from "@/lib/a11y/style";
 import { getZone, type Interactable, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
 import { canStandBox } from "@/lib/campus/walkable";
 import { interactRadius, doorTriggerRadius } from "@/lib/a11y/assist";
@@ -75,6 +77,8 @@ export class CampusScene extends Phaser.Scene {
   private doorArmed = false;
   private motionUnsub?: (() => void) | undefined;
   private mascotUnsub?: (() => void) | undefined;
+  private styleUnsub?: (() => void) | undefined;
+  private groundImage?: Phaser.GameObjects.Image | undefined;
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
@@ -132,8 +136,9 @@ export class CampusScene extends Phaser.Scene {
    * ---------------------------------------------------------------- */
 
   /** Bakes the whole zone into one canvas texture of original 32px tiles. */
-  private bakeZone(zone: ZoneMap): string | null {
-    const key = `zone-${zone.id}`;
+  private bakeZone(zone: ZoneMap, style = visualStyle()): string | null {
+    const theme = paintTheme(zone.id, style);
+    const key = `zone-${zone.id}-${themeKey(theme)}`;
     if (this.textures.exists(key)) return key;
     const tex = this.textures.createCanvas(key, zone.width * TILE, zone.height * TILE);
     if (!tex) return null;
@@ -141,7 +146,7 @@ export class CampusScene extends Phaser.Scene {
     ctx.imageSmoothingEnabled = false;
     for (let y = 0; y < zone.height; y++) {
       for (let x = 0; x < zone.width; x++) {
-        drawTile(ctx, zone.tiles[y]![x]! as TileKind, x, y);
+        drawTile(ctx, zone.tiles[y]![x]! as TileKind, x, y, theme);
       }
     }
     tex.refresh();
@@ -236,8 +241,18 @@ export class CampusScene extends Phaser.Scene {
     this.zone = getZone(data.zoneId);
     this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#7ec850" : "#fff0d2");
 
-    const groundKey = this.bakeZone(this.zone);
-    if (groundKey) this.add.image(0, 0, groundKey).setOrigin(0, 0).setDepth(-1);
+    const drawGround = (style = visualStyle()) => {
+      const groundKey = this.bakeZone(this.zone, style);
+      if (!groundKey) return;
+      this.groundImage?.destroy();
+      this.groundImage = this.add.image(0, 0, groundKey).setOrigin(0, 0).setDepth(-1);
+    };
+    drawGround();
+    this.styleUnsub?.();
+    this.styleUnsub = useStyleStore.subscribe((s) => {
+      this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? (s.style === "focus" ? "#6eaa58" : "#7ec850") : (s.style === "focus" ? "#e6dfc7" : "#fff0d2"));
+      drawGround(s.style);
+    });
 
     // Room signposts — chunky plaques the way an illustrated campus board reads.
     this.zone.rooms.forEach((room) => {
@@ -345,6 +360,9 @@ export class CampusScene extends Phaser.Scene {
       this.motionUnsub = undefined;
       this.mascotUnsub?.();
       this.mascotUnsub = undefined;
+      this.styleUnsub?.();
+      this.styleUnsub = undefined;
+      this.groundImage = undefined;
       this.debugGraphics?.destroy();
       this.debugGraphics = undefined;
       this.tapMarker?.destroy();
