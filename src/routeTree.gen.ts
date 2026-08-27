@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CampusPreviewRouteImport } from './routes/campus-preview'
 import { Route as AuthenticatedCampusRouteImport } from './routes/_authenticated/campus'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
 import { Route as AuthenticatedWorkspaceIndexRouteImport } from './routes/_authenticated/workspace.index'
@@ -32,6 +33,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CampusPreviewRoute = CampusPreviewRouteImport.update({
+  id: '/campus-preview',
+  path: '/campus-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedCampusRoute = AuthenticatedCampusRouteImport.update({
@@ -78,6 +84,7 @@ const AuthenticatedWorkspaceLessonLessonIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/campus-preview': typeof CampusPreviewRoute
   '/campus': typeof AuthenticatedCampusRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/campus-preview': typeof CampusPreviewRoute
   '/campus': typeof AuthenticatedCampusRoute
   '/family': typeof AuthenticatedFamilyRoute
   '/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/campus-preview': typeof CampusPreviewRoute
   '/_authenticated/campus': typeof AuthenticatedCampusRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/campus-preview'
     | '/campus'
     | '/family'
     | '/workspace/achievements'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/campus-preview'
     | '/campus'
     | '/family'
     | '/workspace/achievements'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/campus-preview'
     | '/_authenticated/campus'
     | '/_authenticated/family'
     | '/_authenticated/workspace/achievements'
@@ -151,6 +163,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  CampusPreviewRoute: typeof CampusPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -174,6 +187,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campus-preview': {
+      id: '/campus-preview'
+      path: '/campus-preview'
+      fullPath: '/campus-preview'
+      preLoaderRoute: typeof CampusPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/campus': {
@@ -257,6 +277,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  CampusPreviewRoute: CampusPreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
