@@ -201,16 +201,25 @@ export class CampusScene extends Phaser.Scene {
     return [c.x, c.y - hh, c.x + hw, c.y, c.x, c.y + hh, c.x - hw, c.y];
   }
 
-  /** Debug overlay: red = blocked tile, amber = interactable, cyan = doorway. */
+  /**
+   * Debug overlay: red = blocked tile, amber = interactable, cyan = doorway,
+   * plus tile grid coordinates and the projected depth value per row so
+   * depth sorting and movement alignment can be verified visually.
+   */
   setCollisionDebug(on: boolean) {
     this.debugOn = on;
+    this.debugTexts.forEach((t) => t.destroy());
+    this.debugTexts = [];
     if (!on) {
       this.debugGraphics?.destroy();
       this.debugGraphics = undefined;
+      this.debugDynamic?.destroy();
+      this.debugDynamic = undefined;
       return;
     }
     const g = this.debugGraphics ?? this.add.graphics().setDepth(4000);
     this.debugGraphics = g;
+    this.debugDynamic = this.debugDynamic ?? this.add.graphics().setDepth(4002);
     g.clear();
     const poly = (x: number, y: number, inset = 0) => {
       const p = this.diamondPoints(x, y, inset);
@@ -218,10 +227,37 @@ export class CampusScene extends Phaser.Scene {
     };
     for (let y = 0; y < this.zone.height; y++) {
       for (let x = 0; x < this.zone.width; x++) {
-        if (isWalkableTile(this.zone, x, y)) continue;
-        g.fillStyle(0xff3b30, 0.28);
-        g.fillPoints(poly(x, y).points, true);
+        // Grid definition for every tile diamond.
+        g.lineStyle(1, 0x1c2b1a, 0.22);
+        g.strokePoints(poly(x, y).points, true);
+        if (!isWalkableTile(this.zone, x, y)) {
+          g.fillStyle(0xff3b30, 0.28);
+          g.fillPoints(poly(x, y).points, true);
+        }
+        // Coordinate + depth labels, sparse so the map stays readable.
+        if (x % 3 === 0 && y % 3 === 0) {
+          const c = isoFromTile(x + 0.5, y + 0.5, this.zone.height);
+          this.debugTexts.push(
+            this.add
+              .text(c.x, c.y, `${x},${y}\nz${Math.round(c.y + 10)}`, {
+                fontFamily: "monospace",
+                fontSize: "8px",
+                color: "#fff3d8",
+                align: "center",
+                backgroundColor: "#1c120c99",
+              })
+              .setOrigin(0.5)
+              .setDepth(4001),
+          );
+        }
       }
+    }
+    // Depth bands: one line per isometric row, so sorting order is visible.
+    for (let s = 0; s < this.zone.width + this.zone.height; s += 4) {
+      const a = isoFromTile(Math.min(s, this.zone.width), Math.max(0, s - this.zone.width), this.zone.height);
+      const b = isoFromTile(Math.max(0, s - this.zone.height), Math.min(s, this.zone.height), this.zone.height);
+      g.lineStyle(1, 0x35d0ff, 0.35);
+      g.lineBetween(a.x, a.y, b.x, b.y);
     }
     for (const i of this.zone.interactables) {
       const cyan = i.action.kind === "travel";
@@ -234,13 +270,169 @@ export class CampusScene extends Phaser.Scene {
     }
   }
 
+  /** Per-frame debug layer: the player's collision box and occupied tile. */
+  private drawDynamicDebug() {
+    const g = this.debugDynamic;
+    if (!g || !this.player) return;
+    g.clear();
+    const tx = Math.round(this.player.px / TILE);
+    const ty = Math.round(this.player.py / TILE);
+    g.lineStyle(2, 0x7cff6b, 0.95);
+    g.strokePoints(new Phaser.Geom.Polygon(this.diamondPoints(tx, ty, 2)).points, true);
+    // Collision box (cartesian) projected as a diamond footprint.
+    const half = TILE / 3;
+    const corners = [
+      [this.player.px - half, this.player.py - half],
+      [this.player.px + half, this.player.py - half],
+      [this.player.px + half, this.player.py + half],
+      [this.player.px - half, this.player.py + half],
+    ].map(([x, y]) => this.iso(x!, y!));
+    g.lineStyle(2, 0xffd54a, 0.95);
+    g.beginPath();
+    g.moveTo(corners[0]!.x, corners[0]!.y);
+    corners.slice(1).forEach((c) => g.lineTo(c.x, c.y));
+    g.closePath();
+    g.strokePath();
+  }
+
+  /** Live figures for the React debug overlay. */
+  debugSnapshot() {
+    if (!this.zone || !this.player) return null;
+    const at = this.iso(this.player.px, this.player.py);
+    const tx = Math.round(this.player.px / TILE);
+    const ty = Math.round(this.player.py / TILE);
+    const cam = this.cameras.main;
+    return {
+      zone: this.zone.id,
+      tile: { x: tx, y: ty },
+      world: { x: Math.round(this.player.px), y: Math.round(this.player.py) },
+      screen: { x: Math.round(at.x), y: Math.round(at.y) },
+      depth: Math.round(at.y + 10),
+      walkable: isWalkableTile(this.zone, tx, ty),
+      standing: this.canStand(this.player.px, this.player.py),
+      facing: this.facing,
+      zoom: Math.round(cam.zoom * 100) / 100,
+      scroll: { x: Math.round(cam.scrollX), y: Math.round(cam.scrollY) },
+      gridOn: this.debugOn,
+      panMode: this.panMode,
+    };
+  }
+
   collisionDebugEnabled() {
     return this.debugOn;
+  }
+
+  /* ---------------------------------------------------------------- *
+   * Camera pan & zoom
+   * ---------------------------------------------------------------- */
+
+  /** Free-look mode: drag pans the camera instead of walking the student. */
+  setPanMode(on: boolean) {
+    this.panMode = on;
+    const cam = this.cameras.main;
+    if (on) {
+      cam.stopFollow();
+      this.moveTarget = null;
+    } else {
+      this.recenterCamera();
+    }
+  }
+
+  panModeEnabled() {
+    return this.panMode;
+  }
+
+  /** Re-attaches the camera to the student and clears any free-look offset. */
+  recenterCamera() {
+    const cam = this.cameras.main;
+    const lerp = cameraLerp();
+    cam.startFollow(this.player.sprite, true, lerp, lerp);
+    cam.centerOn(this.player.sprite.x, this.player.sprite.y);
+  }
+
+  cameraZoom() {
+    return this.cameras.main.zoom;
+  }
+
+  /** Multiplies the zoom, optionally keeping a screen point anchored. */
+  zoomBy(factor: number, anchor?: { x: number; y: number }) {
+    const cam = this.cameras.main;
+    const next = Phaser.Math.Clamp(cam.zoom * factor, MIN_ZOOM, MAX_ZOOM);
+    if (next === cam.zoom) return next;
+    if (anchor) {
+      const before = cam.getWorldPoint(anchor.x, anchor.y);
+      cam.setZoom(next);
+      const after = cam.getWorldPoint(anchor.x, anchor.y);
+      cam.scrollX += before.x - after.x;
+      cam.scrollY += before.y - after.y;
+    } else {
+      cam.setZoom(next);
+    }
+    return next;
+  }
+
+  private setupCameraControls() {
+    this.input.addPointer(2);
+    const cam = this.cameras.main;
+
+    this.input.on(
+      "wheel",
+      (
+        pointer: Phaser.Input.Pointer,
+        _objects: unknown,
+        _dx: number,
+        dy: number,
+        _dz: number,
+        event?: WheelEvent,
+      ) => {
+        event?.preventDefault?.();
+        // Scale by delta magnitude so one trackpad flick doesn't slam to max.
+        const factor = Math.exp(-dy * 0.0015);
+        if (!this.panMode) cam.stopFollow();
+        this.zoomBy(factor, { x: pointer.x, y: pointer.y });
+        if (!this.panMode) this.recenterFollowSoon();
+      },
+    );
+
+    this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
+      const p2 = this.input.pointer2;
+      if (p2 && p2.isDown && pointer.isDown) {
+        // Pinch zoom: the distance between two fingers drives the scale.
+        const dist = Phaser.Math.Distance.Between(pointer.x, pointer.y, p2.x, p2.y);
+        if (this.pinchDist > 0) {
+          cam.stopFollow();
+          this.zoomBy(dist / this.pinchDist, {
+            x: (pointer.x + p2.x) / 2,
+            y: (pointer.y + p2.y) / 2,
+          });
+        }
+        this.pinchDist = dist;
+        this.moveTarget = null;
+        return;
+      }
+      this.pinchDist = 0;
+      if (!this.panMode || !pointer.isDown) return;
+      cam.scrollX -= (pointer.x - pointer.prevPosition.x) / cam.zoom;
+      cam.scrollY -= (pointer.y - pointer.prevPosition.y) / cam.zoom;
+    });
+
+    this.input.on("pointerup", () => {
+      this.pinchDist = 0;
+    });
+  }
+
+  /** After a wheel zoom in follow mode, glide back onto the student. */
+  private recenterFollowSoon() {
+    if (this.recenterTimer) this.recenterTimer.remove();
+    this.recenterTimer = this.time.delayedCall(450, () => {
+      if (!this.panMode) this.recenterCamera();
+    });
   }
 
   reachability() {
     return reachabilityReport(this.zone);
   }
+
 
   /**
    * Every texture Phaser currently holds, grouped the way the campus uses
