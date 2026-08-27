@@ -35,6 +35,10 @@ const ACCEL = 1400;
 const FRICTION = 1900;
 /** How close (in px) the player must get to a tapped point before stopping. */
 const TAP_ARRIVE = 6;
+/** Camera zoom limits for free-look inspection of the isometric world. */
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 4;
+
 
 export type Direction = SpriteDirection;
 
