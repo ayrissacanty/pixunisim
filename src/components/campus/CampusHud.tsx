@@ -18,12 +18,26 @@ const MemoizedMinimap = memo(Minimap);
 const MemoizedObjectiveTracker = memo(ObjectiveTracker);
 const MemoizedTouchControls = memo(TouchControls);
 
+export interface CampusCameraApi {
+  panMode: boolean;
+  gridOn: boolean;
+  onTogglePan: () => void;
+  onToggleGrid: () => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onRecenter: () => void;
+}
+
 export function CampusHud({
   onMove,
   onAction,
+  camera,
+  forceDebug = false,
 }: {
   onMove: (x: number, y: number) => void;
   onAction: () => void;
+  camera?: CampusCameraApi;
+  forceDebug?: boolean;
 }) {
   const zone = useCampusStore((s) => s.currentZone);
   const roomName = useCampusStore((s) => s.currentRoomName);
@@ -40,7 +54,8 @@ export function CampusHud({
   const toggleAssist = useAssistStore((s) => s.toggle);
   const style = useStyleStore((s) => s.style);
   const toggleStyle = useStyleStore((s) => s.toggle);
-  const debug = useDebugMode();
+  const debug = useDebugMode() || forceDebug;
+
 
   return (
     <div
