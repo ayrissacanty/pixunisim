@@ -193,19 +193,6 @@ export class CampusScene extends Phaser.Scene {
     return isoFromWorld(px, py, this.zone.height);
   }
 
-  /** Draws the diamond outline of a tile into a graphics object. */
-  private isoDiamond(g: Phaser.GameObjects.Graphics, x: number, y: number, inset = 0) {
-    const c = isoFromTile(x + 0.5, y + 0.5, this.zone.height);
-    const hw = ISO_W / 2 - inset;
-    const hh = ISO_H / 2 - inset / 2;
-    return [
-      { x: c.x, y: c.y - hh },
-      { x: c.x + hw, y: c.y },
-      { x: c.x, y: c.y + hh },
-      { x: c.x - hw, y: c.y },
-    ].map((p) => new Phaser.Geom.Point(p.x, p.y)) && g;
-  }
-
   private diamondPoints(x: number, y: number, inset = 0) {
     const c = isoFromTile(x + 0.5, y + 0.5, this.zone.height);
     const hw = ISO_W / 2 - inset;
