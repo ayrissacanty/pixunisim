@@ -2,6 +2,15 @@ import Phaser from "phaser";
 import { TILE, type TileKind } from "@/lib/campus/tiles";
 import { drawTile } from "@/lib/campus/tileart";
 import { paintTheme, themeKey } from "@/lib/campus/themes";
+import {
+  ISO_H,
+  ISO_W,
+  isoCanvasSize,
+  isoFromTile,
+  isoFromWorld,
+  isoInputToWorld,
+  worldFromIso,
+} from "@/lib/campus/iso";
 import { useStyleStore, visualStyle } from "@/lib/a11y/style";
 import { getZone, type Interactable, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
 import { canStandBox } from "@/lib/campus/walkable";
@@ -55,6 +64,9 @@ export interface CampusAssetReport {
 
 interface Actor {
   sprite: Phaser.GameObjects.Sprite;
+  /** Cartesian world position in px — the projection happens at render time. */
+  px: number;
+  py: number;
   label: Phaser.GameObjects.Text;
   badge?: Phaser.GameObjects.Rectangle | undefined;
   key: string;
@@ -139,22 +151,54 @@ export class CampusScene extends Phaser.Scene {
    * World painting
    * ---------------------------------------------------------------- */
 
-  /** Bakes the whole zone into one canvas texture of original 32px tiles. */
+  /** Bakes the whole zone into one isometric canvas texture. */
   private bakeZone(zone: ZoneMap, style = visualStyle()): string | null {
     const theme = paintTheme(zone.id, style);
-    const key = `zone-${zone.id}-${themeKey(theme)}`;
+    const key = `zone-iso-${zone.id}-${themeKey(theme)}`;
     if (this.textures.exists(key)) return key;
-    const tex = this.textures.createCanvas(key, zone.width * TILE, zone.height * TILE);
+    const size = isoCanvasSize(zone.width, zone.height);
+    const tex = this.textures.createCanvas(key, size.width, size.height);
     if (!tex) return null;
     const ctx = tex.context;
     ctx.imageSmoothingEnabled = false;
+
+    // Each tile is painted flat by the existing 2D tile art, then mapped onto
+    // its diamond footprint with a 2:1 isometric matrix.
+    const scratch = document.createElement("canvas");
+    scratch.width = TILE;
+    scratch.height = TILE;
+    const sctx = scratch.getContext("2d");
+    if (!sctx) return null;
+    sctx.imageSmoothingEnabled = false;
+
     for (let y = 0; y < zone.height; y++) {
       for (let x = 0; x < zone.width; x++) {
-        drawTile(ctx, zone.tiles[y]![x]! as TileKind, x, y, theme);
+        sctx.setTransform(1, 0, 0, 1, 0, 0);
+        sctx.clearRect(0, 0, TILE, TILE);
+        sctx.translate(-x * TILE, -y * TILE);
+        drawTile(sctx, zone.tiles[y]![x]! as TileKind, x, y, theme);
+        const top = isoFromTile(x, y, zone.height);
+        ctx.save();
+        ctx.setTransform(1, 0.5, -1, 0.5, top.x, top.y);
+        ctx.drawImage(scratch, -0.5, -0.5, TILE + 1, TILE + 1);
+        ctx.restore();
       }
     }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     tex.refresh();
     return key;
+  }
+
+  /** Screen position for a cartesian world-pixel coordinate. */
+  private iso(px: number, py: number) {
+    return isoFromWorld(px, py, this.zone.height);
+  }
+
+  private diamondPoints(x: number, y: number, inset = 0) {
+    const c = isoFromTile(x + 0.5, y + 0.5, this.zone.height);
+    const hw = ISO_W / 2 - inset;
+    const hh = ISO_H / 2 - inset / 2;
+    return [c.x, c.y - hh, c.x + hw, c.y, c.x, c.y + hh, c.x - hw, c.y];
   }
 
   /** Debug overlay: red = blocked tile, amber = interactable, cyan = doorway. */
@@ -165,24 +209,28 @@ export class CampusScene extends Phaser.Scene {
       this.debugGraphics = undefined;
       return;
     }
-    const g = this.debugGraphics ?? this.add.graphics().setDepth(40);
+    const g = this.debugGraphics ?? this.add.graphics().setDepth(4000);
     this.debugGraphics = g;
     g.clear();
+    const poly = (x: number, y: number, inset = 0) => {
+      const p = this.diamondPoints(x, y, inset);
+      return new Phaser.Geom.Polygon(p);
+    };
     for (let y = 0; y < this.zone.height; y++) {
       for (let x = 0; x < this.zone.width; x++) {
         if (isWalkableTile(this.zone, x, y)) continue;
         g.fillStyle(0xff3b30, 0.28);
-        g.fillRect(x * TILE, y * TILE, TILE, TILE);
+        g.fillPoints(poly(x, y).points, true);
       }
     }
     for (const i of this.zone.interactables) {
       const cyan = i.action.kind === "travel";
       g.lineStyle(2, cyan ? 0x35d0ff : 0xd9a441, 0.9);
-      g.strokeRect(i.x * TILE + 2, i.y * TILE + 2, TILE - 4, TILE - 4);
+      g.strokePoints(poly(i.x, i.y, 3).points, true);
     }
     for (const bad of reachabilityReport(this.zone).unreachable) {
       g.lineStyle(2, 0xff00ff, 1);
-      g.strokeRect(bad.x * TILE - 2, bad.y * TILE - 2, TILE + 4, TILE + 4);
+      g.strokePoints(poly(bad.x, bad.y).points, true);
     }
   }
 
@@ -209,10 +257,10 @@ export class CampusScene extends Phaser.Scene {
       const url = typeof image?.src === "string" ? image.src : "";
       const external = /^https?:|^\/|^blob:/.test(url) && !url.startsWith("data:");
       // Theme-aware zone textures are keyed as zone-{id}-{style}-{path}… .
-      const zoneId = key.startsWith("zone-")
-        ? key.slice(5).split(/-(?:storybook|focus)-/)[0]
+      const zoneId = key.startsWith("zone-iso-")
+        ? key.slice(9).split(/-(?:storybook|focus)-/)[0]
         : undefined;
-      const group: CampusAssetEntry["group"] = key.startsWith("zone-")
+      const group: CampusAssetEntry["group"] = key.startsWith("zone-iso-")
         ? zoneId && getZone(zoneId).kind === "interior"
           ? "interior"
           : "zone"
@@ -266,8 +314,9 @@ export class CampusScene extends Phaser.Scene {
 
     // Room signposts — chunky plaques the way an illustrated campus board reads.
     this.zone.rooms.forEach((room) => {
+      const at = isoFromTile(room.x + room.w / 2, room.y + room.h / 2, this.zone.height);
       this.add
-        .text(room.x * TILE + 8, room.y * TILE + 4, room.name.toUpperCase(), {
+        .text(at.x, at.y, room.name.toUpperCase(), {
           fontFamily: "monospace",
           fontStyle: "bold",
           fontSize: "11px",
@@ -275,21 +324,23 @@ export class CampusScene extends Phaser.Scene {
           backgroundColor: "#fff3d8",
           padding: { x: 6, y: 3 },
         })
+        .setOrigin(0.5, 1)
         .setStroke("#8a5730", 3)
         .setShadow(0, 2, "#00000055", 0, true, true)
-        .setDepth(2);
+        .setDepth(5);
     });
 
     // Interaction markers.
     this.interactionMarkers.clear();
     this.zone.interactables.forEach((i) => {
-      const marker = this.add.graphics().setDepth(1);
+      const at = isoFromTile(i.x + 0.5, i.y + 0.5, this.zone.height);
+      const marker = this.add.graphics().setDepth(at.y + 1);
       marker.fillStyle(0x241812, 0.35);
-      marker.fillCircle(i.x * TILE + 16, i.y * TILE + 18, 8);
+      marker.fillEllipse(at.x, at.y + 4, 20, 10);
       marker.fillStyle(0xffd54a, 1);
-      marker.fillCircle(i.x * TILE + 16, i.y * TILE + 16, 6);
+      marker.fillCircle(at.x, at.y - 6, 6);
       marker.fillStyle(0xfff3d8, 1);
-      marker.fillCircle(i.x * TILE + 14, i.y * TILE + 14, 2);
+      marker.fillCircle(at.x - 2, at.y - 8, 2);
       this.interactionMarkers.set(i.id, marker);
       if (bobScale() > 0) {
         this.tweens.add({
@@ -343,7 +394,7 @@ export class CampusScene extends Phaser.Scene {
 
     this.vx = 0;
     this.vy = 0;
-    if (!this.canStand(this.player.sprite.x, this.player.sprite.y)) {
+    if (!this.canStand(this.player.px, this.player.py)) {
       const spot = this.nearestWalkable(data.x, data.y);
       this.setActorPosition(this.player, spot.x * TILE + 16, spot.y * TILE + 16);
     }
@@ -352,8 +403,9 @@ export class CampusScene extends Phaser.Scene {
     this.moveTarget = null;
 
     const cam = this.cameras.main;
-    cam.setBounds(0, 0, this.zone.width * TILE, this.zone.height * TILE);
-    cam.setZoom(this.scale.width < 720 ? 1.9 : 2.2);
+    const size = isoCanvasSize(this.zone.width, this.zone.height);
+    cam.setBounds(0, 0, size.width, size.height);
+    cam.setZoom(this.scale.width < 720 ? 1.5 : 1.8);
     cam.setRoundPixels(true);
     const lerp = cameraLerp();
     cam.startFollow(this.player.sprite, true, lerp, lerp);
@@ -397,8 +449,8 @@ export class CampusScene extends Phaser.Scene {
     useCampusStore
       .getState()
       .setPlayer(
-        Math.round(this.player.sprite.x / TILE),
-        Math.round(this.player.sprite.y / TILE),
+        Math.round(this.player.px / TILE),
+        Math.round(this.player.py / TILE),
         this.facing,
       );
   }
@@ -411,7 +463,8 @@ export class CampusScene extends Phaser.Scene {
     const toTarget = (pointer: Phaser.Input.Pointer) => {
       const s = useCampusStore.getState();
       if (s.dialogue || s.reading || s.lessonOpen || s.mapOpen || s.transition) return;
-      this.moveTarget = { x: pointer.worldX, y: pointer.worldY };
+      const world = worldFromIso(pointer.worldX, pointer.worldY, this.zone.height);
+      this.moveTarget = world;
       this.showTapMarker(pointer.worldX, pointer.worldY);
     };
     this.input.on("pointerdown", toTarget);
@@ -422,11 +475,11 @@ export class CampusScene extends Phaser.Scene {
 
   private showTapMarker(x: number, y: number) {
     this.tapMarker?.destroy();
-    const g = this.add.graphics().setDepth(9);
+    const g = this.add.graphics().setDepth(3000);
     g.lineStyle(2, 0xfff3d8, 0.95);
-    g.strokeCircle(x, y, 9);
+    g.strokeEllipse(x, y, 22, 11);
     g.lineStyle(2, 0xff6f52, 0.95);
-    g.strokeCircle(x, y, 5);
+    g.strokeEllipse(x, y, 12, 6);
     this.tapMarker = g;
     this.tweens.add({
       targets: g,
@@ -454,31 +507,39 @@ export class CampusScene extends Phaser.Scene {
   }
 
   private makeActor(
-    x: number,
-    y: number,
+    px: number,
+    py: number,
     key: string,
     look: CharacterLook,
     label: string,
   ): Actor {
     ensureCharacterTexture(this, key, look);
     ensureCharacterAnims(this, key);
+    const at = this.iso(px, py);
     const sprite = this.add
-      .sprite(x, y, key, idleFrame("down"))
-      .setOrigin(0.5, 0.72)
-      .setDepth(10);
+      .sprite(at.x, at.y, key, idleFrame("down"))
+      .setOrigin(0.5, 0.86)
+      .setDepth(at.y + 10);
     const text = this.add
-      .text(x, y - 28, label, { fontFamily: "monospace", fontSize: "10px", color: "#fff3d8" })
+      .text(at.x, at.y - 34, label, { fontFamily: "monospace", fontSize: "10px", color: "#fff3d8" })
       .setOrigin(0.5)
       .setPadding(3, 1, 3, 1)
       .setBackgroundColor("#3a241caa")
-      .setDepth(11);
-    return { sprite, label: text, key, dir: "down", moving: false };
+      .setDepth(at.y + 11);
+    return { sprite, label: text, key, dir: "down", moving: false, px, py };
   }
 
-  private setActorPosition(actor: Actor, x: number, y: number) {
-    actor.sprite.setPosition(x, y);
-    actor.label.setPosition(x, y - 28);
-    actor.badge?.setPosition(x, y - 18);
+  /** Moves an actor in cartesian space and re-projects everything it owns. */
+  private setActorPosition(actor: Actor, px: number, py: number) {
+    actor.px = px;
+    actor.py = py;
+    const at = this.iso(px, py);
+    actor.sprite.setPosition(at.x, at.y);
+    actor.sprite.setDepth(at.y + 10);
+    actor.label.setPosition(at.x, at.y - 34);
+    actor.label.setDepth(at.y + 11);
+    actor.badge?.setPosition(at.x, at.y - 24);
+    actor.badge?.setDepth(at.y + 12);
   }
 
   private applyMascotAccessory(id: string) {
@@ -487,9 +548,9 @@ export class CampusScene extends Phaser.Scene {
     const accessory = mascotAccessoryOf(id);
     if (accessory.id === "none") return;
     const badge = this.add
-      .rectangle(this.player.sprite.x, this.player.sprite.y - 18, 14, 4, accessory.hex)
+      .rectangle(this.player.sprite.x, this.player.sprite.y - 24, 14, 4, accessory.hex)
       .setStrokeStyle(1, 0x241812, 0.8)
-      .setDepth(12);
+      .setDepth(this.player.sprite.y + 12);
     this.player.badge = badge;
   }
 
@@ -511,8 +572,8 @@ export class CampusScene extends Phaser.Scene {
   }
 
   private nearestInteraction() {
-    const px = this.player.sprite.x / TILE;
-    const py = this.player.sprite.y / TILE;
+    const px = this.player.px / TILE;
+    const py = this.player.py / TILE;
     let best: { dist: number; kind: "object" | "npc"; index: number } | null = null;
     this.zone.interactables.forEach((i, index) => {
       const d = Math.hypot(i.x + 0.5 - px, i.y + 0.5 - py);
@@ -520,7 +581,7 @@ export class CampusScene extends Phaser.Scene {
         best = { dist: d, kind: "object", index };
     });
     this.npcs.forEach((n, index) => {
-      const d = Math.hypot(n.sprite.x / TILE - px, n.sprite.y / TILE - py);
+      const d = Math.hypot(n.px / TILE - px, n.py / TILE - py);
       if (d < interactRadius("npc") && (!best || d < best.dist))
         best = { dist: d, kind: "npc", index };
     });
@@ -575,8 +636,8 @@ export class CampusScene extends Phaser.Scene {
       this.doorCooldown -= delta;
       return;
     }
-    const px = this.player.sprite.x / TILE;
-    const py = this.player.sprite.y / TILE;
+    const px = this.player.px / TILE;
+    const py = this.player.py / TILE;
     let nearest: { d: number; i: Interactable } | null = null;
     for (const i of this.zone.interactables) {
       if (i.action.kind !== "travel") continue;
@@ -620,11 +681,16 @@ export class CampusScene extends Phaser.Scene {
       iy += this.joystick.y;
     }
 
-    // Any direct input cancels a tap-to-walk destination.
-    if (ix !== 0 || iy !== 0) this.moveTarget = null;
-    else if (this.moveTarget) {
-      const dx = this.moveTarget.x - this.player.sprite.x;
-      const dy = this.moveTarget.y - this.player.sprite.y;
+    // Screen-space input is rotated into the cartesian grid so pressing "up"
+    // walks up-screen along the isometric axes.
+    if (ix !== 0 || iy !== 0) {
+      this.moveTarget = null;
+      const dir = isoInputToWorld(ix, iy);
+      ix = dir.x;
+      iy = dir.y;
+    } else if (this.moveTarget) {
+      const dx = this.moveTarget.x - this.player.px;
+      const dy = this.moveTarget.y - this.player.py;
       const dist = Math.hypot(dx, dy);
       if (dist <= TAP_ARRIVE) {
         this.moveTarget = null;
@@ -654,14 +720,14 @@ export class CampusScene extends Phaser.Scene {
     // Axis-separated collision so sliding along a hedge or riverbank works.
     let blockedX = false;
     let blockedY = false;
-    const nx = this.player.sprite.x + this.vx * dt;
-    if (this.canStand(nx, this.player.sprite.y)) this.player.sprite.x = nx;
+    const nx = this.player.px + this.vx * dt;
+    if (this.canStand(nx, this.player.py)) this.player.px = nx;
     else {
       this.vx = 0;
       blockedX = true;
     }
-    const ny = this.player.sprite.y + this.vy * dt;
-    if (this.canStand(this.player.sprite.x, ny)) this.player.sprite.y = ny;
+    const ny = this.player.py + this.vy * dt;
+    if (this.canStand(this.player.px, ny)) this.player.py = ny;
     else {
       this.vy = 0;
       blockedY = true;
@@ -670,25 +736,28 @@ export class CampusScene extends Phaser.Scene {
     // grinding against it forever.
     if (this.moveTarget && blockedX && blockedY) this.moveTarget = null;
 
-    this.setActorPosition(this.player, this.player.sprite.x, this.player.sprite.y);
+    this.setActorPosition(this.player, this.player.px, this.player.py);
 
     const speed = Math.hypot(this.vx, this.vy);
     const moving = speed > 6;
     if (moving) {
+      // Facing is chosen from the on-screen direction of travel.
+      const svx = (this.vx - this.vy) * (ISO_W / 2);
+      const svy = (this.vx + this.vy) * (ISO_H / 2);
       this.facing =
-        Math.abs(this.vx) > Math.abs(this.vy)
-          ? this.vx > 0
+        Math.abs(svx) > Math.abs(svy)
+          ? svx > 0
             ? "right"
             : "left"
-          : this.vy > 0
+          : svy > 0
             ? "down"
             : "up";
     }
     this.animate(this.player, this.facing, moving);
 
     if (moving) {
-      const ptx = Math.round(this.player.sprite.x / TILE);
-      const pty = Math.round(this.player.sprite.y / TILE);
+      const ptx = Math.round(this.player.px / TILE);
+      const pty = Math.round(this.player.py / TILE);
       if (
         ptx !== this.lastSentTx ||
         pty !== this.lastSentTy ||
@@ -710,17 +779,18 @@ export class CampusScene extends Phaser.Scene {
     const idleMotion = bobScale() > 0;
     this.npcs.forEach((n) => {
       n.timer += delta;
+      const projected = this.iso(n.px, n.py);
       if (
-        n.sprite.x < view.x - 64 ||
-        n.sprite.x > view.right + 64 ||
-        n.sprite.y < view.y - 64 ||
-        n.sprite.y > view.bottom + 64
+        projected.x < view.x - 64 ||
+        projected.x > view.right + 64 ||
+        projected.y < view.y - 64 ||
+        projected.y > view.bottom + 64
       )
         return;
       if (n.spawn.behavior === "walk") {
         const targetX = idleMotion ? n.homeX + Math.sin(n.timer / 1400) * 48 : n.homeX;
-        const walking = idleMotion && this.canStand(targetX, n.sprite.y);
-        if (walking) this.setActorPosition(n, targetX, n.sprite.y);
+        const walking = idleMotion && this.canStand(targetX, n.py);
+        if (walking) this.setActorPosition(n, targetX, n.py);
         this.animate(n, Math.cos(n.timer / 1400) > 0 ? "right" : "left", walking);
       } else {
         this.animate(n, "down", false);
@@ -761,8 +831,8 @@ export class CampusScene extends Phaser.Scene {
       this.interactionMarkers.forEach((marker) => marker.setScale(1).setAlpha(0.8));
     }
 
-    const tx = this.player.sprite.x / TILE;
-    const ty = this.player.sprite.y / TILE;
+    const tx = this.player.px / TILE;
+    const ty = this.player.py / TILE;
     const room = this.zone.rooms.find(
       (r) => tx >= r.x && tx <= r.x + r.w && ty >= r.y && ty <= r.y + r.h,
     );
