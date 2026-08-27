@@ -383,11 +383,39 @@ export function CampusView({
     () => getScene()?.assetReport() as CampusAssetReport | undefined,
     [getScene],
   );
+  const getDebugSnapshot = useCallback(
+    () => getScene()?.debugSnapshot() as IsoDebugSnapshot | null | undefined,
+    [getScene],
+  );
+
+  const cameraApi = {
+    panMode,
+    gridOn,
+    onTogglePan: () => {
+      const next = !panMode;
+      setPanMode(next);
+      getScene()?.setPanMode(next);
+    },
+    onToggleGrid: () => {
+      const next = !gridOn;
+      setGridOn(next);
+      getScene()?.setCollisionDebug(next);
+    },
+    onZoomIn: () => getScene()?.zoomBy(1.25),
+    onZoomOut: () => getScene()?.zoomBy(1 / 1.25),
+    onRecenter: () => {
+      setPanMode(false);
+      const scene = getScene();
+      scene?.setPanMode(false);
+      scene?.recenterCamera();
+    },
+  };
 
   return (
     <div
       data-testid="campus-root"
       data-layer={layer}
+      data-preview={preview ? "on" : "off"}
       className="relative h-[100dvh] w-full overflow-hidden bg-grass"
     >
       <div ref={containerRef} className="absolute inset-0" aria-label="Campus world" />
@@ -409,7 +437,9 @@ export function CampusView({
         </div>
       )}
 
-      <CampusHud onMove={move} onAction={interact} />
+      <CampusHud onMove={move} onAction={interact} camera={cameraApi} forceDebug={preview} />
+      <IsoDebugOverlay open={gridOn} getSnapshot={getDebugSnapshot} />
+
       <DialogueBox />
       <ReadingBox />
       <CampusMapOverlay />
