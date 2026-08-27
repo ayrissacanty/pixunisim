@@ -49,6 +49,7 @@ export const ZONE_THEMES: Record<string, Partial<ZoneTheme>> = {
   "student-commons": { path: "herringbone", roof: "tile", foliage: "round", hue: -8, sat: 1.05 },
   "student-center": { path: "herringbone", roof: "tile", foliage: "blossom", hue: -10, sat: 1.04 },
   "math-tech-hall": { path: "cobble", roof: "slate", foliage: "pine", hue: -18, sat: 0.94 },
+  "mathematics-hall": { path: "cobble", roof: "slate", foliage: "pine", hue: -18, sat: 0.94 },
   "science-hall": { path: "flagstone", roof: "slate", foliage: "pine", hue: -24, sat: 0.96 },
   "humanities-hall": { path: "cobble", roof: "shingle", foliage: "broadleaf", hue: 18, sat: 0.98 },
   "arts-center": { path: "herringbone", roof: "tile", foliage: "blossom", hue: 26, sat: 1.08 },

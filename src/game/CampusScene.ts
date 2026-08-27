@@ -208,9 +208,12 @@ export class CampusScene extends Phaser.Scene {
       const image = src?.image as { src?: string } | undefined;
       const url = typeof image?.src === "string" ? image.src : "";
       const external = /^https?:|^\/|^blob:/.test(url) && !url.startsWith("data:");
-      const zoneId = key.startsWith("zone-") ? key.slice(5) : undefined;
+      // Theme-aware zone textures are keyed as zone-{id}-{style}-{path}… .
+      const zoneId = key.startsWith("zone-")
+        ? key.slice(5).split(/-(?:storybook|focus)-/)[0]
+        : undefined;
       const group: CampusAssetEntry["group"] = key.startsWith("zone-")
-        ? getZone(zoneId!).kind === "interior"
+        ? zoneId && getZone(zoneId).kind === "interior"
           ? "interior"
           : "zone"
         : key.startsWith("char-")
