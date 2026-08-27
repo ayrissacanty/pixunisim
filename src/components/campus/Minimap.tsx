@@ -87,9 +87,24 @@ export function Minimap({ size = 132 }: { size?: number }) {
   const rafRef = useRef<number | null>(null);
   const baseRef = useRef<HTMLCanvasElement | null>(null);
 
-  const cell = Math.max(1, Math.floor(size / Math.max(zone.width, zone.height)));
-  const w = zone.width * cell;
-  const h = zone.height * cell;
+  // The minimap uses the same 2:1 isometric projection as the Phaser world.
+  // `unit` is half a tile's diamond width, keeping the entire zone visible.
+  const unit = Math.max(1, size / Math.max(zone.width + zone.height, 1));
+  const w = Math.ceil((zone.width + zone.height) * unit);
+  const h = Math.ceil((zone.width + zone.height) * unit / 2);
+  const iso = (x: number, y: number) => ({
+    x: (x - y + zone.height) * unit,
+    y: (x + y) * unit / 2,
+  });
+  const diamond = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+    const c = iso(x + 0.5, y + 0.5);
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y - unit / 2);
+    ctx.lineTo(c.x + unit, c.y);
+    ctx.lineTo(c.x, c.y + unit / 2);
+    ctx.lineTo(c.x - unit, c.y);
+    ctx.closePath();
+  };
 
   // Rasterise the static layer (terrain, POIs, NPCs) once per zone/size.
   useEffect(() => {
@@ -101,21 +116,26 @@ export function Minimap({ size = 132 }: { size?: number }) {
     for (let y = 0; y < zone.height; y++) {
       for (let x = 0; x < zone.width; x++) {
         ctx.fillStyle = COLOR[zone.tiles[y]![x]!] ?? "#4a3a2c";
-        ctx.fillRect(x * cell, y * cell, cell, cell);
+        diamond(ctx, x, y);
+        ctx.fill();
       }
     }
     zone.interactables.forEach((i) => {
+      const at = iso(i.x + 0.5, i.y + 0.5);
       ctx.fillStyle = i.action.kind === "classroom" ? "#e0553f" : "#d9a441";
-      ctx.fillRect(i.x * cell - 1, i.y * cell - 1, cell + 2, cell + 2);
+      ctx.beginPath();
+      ctx.arc(at.x, at.y, Math.max(2, unit * 0.32), 0, Math.PI * 2);
+      ctx.fill();
     });
     zone.npcs.forEach((n) => {
+      const at = iso(n.x + 0.5, n.y + 0.5);
       ctx.fillStyle = "#f1e6d0";
-      ctx.fillRect(n.x * cell, n.y * cell, cell, cell);
+      ctx.fillRect(at.x - Math.max(1, unit * 0.2), at.y - Math.max(1, unit * 0.2), Math.max(2, unit * 0.4), Math.max(2, unit * 0.4));
     });
     baseRef.current = base;
     // A new zone means the marker teleports rather than slides across the map.
     markerRef.current = null;
-  }, [zone, cell, w, h]);
+  }, [zone, unit, w, h]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -138,21 +158,22 @@ export function Minimap({ size = 132 }: { size?: number }) {
 
       // playerPosition is in tile coordinates, so multiply directly by cell,
       // then clamp so edge tiles and collision overshoot stay on the map.
-      const dot = Math.max(2, cell * 0.9);
-      const { x: px, y: py } = clampMarker(marker.x * cell, marker.y * cell, {
+      const dot = Math.max(2, unit * 0.32);
+      const markerAt = iso(marker.x, marker.y);
+      const { x: px, y: py } = clampMarker(markerAt.x, markerAt.y, {
         w,
         h,
         radius: dot + 1,
       });
       ctx.beginPath();
       ctx.fillStyle = "rgba(224, 85, 63, 0.32)";
-      ctx.arc(px, py, cell * 2.4, 0, Math.PI * 2);
+      ctx.arc(px, py, unit * 1.2, 0, Math.PI * 2);
       ctx.fill();
 
       // Facing arrow: a small triangle offset from the dot in the look direction.
       const v = FACING_VECTOR[facing] ?? FACING_VECTOR["down"]!;
-      const tip = dot + Math.max(3, cell * 1.5);
-      const half = Math.max(2, cell * 0.8);
+      const tip = dot + Math.max(3, unit * 0.75);
+      const half = Math.max(2, unit * 0.4);
       ctx.beginPath();
       ctx.fillStyle = "#f1e6d0";
       ctx.moveTo(px + v.x * tip, py + v.y * tip);
@@ -203,7 +224,7 @@ export function Minimap({ size = 132 }: { size?: number }) {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [zone, player.x, player.y, facing, cell, w, h]);
+  }, [zone, player.x, player.y, facing, unit, w, h]);
 
   return (
     <div
