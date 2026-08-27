@@ -507,9 +507,11 @@ export class CampusScene extends Phaser.Scene {
         ? zoneId && getZone(zoneId).kind === "interior"
           ? "interior"
           : "zone"
-        : key.startsWith("char-")
-          ? "character"
-          : "system";
+        : key.startsWith("unify-")
+          ? "zone"
+          : key.startsWith("char-")
+            ? "character"
+            : "system";
       entries.push({
         key,
         group,
