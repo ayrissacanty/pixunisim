@@ -1,7 +1,9 @@
 import Phaser from "phaser";
 import { TILE, type TileKind } from "@/lib/campus/tiles";
-import { drawTile } from "@/lib/campus/tileart";
-import { paintTheme, themeKey } from "@/lib/campus/themes";
+import { OUTLINE, drawGroundBed, drawTile, drawTileObject, hex, shadeColor } from "@/lib/campus/tileart";
+import { blockHeight, bedKindFor, isFlatObject, isoLayerFor, isoObjectsFor, propHeight } from "@/lib/campus/isoprops";
+import { footprintDepth, isoDepth, actorDepth, DEPTH_BIAS, GROUND_DEPTH, OVERLAY_DEPTH } from "@/lib/campus/depth";
+import { paintTheme, themeKey, themedColors } from "@/lib/campus/themes";
 import {
   ISO_H,
   ISO_W,
@@ -187,11 +189,16 @@ export class CampusScene extends Phaser.Scene {
 
     for (let y = 0; y < zone.height; y += 1) {
       for (let x = 0; x < zone.width; x += 1) {
-        const kind = zone.tiles[y]?.[x] as TileKind | undefined;
-        if (!kind) continue;
+        const tile = zone.tiles[y]?.[x] as TileKind | undefined;
+        if (!tile) continue;
+        // Extruded blocks and standing props are drawn as depth-sorted
+        // objects, so the bake only lays down the ground bed underneath them.
+        const kind: TileKind =
+          isoLayerFor(tile) === "ground" ? tile : bedKindFor(tile, zone.kind);
         sctx.setTransform(1, 0, 0, 1, 0, 0);
         sctx.clearRect(0, 0, TILE, TILE);
-        const originalKey = originalGroundKey(kind);
+        const flat = isFlatObject(kind);
+        const originalKey = flat ? undefined : originalGroundKey(kind);
         const source = originalKey ? this.textures.get(originalKey)?.source[0]?.image : undefined;
         if (source) {
           const sourceWidth = source.width || TILE;
@@ -208,7 +215,8 @@ export class CampusScene extends Phaser.Scene {
           }
         } else {
           sctx.translate(-x * TILE, -y * TILE);
-          drawTile(sctx, kind, x, y, theme);
+          if (flat) drawTile(sctx, kind, x, y, theme);
+          else drawGroundBed(sctx, kind, x, y, theme);
         }
         const top = isoFromTile(x, y, zone.height);
         ctx.save();
@@ -222,10 +230,142 @@ export class CampusScene extends Phaser.Scene {
     return key;
   }
 
-  /** Places original transparent props at cartesian anchors, then depth-sorts them with actors. */
-  private renderOriginalProps(zone: ZoneMap) {
+  /**
+   * Builds (and caches) the isometric volume texture for a block tile kind:
+   * a diamond top face plus the two visible side faces, so walls, windows and
+   * roofs read as real geometry instead of a flat painted square.
+   */
+  private blockTexture(kind: TileKind, theme: ReturnType<typeof paintTheme>): string | null {
+    const rise = Math.round(blockHeight(kind) * ISO_H);
+    const key = `iso-block-${kind}-${themeKey(theme)}`;
+    if (this.textures.exists(key)) return key;
+    const height = rise + ISO_H;
+    const tex = this.textures.createCanvas(key, ISO_W, height);
+    if (!tex) return null;
+    const ctx = tex.context;
+    ctx.imageSmoothingEnabled = false;
+
+    const colors = themedColors(kind, theme);
+    const top = hex(colors.base);
+    const left = shadeColor(colors.base, -0.22);
+    const right = shadeColor(colors.base, -0.38);
+    const bottomY = height;
+    const midY = height - ISO_H / 2;
+    const topApex = bottomY - ISO_H - rise;
+
+    // Left face.
+    ctx.fillStyle = left;
+    ctx.beginPath();
+    ctx.moveTo(0, midY);
+    ctx.lineTo(ISO_W / 2, bottomY);
+    ctx.lineTo(ISO_W / 2, bottomY - rise);
+    ctx.lineTo(0, midY - rise);
+    ctx.closePath();
+    ctx.fill();
+
+    // Right face.
+    ctx.fillStyle = right;
+    ctx.beginPath();
+    ctx.moveTo(ISO_W, midY);
+    ctx.lineTo(ISO_W / 2, bottomY);
+    ctx.lineTo(ISO_W / 2, bottomY - rise);
+    ctx.lineTo(ISO_W, midY - rise);
+    ctx.closePath();
+    ctx.fill();
+
+    // Top face.
+    ctx.fillStyle = top;
+    ctx.beginPath();
+    ctx.moveTo(ISO_W / 2, topApex);
+    ctx.lineTo(ISO_W, midY - rise);
+    ctx.lineTo(ISO_W / 2, bottomY - rise);
+    ctx.lineTo(0, midY - rise);
+    ctx.closePath();
+    ctx.fill();
+
+    // Detail band: glazing for windows, shingle line for roofs.
+    if (colors.detail !== undefined) {
+      ctx.fillStyle = hex(colors.detail);
+      ctx.globalAlpha = kind === "window" ? 0.9 : 0.35;
+      ctx.beginPath();
+      ctx.moveTo(0, midY - rise * 0.55);
+      ctx.lineTo(ISO_W / 2, bottomY - rise * 0.55);
+      ctx.lineTo(ISO_W / 2, bottomY - rise * 0.8);
+      ctx.lineTo(0, midY - rise * 0.8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // 1px dark contour keeps the storybook outline language.
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(ISO_W / 2 + 0.5, topApex + 0.5);
+    ctx.lineTo(ISO_W - 0.5, midY - rise);
+    ctx.lineTo(ISO_W - 0.5, midY);
+    ctx.lineTo(ISO_W / 2 + 0.5, bottomY - 0.5);
+    ctx.lineTo(0.5, midY);
+    ctx.lineTo(0.5, midY - rise);
+    ctx.closePath();
+    ctx.stroke();
+
+    tex.refresh();
+    return key;
+  }
+
+  /** Builds (and caches) a transparent billboard texture for a prop tile kind. */
+  private propTexture(kind: TileKind, theme: ReturnType<typeof paintTheme>): string | null {
+    const key = `iso-prop-${kind}-${themeKey(theme)}`;
+    if (this.textures.exists(key)) return key;
+    const tex = this.textures.createCanvas(key, TILE, TILE);
+    if (!tex) return null;
+    const ctx = tex.context;
+    ctx.imageSmoothingEnabled = false;
+    drawTileObject(ctx, kind, 0, 0, theme);
+    tex.refresh();
+    return key;
+  }
+
+  /**
+   * The single depth-sorted object layer.
+   *
+   * Everything that stands above the ground — extruded building blocks,
+   * furniture, trees, scattered decor — is created here and sorted with the
+   * shared `footprintDepth` helper, which is the same function the actors use.
+   * That is what keeps occlusion consistent between packs and procedural art.
+   */
+  private renderIsoObjects(zone: ZoneMap, style = visualStyle()) {
     this.propImages.forEach((image) => image.destroy());
     this.propImages = [];
+    const theme = paintTheme(zone.id, style);
+
+    for (const object of isoObjectsFor(zone)) {
+      const anchor = isoFromTile(object.x + 0.5, object.y + 0.5, zone.height);
+      if (object.layer === "block") {
+        const key = this.blockTexture(object.kind, theme);
+        if (!key) continue;
+        // Anchored at the bottom vertex of the tile diamond.
+        const bottom = isoFromTile(object.x + 1, object.y + 1, zone.height);
+        const image = this.add
+          .image(bottom.x, bottom.y, key)
+          .setOrigin(0.5, 1)
+          .setDepth(footprintDepth(object.x, object.y));
+        this.propImages.push(image);
+        continue;
+      }
+      const key = this.propTexture(object.kind, theme);
+      if (!key) continue;
+      const tiles = propHeight(object.kind);
+      const image = this.add
+        .image(anchor.x, anchor.y + ISO_H / 2, key)
+        .setOrigin(0.5, 1)
+        .setScale((ISO_W * 0.85) / TILE, (tiles * ISO_H * 1.6) / TILE)
+        .setDepth(footprintDepth(object.x, object.y));
+      this.propImages.push(image);
+    }
+
+    // Original hand-painted scatter decor rides the same depth model.
     for (const placement of decorFor(zone)) {
       const key = originalPropKey(placement.frame);
       if (!key || !this.textures.exists(key)) continue;
@@ -233,12 +373,13 @@ export class CampusScene extends Phaser.Scene {
       const image = this.add
         .image(at.x, at.y, key)
         .setOrigin(0.5, 1)
-        // The source art is 816px square; 0.16 maps its 32px footprint to one tile.
+        // The source art is 816px square; TILE/204 maps it onto one tile.
         .setScale(placement.scale * (TILE / 204))
-        .setDepth(at.y + 7);
+        .setDepth(isoDepth(placement.px, placement.py));
       this.propImages.push(image);
     }
   }
+
 
   /** Screen position for a cartesian world-pixel coordinate. */
   private iso(px: number, py: number) {
@@ -268,9 +409,9 @@ export class CampusScene extends Phaser.Scene {
       this.debugDynamic = undefined;
       return;
     }
-    const g = this.debugGraphics ?? this.add.graphics().setDepth(4000);
+    const g = this.debugGraphics ?? this.add.graphics().setDepth(OVERLAY_DEPTH);
     this.debugGraphics = g;
-    this.debugDynamic = this.debugDynamic ?? this.add.graphics().setDepth(4002);
+    this.debugDynamic = this.debugDynamic ?? this.add.graphics().setDepth(OVERLAY_DEPTH + 2);
     g.clear();
     const poly = (x: number, y: number, inset = 0) => {
       const p = this.diamondPoints(x, y, inset);
@@ -298,7 +439,7 @@ export class CampusScene extends Phaser.Scene {
                 backgroundColor: "#1c120c99",
               })
               .setOrigin(0.5)
-              .setDepth(4001),
+              .setDepth(OVERLAY_DEPTH + 1),
           );
         }
       }
@@ -358,7 +499,7 @@ export class CampusScene extends Phaser.Scene {
       tile: { x: tx, y: ty },
       world: { x: Math.round(this.player.px), y: Math.round(this.player.py) },
       screen: { x: Math.round(at.x), y: Math.round(at.y) },
-      depth: Math.round(at.y + 10),
+      depth: Math.round(actorDepth(this.player.px, this.player.py)),
       walkable: isWalkableTile(this.zone, tx, ty),
       standing: this.canStand(this.player.px, this.player.py),
       facing: this.facing,
@@ -554,14 +695,15 @@ export class CampusScene extends Phaser.Scene {
       const groundKey = this.bakeZone(this.zone, style);
       if (!groundKey) return;
       this.groundImage?.destroy();
-      this.groundImage = this.add.image(0, 0, groundKey).setOrigin(0, 0).setDepth(-1);
+      this.groundImage = this.add.image(0, 0, groundKey).setOrigin(0, 0).setDepth(GROUND_DEPTH);
     };
     drawGround();
-    this.renderOriginalProps(this.zone);
+    this.renderIsoObjects(this.zone);
     this.styleUnsub?.();
     this.styleUnsub = useStyleStore.subscribe((s) => {
       this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? (s.style === "focus" ? "#6eaa58" : "#7ec850") : (s.style === "focus" ? "#e6dfc7" : "#fff0d2"));
       drawGround(s.style);
+      this.renderIsoObjects(this.zone, s.style);
     });
 
     // Room signposts — chunky plaques the way an illustrated campus board reads.
@@ -579,14 +721,14 @@ export class CampusScene extends Phaser.Scene {
         .setOrigin(0.5, 1)
         .setStroke("#8a5730", 3)
         .setShadow(0, 2, "#00000055", 0, true, true)
-        .setDepth(5);
+        .setDepth(OVERLAY_DEPTH - 100);
     });
 
     // Interaction markers.
     this.interactionMarkers.clear();
     this.zone.interactables.forEach((i) => {
       const at = isoFromTile(i.x + 0.5, i.y + 0.5, this.zone.height);
-      const marker = this.add.graphics().setDepth(at.y + 1);
+      const marker = this.add.graphics().setDepth(footprintDepth(i.x, i.y, 1, 1, DEPTH_BIAS.decal));
       marker.fillStyle(0x241812, 0.35);
       marker.fillEllipse(at.x, at.y + 4, 20, 10);
       marker.fillStyle(0xffd54a, 1);
@@ -754,7 +896,7 @@ export class CampusScene extends Phaser.Scene {
 
   private showTapMarker(x: number, y: number) {
     this.tapMarker?.destroy();
-    const g = this.add.graphics().setDepth(3000);
+    const g = this.add.graphics().setDepth(OVERLAY_DEPTH - 50);
     g.lineStyle(2, 0xfff3d8, 0.95);
     g.strokeEllipse(x, y, 22, 11);
     g.lineStyle(2, 0xff6f52, 0.95);
@@ -798,13 +940,13 @@ export class CampusScene extends Phaser.Scene {
     const sprite = this.add
       .sprite(at.x, at.y, key, idleFrame("down"))
       .setOrigin(0.5, 0.86)
-      .setDepth(at.y + 10);
+      .setDepth(actorDepth(px, py));
     const text = this.add
       .text(at.x, at.y - 34, label, { fontFamily: "monospace", fontSize: "10px", color: "#fff3d8" })
       .setOrigin(0.5)
       .setPadding(3, 1, 3, 1)
       .setBackgroundColor("#3a241caa")
-      .setDepth(at.y + 11);
+      .setDepth(actorDepth(px, py, DEPTH_BIAS.label));
     return { sprite, label: text, key, dir: "down", moving: false, px, py };
   }
 
@@ -814,11 +956,11 @@ export class CampusScene extends Phaser.Scene {
     actor.py = py;
     const at = this.iso(px, py);
     actor.sprite.setPosition(at.x, at.y);
-    actor.sprite.setDepth(at.y + 10);
+    actor.sprite.setDepth(actorDepth(px, py));
     actor.label.setPosition(at.x, at.y - 34);
-    actor.label.setDepth(at.y + 11);
+    actor.label.setDepth(actorDepth(px, py, DEPTH_BIAS.label));
     actor.badge?.setPosition(at.x, at.y - 24);
-    actor.badge?.setDepth(at.y + 12);
+    actor.badge?.setDepth(actorDepth(px, py, DEPTH_BIAS.label));
   }
 
   private applyMascotAccessory(id: string) {
@@ -829,7 +971,7 @@ export class CampusScene extends Phaser.Scene {
     const badge = this.add
       .rectangle(this.player.sprite.x, this.player.sprite.y - 24, 14, 4, accessory.hex)
       .setStrokeStyle(1, 0x241812, 0.8)
-      .setDepth(this.player.sprite.y + 12);
+      .setDepth(actorDepth(this.player.px, this.player.py, DEPTH_BIAS.label));
     this.player.badge = badge;
   }
 
