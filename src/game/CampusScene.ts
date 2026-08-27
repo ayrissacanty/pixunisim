@@ -620,6 +620,7 @@ export class CampusScene extends Phaser.Scene {
     });
 
     this.setupPointerWalk();
+    this.setupCameraControls();
 
     this.events.once("shutdown", () => {
       this.motionUnsub?.();
@@ -631,10 +632,18 @@ export class CampusScene extends Phaser.Scene {
       this.groundImage = undefined;
       this.debugGraphics?.destroy();
       this.debugGraphics = undefined;
+      this.debugDynamic?.destroy();
+      this.debugDynamic = undefined;
+      this.debugTexts.forEach((t) => t.destroy());
+      this.debugTexts = [];
+      this.recenterTimer?.remove();
+      this.recenterTimer = undefined;
       this.tapMarker?.destroy();
       this.tapMarker = undefined;
       this.input.off("pointerdown");
       this.input.off("pointermove");
+      this.input.off("pointerup");
+      this.input.off("wheel");
     });
 
     const kb = this.input.keyboard!;
@@ -661,19 +670,35 @@ export class CampusScene extends Phaser.Scene {
    * Touch-to-move
    * ---------------------------------------------------------------- */
 
+  /**
+   * Unprojects a screen point back onto the tile grid and snaps to that
+   * tile's centre, so a click always lands the student on the diamond the
+   * cursor was over rather than a fractional point between tiles.
+   */
+  tileAtScreen(worldX: number, worldY: number) {
+    const world = worldFromIso(worldX, worldY, this.zone.height);
+    return { x: Math.floor(world.x / TILE), y: Math.floor(world.y / TILE) };
+  }
+
   private setupPointerWalk() {
     const toTarget = (pointer: Phaser.Input.Pointer) => {
       const s = useCampusStore.getState();
       if (s.dialogue || s.reading || s.lessonOpen || s.mapOpen || s.transition) return;
-      const world = worldFromIso(pointer.worldX, pointer.worldY, this.zone.height);
-      this.moveTarget = world;
-      this.showTapMarker(pointer.worldX, pointer.worldY);
+      if (this.panMode || (this.input.pointer2 && this.input.pointer2.isDown)) return;
+      const tile = this.tileAtScreen(pointer.worldX, pointer.worldY);
+      const spot = this.canStand(tile.x * TILE + TILE / 2, tile.y * TILE + TILE / 2)
+        ? tile
+        : this.nearestWalkable(tile.x, tile.y);
+      this.moveTarget = { x: spot.x * TILE + TILE / 2, y: spot.y * TILE + TILE / 2 };
+      const at = isoFromTile(spot.x + 0.5, spot.y + 0.5, this.zone.height);
+      this.showTapMarker(at.x, at.y);
     };
     this.input.on("pointerdown", toTarget);
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
       if (pointer.isDown) toTarget(pointer);
     });
   }
+
 
   private showTapMarker(x: number, y: number) {
     this.tapMarker?.destroy();
