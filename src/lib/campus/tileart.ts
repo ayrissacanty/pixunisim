@@ -505,3 +505,30 @@ export function drawTile(
   }
   paintGround(ctx, kind, px, py, x, y, theme);
 }
+
+/** Paint only the flat ground bed of a tile (no standing object). */
+export function drawGroundBed(
+  ctx: Ctx,
+  kind: TileKind,
+  x: number,
+  y: number,
+  theme: PaintTheme = paintTheme("default", "storybook"),
+) {
+  paintGround(ctx, kind, x * TILE, y * TILE, x, y, theme);
+}
+
+/** Paint only the standing object of a tile, on a transparent bed. */
+export function drawTileObject(
+  ctx: Ctx,
+  kind: TileKind,
+  x: number,
+  y: number,
+  theme: PaintTheme = paintTheme("default", "storybook"),
+) {
+  paintObject(ctx, kind, x * TILE, y * TILE, x, y, theme);
+}
+
+/** Lighten (positive) or darken (negative) a packed colour. */
+export function shadeColor(color: number, amount: number) {
+  return shade(color, amount);
+}
