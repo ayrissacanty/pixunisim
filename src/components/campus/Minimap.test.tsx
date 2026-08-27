@@ -48,11 +48,16 @@ function isoUnit(zoneId: string) {
 function isoMarker(zoneId: string, tile: { x: number; y: number }) {
   const zone = getZone(zoneId);
   const unit = isoUnit(zoneId);
+  // The marker sits on the centre of the tile diamond, matching how the world
+  // scene projects the player and how POIs are drawn on the minimap.
+  const cx = tile.x + 0.5;
+  const cy = tile.y + 0.5;
   return {
-    x: (tile.x - tile.y + zone.height) * unit,
-    y: (tile.x + tile.y) * unit / 2,
+    x: (cx - cy + zone.height) * unit,
+    y: (cx + cy) * unit / 2,
   };
 }
+
 
 function markerFor(ctx: ReturnType<typeof stubCanvas>) {
   const dot = ctx.arcs[ctx.arcs.length - 1]!;

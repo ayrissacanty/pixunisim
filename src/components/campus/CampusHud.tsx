@@ -13,17 +13,33 @@ import { useStyleStore } from "@/lib/a11y/style";
 import { STYLE_LABELS } from "@/lib/campus/themes";
 import { TouchControls } from "@/components/campus/TouchControls";
 import { MobileA11ySettings } from "@/components/campus/MobileA11ySettings";
+import { CampusCameraControls } from "@/components/campus/CampusCameraControls";
+
 
 const MemoizedMinimap = memo(Minimap);
 const MemoizedObjectiveTracker = memo(ObjectiveTracker);
 const MemoizedTouchControls = memo(TouchControls);
 
+export interface CampusCameraApi {
+  panMode: boolean;
+  gridOn: boolean;
+  onTogglePan: () => void;
+  onToggleGrid: () => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onRecenter: () => void;
+}
+
 export function CampusHud({
   onMove,
   onAction,
+  camera,
+  forceDebug = false,
 }: {
   onMove: (x: number, y: number) => void;
   onAction: () => void;
+  camera?: CampusCameraApi;
+  forceDebug?: boolean;
 }) {
   const zone = useCampusStore((s) => s.currentZone);
   const roomName = useCampusStore((s) => s.currentRoomName);
@@ -40,7 +56,8 @@ export function CampusHud({
   const toggleAssist = useAssistStore((s) => s.toggle);
   const style = useStyleStore((s) => s.style);
   const toggleStyle = useStyleStore((s) => s.toggle);
-  const debug = useDebugMode();
+  const debug = useDebugMode() || forceDebug;
+
 
   return (
     <div
@@ -167,14 +184,29 @@ export function CampusHud({
           )}
           <div className="block-panel mx-auto mt-2 hidden w-fit items-center gap-3 border-accent/40 bg-sidebar/90 px-3.5 py-2 text-[11px] font-semibold text-sidebar-foreground/90 md:flex">
             <Compass className="size-3.5" />
-            WASD / arrows or tap the map to move · E to interact · M for map
+            WASD / arrows or tap a tile to move · E to interact · M for map · scroll or pinch to zoom
           </div>
         </div>
         {!busy && (
-          <div className="pointer-events-auto hidden md:block">
-            <MemoizedMinimap />
+          <div className="flex items-end gap-2">
+            {camera && (
+              <CampusCameraControls
+                panMode={camera.panMode}
+                gridOn={camera.gridOn}
+                onTogglePan={camera.onTogglePan}
+                onToggleGrid={camera.onToggleGrid}
+                onZoomIn={camera.onZoomIn}
+                onZoomOut={camera.onZoomOut}
+                onRecenter={camera.onRecenter}
+                showGrid={debug}
+              />
+            )}
+            <div className="pointer-events-auto hidden md:block">
+              <MemoizedMinimap />
+            </div>
           </div>
         )}
+
       </div>
 
       {!busy && <MemoizedTouchControls onMove={onMove} onAction={onAction} />}
