@@ -964,6 +964,8 @@ export class CampusScene extends Phaser.Scene {
     if (this.moveTarget && blockedX && blockedY) this.moveTarget = null;
 
     this.setActorPosition(this.player, this.player.px, this.player.py);
+    if (this.debugOn) this.drawDynamicDebug();
+
 
     const speed = Math.hypot(this.vx, this.vy);
     const moving = speed > 6;
