@@ -107,19 +107,6 @@ export function CampusHud({
                 <MoveDiagonal className="size-3.5" aria-hidden="true" />
                 {ASSIST_LABEL(assist)}
               </button>
-              <button
-                type="button"
-                onClick={() => setAssetsOpen(!assetsOpen)}
-                data-testid="assets-toggle"
-                data-assets={assetsOpen ? "on" : "off"}
-                aria-pressed={assetsOpen}
-                aria-label="Toggle the loaded 2D asset inspector"
-                title="Inspect every Phaser texture currently loaded (escape or click backdrop to close)"
-                className="block-btn flex items-center gap-1.5 self-start border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-bold text-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                <Boxes className="size-3.5" aria-hidden="true" />
-                Assets {assetsOpen ? "on" : "off"}
-              </button>
             </div>
           )}
         </div>

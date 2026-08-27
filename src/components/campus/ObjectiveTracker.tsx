@@ -27,7 +27,7 @@ export const ObjectiveTracker = memo(function ObjectiveTracker() {
       data-testid="objective-tracker"
       data-objective={objective ?? ""}
       data-events={events.length}
-      className="block-panel relative max-w-64 overflow-hidden border-accent/70 bg-card/95 pb-2.5 text-xs"
+      className="block-panel relative max-w-64 overflow-hidden border-accent/70 bg-card/95 pb-2.5 text-xs animate-fade-in"
     >
       {/* Chunky game-UI title ribbon. */}
       <div className="flex items-center gap-1.5 border-b-[3px] border-accent/70 bg-accent px-3 py-1.5">
