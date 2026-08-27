@@ -1,33 +1,8 @@
-import envAtlas from "@/assets/env_props.png.asset.json";
-import atlasIndex from "./env-atlas.json";
 import type { ZoneMap } from "./world";
-import { TILE, type TileKind } from "./tiles";
-
-/** CDN url for the packed 100px environment prop atlas. */
-export const DECOR_URL = envAtlas.url;
-export const DECOR_KEY = "env-props";
-
-type Rect = [number, number, number, number];
-const FRAMES = atlasIndex as unknown as Record<string, Rect>;
-
-/**
- * Curated slice of the pack: gardens, planters, ponds, wells and small
- * structures that read as campus grounds. The fantasy/creature pieces are
- * deliberately left out so the academic palette still leads.
- */
-const GARDEN = ["03", "04", "09", "15", "16", "21", "23", "24", "29", "32", "40", "42", "44", "48"];
-const WATER_SIDE = ["11", "17", "27", "28", "57", "59"];
-const GROVE = ["07", "08", "37", "47", "49", "56", "58"];
-const STRUCTURE = ["06", "13", "14", "19", "41", "43", "45", "51", "52", "54", "60"];
-
-export function isEducationalInterior(zone: ZoneMap): boolean {
-  return (
-    zone.kind === "interior" &&
-    (zone.id.endsWith("-hall") || zone.id === "arts-center" || zone.id === "university-library")
-  );
-}
+import { TILE } from "./tiles";
 
 export interface DecorPlacement {
+  /** Original UNIFY prop id, resolved to a loaded transparent image by the scene. */
   frame: string;
   /** Pixel position of the sprite's bottom-centre anchor. */
   px: number;
@@ -37,9 +12,10 @@ export interface DecorPlacement {
   solid: boolean;
 }
 
-export function frameRect(name: string): Rect | undefined {
-  return FRAMES[name];
-}
+const GARDEN = ["flower", "bench", "sign"];
+const WATER_SIDE = ["fountain", "flower"];
+const GROVE = ["tree", "hedge"];
+const STRUCTURE = ["lamp", "sign", "bench"];
 
 function hash(x: number, y: number, salt: number) {
   const h = Math.imul(x * 73856093 ^ y * 19349663 ^ salt * 83492791, 2654435761);
@@ -47,62 +23,43 @@ function hash(x: number, y: number, salt: number) {
 }
 
 /**
- * Deterministic scatter of props across an outdoor zone. Props sit on grass
- * that is clear of paths, buildings, interactables and NPC spawns, and never
- * block movement — they are pure set dressing above the baked ground layer.
+ * Deterministic original-art scatter for outdoor zones. Props are reserved away
+ * from paths, buildings, doors, NPCs and the default spawn, keeping the
+ * walkability mask and the rendered world in agreement.
  */
 export function decorFor(zone: ZoneMap): DecorPlacement[] {
-  if (zone.kind !== "outdoor") return interiorDecorFor(zone);
+  if (zone.kind !== "outdoor") return [];
   const blocked = new Set<string>();
   const reserve = (x: number, y: number, r = 1) => {
-    for (let dy = -r; dy <= r; dy++)
-      for (let dx = -r; dx <= r; dx++) blocked.add(`${x + dx},${y + dy}`);
+    for (let dy = -r; dy <= r; dy += 1)
+      for (let dx = -r; dx <= r; dx += 1) blocked.add(`${x + dx},${y + dy}`);
   };
-  zone.interactables.forEach((i) => reserve(i.x, i.y, 2));
-  zone.npcs.forEach((n) => reserve(n.x, n.y, 2));
+  zone.interactables.forEach((item) => reserve(item.x, item.y, 2));
+  zone.npcs.forEach((npc) => reserve(npc.x, npc.y, 2));
   reserve(zone.defaultSpawn.x, zone.defaultSpawn.y, 3);
-  zone.rooms.forEach((r) => {
-    for (let y = r.y - 1; y <= r.y + r.h; y++)
-      for (let x = r.x - 1; x <= r.x + r.w; x++) blocked.add(`${x},${y}`);
+  zone.rooms.forEach((room) => {
+    for (let y = room.y - 1; y <= room.y + room.h; y += 1)
+      for (let x = room.x - 1; x <= room.x + room.w; x += 1) blocked.add(`${x},${y}`);
   });
 
   const out: DecorPlacement[] = [];
   const seed = zone.id.length * 31 + zone.width;
-
-  for (let y = 1; y < zone.height - 1; y++) {
-    for (let x = 1; x < zone.width - 1; x++) {
+  for (let y = 1; y < zone.height - 1; y += 1) {
+    for (let x = 1; x < zone.width - 1; x += 1) {
       const kind = zone.tiles[y]?.[x];
       if (kind !== "grass" && kind !== "grassAlt" && kind !== "flower") continue;
-      if (blocked.has(`${x},${y}`)) continue;
-
-      const roll = hash(x, y, seed);
-      if (roll > 0.045) continue;
-
-      // Keep a walkable buffer between props.
-      let crowded = false;
-      for (const p of out) {
-        if (Math.abs(p.px - (x * TILE + TILE / 2)) < TILE * 3 && Math.abs(p.py - (y + 1) * TILE) < TILE * 3) {
-          crowded = true;
-          break;
-        }
-      }
-      if (crowded) continue;
+      if (blocked.has(`${x},${y}`) || hash(x, y, seed) > 0.045) continue;
+      if (out.some((prop) => Math.abs(prop.px - (x * TILE + TILE / 2)) < TILE * 3 && Math.abs(prop.py - (y + 1) * TILE) < TILE * 3)) continue;
 
       const nearWater =
         zone.tiles[y + 1]?.[x] === "water" ||
         zone.tiles[y - 1]?.[x] === "water" ||
         zone.tiles[y]?.[x + 1] === "water" ||
         zone.tiles[y]?.[x - 1] === "water";
-      const pick = hash(x, y, seed + 7);
-      const pool = nearWater
-        ? WATER_SIDE
-        : pick < 0.45
-          ? GARDEN
-          : pick < 0.75
-            ? GROVE
-            : STRUCTURE;
-      const frame = pool[Math.floor(hash(x, y, seed + 13) * pool.length) % pool.length]!;
-
+      const choice = hash(x, y, seed + 7);
+      const pool = nearWater ? WATER_SIDE : choice < 0.45 ? GARDEN : choice < 0.75 ? GROVE : STRUCTURE;
+      const frame = pool[Math.floor(hash(x, y, seed + 13) * pool.length) % pool.length];
+      if (!frame) continue;
       out.push({
         frame,
         px: x * TILE + TILE / 2,
@@ -114,15 +71,4 @@ export function decorFor(zone: ZoneMap): DecorPlacement[] {
     }
   }
   return out;
-}
-
-/**
- * Interiors are now dressed entirely from the pixel interior sheets
- * (`src/lib/campus/interiors.ts`): the scene draws real furniture sprites on
- * the furniture tiles themselves, so the old outdoor prop scatter would only
- * double up in a mismatched art style. Collision for interiors therefore comes
- * purely from the tile solidity table.
- */
-function interiorDecorFor(_zone: ZoneMap): DecorPlacement[] {
-  return [];
 }
