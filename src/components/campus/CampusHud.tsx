@@ -184,14 +184,29 @@ export function CampusHud({
           )}
           <div className="block-panel mx-auto mt-2 hidden w-fit items-center gap-3 border-accent/40 bg-sidebar/90 px-3.5 py-2 text-[11px] font-semibold text-sidebar-foreground/90 md:flex">
             <Compass className="size-3.5" />
-            WASD / arrows or tap the map to move · E to interact · M for map
+            WASD / arrows or tap a tile to move · E to interact · M for map · scroll or pinch to zoom
           </div>
         </div>
         {!busy && (
-          <div className="pointer-events-auto hidden md:block">
-            <MemoizedMinimap />
+          <div className="flex items-end gap-2">
+            {camera && (
+              <CampusCameraControls
+                panMode={camera.panMode}
+                gridOn={camera.gridOn}
+                onTogglePan={camera.onTogglePan}
+                onToggleGrid={camera.onToggleGrid}
+                onZoomIn={camera.onZoomIn}
+                onZoomOut={camera.onZoomOut}
+                onRecenter={camera.onRecenter}
+                showGrid={debug}
+              />
+            )}
+            <div className="pointer-events-auto hidden md:block">
+              <MemoizedMinimap />
+            </div>
           </div>
         )}
+
       </div>
 
       {!busy && <MemoizedTouchControls onMove={onMove} onAction={onAction} />}
