@@ -1,4 +1,4 @@
-import { TILE, TILE_COLORS, type TileKind } from "./tiles";
+import { TILE, type TileKind } from "./tiles";
 import { paintTheme, themedColors, type PaintTheme } from "./themes";
 
 /**

@@ -29,22 +29,27 @@ export function DialogueBox() {
       }`}
     >
       <div className="mx-auto flex max-w-3xl items-end gap-3">
-        <div className="hidden w-24 shrink-0 sm:block">
+        <div className="hidden w-24 shrink-0 rounded-xl border-4 border-accent bg-card p-1 shadow-[0_4px_0_0_var(--block-edge)] sm:block">
           <PortraitView
             portrait={portrait}
             alt={dialogue.speakerId ? `${dialogue.speaker} portrait` : "Your portrait"}
           />
         </div>
         <div className="block-panel-lg flex-1 border-accent bg-sidebar/95 p-4 backdrop-blur">
-          <div className="flex items-baseline gap-2">
-            <span className="font-display text-base font-bold text-accent">{dialogue.speaker}</span>
-            {dialogue.role && (
-              <span className="text-[11px] uppercase tracking-widest text-sidebar-foreground/70">
-                {dialogue.role}
-              </span>
-            )}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-base font-bold text-accent">{dialogue.speaker}</span>
+              {dialogue.role && (
+                <span className="text-[11px] uppercase tracking-widest text-sidebar-foreground/70">
+                  {dialogue.role}
+                </span>
+              )}
+            </div>
+            <span className="rounded-full border-2 border-sidebar-border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/70">
+              {last ? "Choose next" : "Dialogue"}
+            </span>
           </div>
-          <p className="mt-2 min-h-12 text-sm leading-relaxed text-sidebar-foreground">
+          <p className="mt-2 min-h-12 text-sm font-medium leading-relaxed text-sidebar-foreground">
             {dialogue.lines[dialogue.lineIndex]}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">

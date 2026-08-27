@@ -9,7 +9,8 @@ import { ObjectiveTracker } from "@/components/campus/ObjectiveTracker";
 import { MOTION_LABELS, useMotionStore } from "@/lib/a11y/motion";
 import { ASSIST_LABEL, useAssistStore } from "@/lib/a11y/assist";
 import { useDebugMode } from "@/lib/debug";
-import { useStyleStore, STYLE_LABELS } from "@/lib/a11y/style";
+import { useStyleStore } from "@/lib/a11y/style";
+import { STYLE_LABELS } from "@/lib/campus/themes";
 import { TouchControls } from "@/components/campus/TouchControls";
 import { MobileA11ySettings } from "@/components/campus/MobileA11ySettings";
 
