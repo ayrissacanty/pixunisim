@@ -778,11 +778,12 @@ export class CampusScene extends Phaser.Scene {
     const idleMotion = bobScale() > 0;
     this.npcs.forEach((n) => {
       n.timer += delta;
+      const projected = this.iso(n.px, n.py);
       if (
-        n.sprite.x < view.x - 64 ||
-        n.sprite.x > view.right + 64 ||
-        n.sprite.y < view.y - 64 ||
-        n.sprite.y > view.bottom + 64
+        projected.x < view.x - 64 ||
+        projected.x > view.right + 64 ||
+        projected.y < view.y - 64 ||
+        projected.y > view.bottom + 64
       )
         return;
       if (n.spawn.behavior === "walk") {
