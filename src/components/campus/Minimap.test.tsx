@@ -40,9 +40,18 @@ function stubCanvas() {
 
 const SIZE = 132;
 
-function cellSize(zoneId: string) {
+function isoUnit(zoneId: string) {
   const zone = getZone(zoneId);
-  return Math.max(1, Math.floor(SIZE / Math.max(zone.width, zone.height)));
+  return Math.max(1, SIZE / Math.max(zone.width + zone.height, 1));
+}
+
+function isoMarker(zoneId: string, tile: { x: number; y: number }) {
+  const zone = getZone(zoneId);
+  const unit = isoUnit(zoneId);
+  return {
+    x: (tile.x - tile.y + zone.height) * unit,
+    y: (tile.x + tile.y) * unit / 2,
+  };
 }
 
 function markerFor(ctx: ReturnType<typeof stubCanvas>) {
@@ -53,11 +62,12 @@ function markerFor(ctx: ReturnType<typeof stubCanvas>) {
 /** Expected on-canvas marker position for a tile, including edge clamping. */
 function expectedFor(zoneId: string, tile: { x: number; y: number }) {
   const zone = getZone(zoneId);
-  const cell = cellSize(zoneId);
-  const dot = Math.max(2, cell * 0.9);
-  return clampMarker(tile.x * cell, tile.y * cell, {
-    w: zone.width * cell,
-    h: zone.height * cell,
+  const unit = isoUnit(zoneId);
+  const dot = Math.max(2, unit * 0.32);
+  const point = isoMarker(zoneId, tile);
+  return clampMarker(point.x, point.y, {
+    w: (zone.width + zone.height) * unit,
+    h: (zone.width + zone.height) * unit / 2,
     radius: dot + 1,
   });
 }
@@ -98,19 +108,19 @@ describe("Minimap player marker", () => {
   it("places the marker at tileCoord * cell, not divided by TILE again", () => {
     const ctx = stubCanvas();
     const zoneId = useCampusStore.getState().currentZone;
-    const cell = cellSize(zoneId);
+    const unit = isoUnit(zoneId);
     useCampusStore.setState({ playerPosition: { x: 12, y: 9 } });
 
     render(<Minimap size={SIZE} />);
 
     expect(markerFor(ctx)).toEqual(expectedFor(zoneId, { x: 12, y: 9 }));
-    expect(markerFor(ctx)).toEqual({ x: 12 * cell, y: 9 * cell });
+    expect(markerFor(ctx)).toEqual(expectedFor(zoneId, { x: 12, y: 9 }));
   });
 
   it("tracks the player across successive tile positions", () => {
     const ctx = stubCanvas();
     const zoneId = useCampusStore.getState().currentZone;
-    const cell = cellSize(zoneId);
+    const unit = isoUnit(zoneId);
     const path = [
       { x: 0, y: 0 },
       { x: 4, y: 2 },
@@ -145,26 +155,26 @@ describe("Minimap player marker", () => {
     const ctx = stubCanvas();
     const raf = stubRaf();
     const zoneId = useCampusStore.getState().currentZone;
-    const cell = cellSize(zoneId);
+    const unit = isoUnit(zoneId);
 
     useCampusStore.setState({ playerPosition: { x: 4, y: 4 } });
     const view = render(<Minimap size={SIZE} />);
-    expect(markerFor(ctx)).toEqual({ x: 4 * cell, y: 4 * cell });
+    expect(markerFor(ctx)).toEqual(expectedFor(zoneId, { x: 4, y: 4 }));
 
     useCampusStore.setState({ playerPosition: { x: 14, y: 4 } });
     view.rerender(<Minimap size={SIZE} />);
 
     raf.tick();
     const mid = markerFor(ctx);
-    expect(mid.x).toBeGreaterThan(4 * cell);
-    expect(mid.x).toBeLessThan(14 * cell);
+    expect(mid.x).toBeGreaterThan(expectedFor(zoneId, { x: 4, y: 4 }).x);
+    expect(mid.x).toBeLessThan(expectedFor(zoneId, { x: 14, y: 4 }).x);
 
     // Pumping frames converges on the target and then stops requesting frames.
     let guard = 0;
     while (raf.tick() && guard++ < 200) {
       /* advance until settled */
     }
-    expect(markerFor(ctx).x).toBeCloseTo(14 * cell, 5);
+    expect(markerFor(ctx).x).toBeCloseTo(expectedFor(zoneId, { x: 14, y: 4 }).x, 5);
     expect(guard).toBeLessThan(200);
   });
 
@@ -181,7 +191,7 @@ describe("Minimap player marker", () => {
     const ctx = stubCanvas();
     const zoneId = useCampusStore.getState().currentZone;
     const zone = getZone(zoneId);
-    const cell = cellSize(zoneId);
+    const unit = isoUnit(zoneId);
     const corners = [
       { x: 0, y: 0 },
       { x: zone.width - 1, y: zone.height - 1 },
@@ -195,8 +205,8 @@ describe("Minimap player marker", () => {
       const m = markerFor(ctx);
       expect(m.x).toBeGreaterThan(0);
       expect(m.y).toBeGreaterThan(0);
-      expect(m.x).toBeLessThan(zone.width * cell);
-      expect(m.y).toBeLessThan(zone.height * cell);
+      expect(m.x).toBeLessThan((zone.width + zone.height) * unit);
+      expect(m.y).toBeLessThan((zone.width + zone.height) * unit / 2);
     }
   });
 

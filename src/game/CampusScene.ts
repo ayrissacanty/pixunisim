@@ -167,7 +167,8 @@ export class CampusScene extends Phaser.Scene {
     const scratch = document.createElement("canvas");
     scratch.width = TILE;
     scratch.height = TILE;
-    const sctx = scratch.getContext("2d")!;
+    const sctx = scratch.getContext("2d");
+    if (!sctx) return null;
     sctx.imageSmoothingEnabled = false;
 
     for (let y = 0; y < zone.height; y++) {
