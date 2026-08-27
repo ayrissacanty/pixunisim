@@ -209,8 +209,8 @@ export function Minimap({ size = 132 }: { size?: number }) {
       m.x += (player.x - m.x) * t;
       m.y += (player.y - m.y) * t;
       const settled =
-        Math.abs(player.x - m.x) * cell < SNAP_EPSILON &&
-        Math.abs(player.y - m.y) * cell < SNAP_EPSILON;
+        Math.abs(player.x - m.x) * unit < SNAP_EPSILON &&
+        Math.abs(player.y - m.y) * unit < SNAP_EPSILON;
       if (settled) {
         m.x = player.x;
         m.y = player.y;
