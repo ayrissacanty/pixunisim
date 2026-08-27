@@ -156,10 +156,12 @@ export function Minimap({ size = 132 }: { size?: number }) {
       const base = baseRef.current;
       if (base) ctx.drawImage(base, 0, 0, w, h);
 
-      // playerPosition is in tile coordinates, so multiply directly by cell,
-      // then clamp so edge tiles and collision overshoot stay on the map.
+      // playerPosition is in tile coordinates; project the tile *centre* the
+      // same way interactables and NPCs are projected so the dot sits on the
+      // same diamond the student occupies in the world.
       const dot = Math.max(2, unit * 0.32);
-      const markerAt = iso(marker.x, marker.y);
+      const markerAt = iso(marker.x + 0.5, marker.y + 0.5);
+
       const { x: px, y: py } = clampMarker(markerAt.x, markerAt.y, {
         w,
         h,
