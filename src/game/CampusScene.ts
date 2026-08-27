@@ -139,8 +139,8 @@ export class CampusScene extends Phaser.Scene {
     return {
       zone: this.zone?.id ?? "—",
       streaming: false,
-      placements: 0,
-      liveProps: 0,
+      placements: this.propImages.length,
+      liveProps: this.propImages.length,
       propSpawns: 0,
       propRecycles: 0,
       rooms: this.zone?.rooms.length ?? 0,
@@ -554,6 +554,7 @@ export class CampusScene extends Phaser.Scene {
       this.groundImage = this.add.image(0, 0, groundKey).setOrigin(0, 0).setDepth(-1);
     };
     drawGround();
+    this.renderOriginalProps(this.zone);
     this.styleUnsub?.();
     this.styleUnsub = useStyleStore.subscribe((s) => {
       this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? (s.style === "focus" ? "#6eaa58" : "#7ec850") : (s.style === "focus" ? "#e6dfc7" : "#fff0d2"));
@@ -676,6 +677,8 @@ export class CampusScene extends Phaser.Scene {
       this.styleUnsub?.();
       this.styleUnsub = undefined;
       this.groundImage = undefined;
+      this.propImages.forEach((image) => image.destroy());
+      this.propImages = [];
       this.debugGraphics?.destroy();
       this.debugGraphics = undefined;
       this.debugDynamic?.destroy();
