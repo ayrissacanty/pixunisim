@@ -13,6 +13,7 @@ import {
 } from "@/lib/campus/iso";
 import { useStyleStore, visualStyle } from "@/lib/a11y/style";
 import { getZone, type Interactable, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
+import { decorFor } from "@/lib/campus/decor";
 import { canStandBox } from "@/lib/campus/walkable";
 import { interactRadius, doorTriggerRadius } from "@/lib/a11y/assist";
 import { useCampusStore } from "@/lib/campus/store";
@@ -28,6 +29,7 @@ import {
   type CharacterLook,
   type SpriteDirection,
 } from "@/lib/campus/charart";
+import { ORIGINAL_ART, originalGroundKey, originalPropKey } from "@/lib/campus/isoart";
 
 const SPEED = 168;
 /** Pixels/sec^2 used to ease into and out of a walk so movement is not snappy. */
@@ -98,6 +100,7 @@ export class CampusScene extends Phaser.Scene {
   private mascotUnsub?: (() => void) | undefined;
   private styleUnsub?: (() => void) | undefined;
   private groundImage?: Phaser.GameObjects.Image | undefined;
+  private propImages: Phaser.GameObjects.Image[] = [];
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
@@ -136,8 +139,8 @@ export class CampusScene extends Phaser.Scene {
     return {
       zone: this.zone?.id ?? "—",
       streaming: false,
-      placements: 0,
-      liveProps: 0,
+      placements: this.propImages.length,
+      liveProps: this.propImages.length,
       propSpawns: 0,
       propRecycles: 0,
       rooms: this.zone?.rooms.length ?? 0,
@@ -172,8 +175,9 @@ export class CampusScene extends Phaser.Scene {
     const ctx = tex.context;
     ctx.imageSmoothingEnabled = false;
 
-    // Each tile is painted flat by the existing 2D tile art, then mapped onto
-    // its diamond footprint with a 2:1 isometric matrix.
+    // Original UNIFY ground paintings are sampled per cartesian tile and then
+    // projected. Uncovered indoor/object kinds still use the crisp procedural
+    // 32px renderer, so art never changes collision or room data.
     const scratch = document.createElement("canvas");
     scratch.width = TILE;
     scratch.height = TILE;
@@ -181,12 +185,31 @@ export class CampusScene extends Phaser.Scene {
     if (!sctx) return null;
     sctx.imageSmoothingEnabled = false;
 
-    for (let y = 0; y < zone.height; y++) {
-      for (let x = 0; x < zone.width; x++) {
+    for (let y = 0; y < zone.height; y += 1) {
+      for (let x = 0; x < zone.width; x += 1) {
+        const kind = zone.tiles[y]?.[x] as TileKind | undefined;
+        if (!kind) continue;
         sctx.setTransform(1, 0, 0, 1, 0, 0);
         sctx.clearRect(0, 0, TILE, TILE);
-        sctx.translate(-x * TILE, -y * TILE);
-        drawTile(sctx, zone.tiles[y]![x]! as TileKind, x, y, theme);
+        const originalKey = originalGroundKey(kind);
+        const source = originalKey ? this.textures.get(originalKey)?.source[0]?.image : undefined;
+        if (source) {
+          const sourceWidth = source.width || TILE;
+          const sourceHeight = source.height || TILE;
+          const sample = Math.min(96, sourceWidth, sourceHeight);
+          const maxX = Math.max(1, sourceWidth - sample);
+          const maxY = Math.max(1, sourceHeight - sample);
+          const sx = (x * 53 + y * 17) % maxX;
+          const sy = (y * 47 + x * 11) % maxY;
+          sctx.drawImage(source, sx, sy, sample, sample, 0, 0, TILE, TILE);
+          if (style === "focus") {
+            sctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+            sctx.fillRect(0, 0, TILE, TILE);
+          }
+        } else {
+          sctx.translate(-x * TILE, -y * TILE);
+          drawTile(sctx, kind, x, y, theme);
+        }
         const top = isoFromTile(x, y, zone.height);
         ctx.save();
         ctx.setTransform(1, 0.5, -1, 0.5, top.x, top.y);
@@ -197,6 +220,24 @@ export class CampusScene extends Phaser.Scene {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     tex.refresh();
     return key;
+  }
+
+  /** Places original transparent props at cartesian anchors, then depth-sorts them with actors. */
+  private renderOriginalProps(zone: ZoneMap) {
+    this.propImages.forEach((image) => image.destroy());
+    this.propImages = [];
+    for (const placement of decorFor(zone)) {
+      const key = originalPropKey(placement.frame);
+      if (!key || !this.textures.exists(key)) continue;
+      const at = this.iso(placement.px, placement.py);
+      const image = this.add
+        .image(at.x, at.y, key)
+        .setOrigin(0.5, 1)
+        // The source art is 816px square; 0.16 maps its 32px footprint to one tile.
+        .setScale(placement.scale * (TILE / 204))
+        .setDepth(at.y + 7);
+      this.propImages.push(image);
+    }
   }
 
   /** Screen position for a cartesian world-pixel coordinate. */
@@ -466,9 +507,11 @@ export class CampusScene extends Phaser.Scene {
         ? zoneId && getZone(zoneId).kind === "interior"
           ? "interior"
           : "zone"
-        : key.startsWith("char-")
-          ? "character"
-          : "system";
+        : key.startsWith("unify-")
+          ? "zone"
+          : key.startsWith("char-")
+            ? "character"
+            : "system";
       entries.push({
         key,
         group,
@@ -497,6 +540,12 @@ export class CampusScene extends Phaser.Scene {
    * Lifecycle
    * ---------------------------------------------------------------- */
 
+  preload() {
+    for (const [key, url] of Object.entries(ORIGINAL_ART)) {
+      if (!this.textures.exists(key)) this.load.image(key, url);
+    }
+  }
+
   create(data: { zoneId: string; x: number; y: number }) {
     this.zone = getZone(data.zoneId);
     this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#7ec850" : "#fff0d2");
@@ -508,6 +557,7 @@ export class CampusScene extends Phaser.Scene {
       this.groundImage = this.add.image(0, 0, groundKey).setOrigin(0, 0).setDepth(-1);
     };
     drawGround();
+    this.renderOriginalProps(this.zone);
     this.styleUnsub?.();
     this.styleUnsub = useStyleStore.subscribe((s) => {
       this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? (s.style === "focus" ? "#6eaa58" : "#7ec850") : (s.style === "focus" ? "#e6dfc7" : "#fff0d2"));
@@ -630,6 +680,8 @@ export class CampusScene extends Phaser.Scene {
       this.styleUnsub?.();
       this.styleUnsub = undefined;
       this.groundImage = undefined;
+      this.propImages.forEach((image) => image.destroy());
+      this.propImages = [];
       this.debugGraphics?.destroy();
       this.debugGraphics = undefined;
       this.debugDynamic?.destroy();
