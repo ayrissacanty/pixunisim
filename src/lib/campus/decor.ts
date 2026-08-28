@@ -72,7 +72,9 @@ export function decorFor(zone: ZoneMap): DecorPlacement[] {
         px: x * TILE + TILE / 2,
         py: (y + 1) * TILE,
         scale: pool === STRUCTURE || pool === GROVE ? 0.72 : 0.6,
-        solid: pool === STRUCTURE || pool === GROVE || pool === WATER_SIDE,
+        // Every scattered prop is a physical object: only flat flower beds
+        // can be walked over.
+        solid: frame !== "flower",
       });
       reserve(x, y, 1);
     }

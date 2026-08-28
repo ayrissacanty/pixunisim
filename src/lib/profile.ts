@@ -3,6 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_AVATAR, type CharacterId } from "@/lib/characters";
 import { DEFAULT_PORTRAIT, normalizePortrait, type Portrait } from "@/lib/portrait";
 import {
+  DEFAULT_APPEARANCE,
+  normalizeAppearance,
+  useAppearanceStore,
+  type Appearance,
+} from "@/lib/campus/appearance";
+import {
   DEFAULT_MASCOT,
   normalizeMascot,
   useMascotStore,
@@ -15,6 +21,7 @@ export interface Profile {
   avatar: CharacterId;
   portrait: Portrait;
   mascot: Mascot;
+  appearance: Appearance;
 }
 
 export function useProfile() {
@@ -26,19 +33,24 @@ export function useProfile() {
       if (!uid) return null;
       const { data } = await supabase
         .from("profiles")
-        .select("id, display_name, avatar, portrait, mascot_color, mascot_accessory")
+        .select("id, display_name, avatar, portrait, mascot_color, mascot_accessory, character_look")
         .eq("id", uid)
         .maybeSingle();
       if (!data) return null;
       const mascot = normalizeMascot(data.mascot_color, data.mascot_accessory);
       // Mirror into the store so the Phaser scene can read it synchronously.
       useMascotStore.getState().setMascot(mascot);
+      const appearance = normalizeAppearance(
+        (data as { character_look?: unknown }).character_look,
+      );
+      useAppearanceStore.getState().setAppearance(appearance);
       return {
         id: data.id,
         display_name: data.display_name,
         avatar: (data.avatar as CharacterId) ?? DEFAULT_AVATAR,
         portrait: normalizePortrait(data.portrait),
         mascot,
+        appearance,
       };
     },
   });
@@ -60,6 +72,31 @@ export function usePortrait(): Portrait {
 export function useMascot(): Mascot {
   const { data } = useProfile();
   return data?.mascot ?? DEFAULT_MASCOT;
+}
+
+/** The student's campus character appearance (skin, hair, outfit). */
+export function useAppearance(): Appearance {
+  const { data } = useProfile();
+  return data?.appearance ?? DEFAULT_APPEARANCE;
+}
+
+export function useSaveAppearance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (appearance: Appearance) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      if (!uid) throw new Error("Not signed in");
+      const { error } = await supabase
+        .from("profiles")
+        .update({ character_look: appearance } as never)
+        .eq("id", uid);
+      if (error) throw error;
+      useAppearanceStore.getState().setAppearance(appearance);
+      return appearance;
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["profile"] }),
+  });
 }
 
 export function useSaveMascot() {

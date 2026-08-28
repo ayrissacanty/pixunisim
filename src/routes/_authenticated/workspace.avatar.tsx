@@ -8,7 +8,16 @@ import {
   useSaveAvatar,
   useSaveMascot,
   useSavePortrait,
+  useAppearance,
+  useSaveAppearance,
 } from "@/lib/profile";
+import {
+  APPEARANCE_STYLES,
+  APPEARANCE_SWATCHES,
+  HAIR_STYLE_LABELS,
+  type Appearance,
+} from "@/lib/campus/appearance";
+import { CampusCharacterPreview } from "@/components/campus/CampusCharacterPreview";
 import { MASCOT_ACCESSORIES, MASCOT_COLORS, type Mascot } from "@/lib/mascot";
 import { MascotView } from "@/components/campus/MascotView";
 import { CharacterAvatar } from "@/components/campus/CharacterAvatar";
@@ -106,9 +115,112 @@ function AvatarPicker() {
         </div>
       </div>
 
+      <CampusLookCustomizer />
       <MascotCustomizer />
       <PortraitCustomizer />
     </main>
+  );
+}
+
+const SWATCH_LABELS: Record<keyof typeof APPEARANCE_SWATCHES, string> = {
+  skin: "Skin tone",
+  hair: "Hair colour",
+  shirt: "Top",
+  pants: "Bottoms",
+  shoes: "Shoes",
+  accent: "Trim",
+};
+
+/** Full head-to-toe customization of the hand-drawn campus character. */
+function CampusLookCustomizer() {
+  const savedLook = useAppearance();
+  const [draft, setDraft] = useState<Appearance | null>(null);
+  const look = draft ?? savedLook;
+  const save = useSaveAppearance();
+  const dirty = (Object.keys(look) as (keyof Appearance)[]).some((k) => look[k] !== savedLook[k]);
+
+  return (
+    <section className="mt-10 border-t border-border pt-8">
+      <h2 className="text-2xl font-bold">Your campus character</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Style the hand-drawn student who walks around campus — skin, hair, and outfit are all yours.
+      </p>
+
+      <div className="mt-6 grid gap-6 md:grid-cols-[220px_1fr]">
+        <div className="flex items-center justify-center rounded-md border border-border bg-sage/20 p-4">
+          <CampusCharacterPreview appearance={look} size={170} />
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-accent">Hair style</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {APPEARANCE_STYLES.map((style) => {
+                const active = look.hairStyle === style;
+                return (
+                  <button
+                    key={style}
+                    type="button"
+                    data-testid={`look-hairstyle-${style}`}
+                    data-active={active}
+                    aria-pressed={active}
+                    onClick={() => setDraft({ ...look, hairStyle: style })}
+                    className={`rounded-md border px-3 py-1.5 text-xs transition ${
+                      active
+                        ? "border-accent bg-accent/10 text-foreground"
+                        : "border-border bg-card text-muted-foreground hover:border-accent/60"
+                    }`}
+                  >
+                    {HAIR_STYLE_LABELS[style]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {(Object.keys(APPEARANCE_SWATCHES) as (keyof typeof APPEARANCE_SWATCHES)[]).map((slot) => (
+            <div key={slot}>
+              <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+                {SWATCH_LABELS[slot]}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {APPEARANCE_SWATCHES[slot].map((color, index) => {
+                  const active = look[slot] === index;
+                  return (
+                    <button
+                      key={`${slot}-${index}`}
+                      type="button"
+                      data-testid={`look-${slot}-${index}`}
+                      data-active={active}
+                      aria-pressed={active}
+                      aria-label={`${SWATCH_LABELS[slot]} option ${index + 1}`}
+                      onClick={() => setDraft({ ...look, [slot]: index })}
+                      className={`size-8 rounded-full border-2 transition ${
+                        active ? "border-accent scale-110" : "border-border hover:border-accent/60"
+                      }`}
+                      style={{ backgroundColor: `#${color.toString(16).padStart(6, "0")}` }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          <Button
+            data-testid="save-look"
+            disabled={save.isPending || !dirty}
+            onClick={() =>
+              save.mutate(look, {
+                onSuccess: () => toast.success("Character look saved."),
+                onError: () => toast.error("Could not save your character look."),
+              })
+            }
+          >
+            {dirty ? "Save look" : "Saved"}
+          </Button>
+        </div>
+      </div>
+    </section>
   );
 }
 

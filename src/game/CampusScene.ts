@@ -37,10 +37,17 @@ import { interactRadius, doorTriggerRadius } from "@/lib/a11y/assist";
 import { useCampusStore } from "@/lib/campus/store";
 import { debugEnabled } from "@/lib/debug";
 import { bobScale, cameraLerp, useMotionStore } from "@/lib/a11y/motion";
+import {
+  appearanceKey,
+  currentAppearance,
+  lookFromAppearance,
+  useAppearanceStore,
+} from "@/lib/campus/appearance";
 import { currentMascot, mascotAccessoryOf, mascotColorOf, useMascotStore } from "@/lib/mascot";
 import { isWalkableTile, reachabilityReport } from "@/lib/campus/walkable";
 import {
   ensureCharacterAnims,
+  CHAR_RENDER_SCALE,
   ensureCharacterTexture,
   idleFrame,
   lookFor,
@@ -115,6 +122,7 @@ export class CampusScene extends Phaser.Scene {
   /** Doors re-arm only after the player has stepped clear of the trigger. */
   private doorArmed = false;
   private motionUnsub?: (() => void) | undefined;
+  private appearanceUnsub?: (() => void) | undefined;
   private mascotUnsub?: (() => void) | undefined;
   private styleUnsub?: (() => void) | undefined;
   private groundImage?: Phaser.GameObjects.Image | undefined;
@@ -1147,13 +1155,12 @@ export class CampusScene extends Phaser.Scene {
     this.applyMascotAccessory(mascot.accessory);
     this.mascotUnsub?.();
     this.mascotUnsub = useMascotStore.subscribe((s) => {
-      if (!this.player) return;
-      const key = this.playerTextureKey(s.mascot.color);
-      ensureCharacterTexture(this, key, this.playerLook(s.mascot.color));
-      ensureCharacterAnims(this, key);
-      this.player.key = key;
-      this.player.sprite.setTexture(key, idleFrame(this.facing));
+      this.refreshPlayerTexture(s.mascot.color);
       this.applyMascotAccessory(s.mascot.accessory);
+    });
+    this.appearanceUnsub?.();
+    this.appearanceUnsub = useAppearanceStore.subscribe(() => {
+      this.refreshPlayerTexture(currentMascot().color);
     });
 
     this.vx = 0;
@@ -1189,6 +1196,8 @@ export class CampusScene extends Phaser.Scene {
       this.motionUnsub = undefined;
       this.mascotUnsub?.();
       this.mascotUnsub = undefined;
+      this.appearanceUnsub?.();
+      this.appearanceUnsub = undefined;
       this.styleUnsub?.();
       this.styleUnsub = undefined;
       this.groundImage = undefined;
@@ -1297,12 +1306,23 @@ export class CampusScene extends Phaser.Scene {
    * ---------------------------------------------------------------- */
 
   private playerTextureKey(color: string) {
-    return `player-${color}`;
+    return `${appearanceKey(currentAppearance())}-${color}`;
   }
 
   private playerLook(color: string): CharacterLook {
-    const base = lookFor("unify-player", "student");
-    return { ...base, shirt: mascotColorOf(color).hex };
+    // The student's saved customization drives everything; the mascot colour
+    // just tints the shirt so pet and student stay coordinated.
+    return { ...lookFromAppearance(currentAppearance()), shirt: mascotColorOf(color).hex };
+  }
+
+  /** Rebuilds the player sheet after appearance or mascot changes. */
+  private refreshPlayerTexture(color: string) {
+    if (!this.player) return;
+    const key = this.playerTextureKey(color);
+    ensureCharacterTexture(this, key, this.playerLook(color));
+    ensureCharacterAnims(this, key);
+    this.player.key = key;
+    this.player.sprite.setTexture(key, idleFrame(this.facing));
   }
 
   private makeActor(
@@ -1318,9 +1338,10 @@ export class CampusScene extends Phaser.Scene {
     const sprite = this.add
       .sprite(at.x, at.y, key, idleFrame("down"))
       .setOrigin(0.5, 0.86)
+      .setScale(CHAR_RENDER_SCALE)
       .setDepth(actorDepth(px, py));
     const text = this.add
-      .text(at.x, at.y - 34, label, { fontFamily: "monospace", fontSize: "10px", color: "#fff3d8" })
+      .text(at.x, at.y - 38, label, { fontFamily: "monospace", fontSize: "10px", color: "#fff3d8" })
       .setOrigin(0.5)
       .setPadding(3, 1, 3, 1)
       .setBackgroundColor("#3a241caa")
@@ -1335,7 +1356,7 @@ export class CampusScene extends Phaser.Scene {
     const at = this.iso(px, py);
     actor.sprite.setPosition(at.x, at.y);
     actor.sprite.setDepth(actorDepth(px, py));
-    actor.label.setPosition(at.x, at.y - 34);
+    actor.label.setPosition(at.x, at.y - 38);
     actor.label.setDepth(actorDepth(px, py, DEPTH_BIAS.label));
     actor.badge?.setPosition(at.x, at.y - 24);
     actor.badge?.setDepth(actorDepth(px, py, DEPTH_BIAS.label));
