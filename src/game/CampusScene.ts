@@ -1196,6 +1196,8 @@ export class CampusScene extends Phaser.Scene {
       this.motionUnsub = undefined;
       this.mascotUnsub?.();
       this.mascotUnsub = undefined;
+      this.appearanceUnsub?.();
+      this.appearanceUnsub = undefined;
       this.styleUnsub?.();
       this.styleUnsub = undefined;
       this.groundImage = undefined;
