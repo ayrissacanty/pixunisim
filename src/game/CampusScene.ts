@@ -103,6 +103,9 @@ export class CampusScene extends Phaser.Scene {
   private styleUnsub?: (() => void) | undefined;
   private groundImage?: Phaser.GameObjects.Image | undefined;
   private propImages: Phaser.GameObjects.Image[] = [];
+  /** True once the hand-painted ground/prop art has finished streaming in. */
+  private artReady = false;
+
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
@@ -169,7 +172,7 @@ export class CampusScene extends Phaser.Scene {
   /** Bakes the whole zone into one isometric canvas texture. */
   private bakeZone(zone: ZoneMap, style = visualStyle()): string | null {
     const theme = paintTheme(zone.id, style);
-    const key = `zone-iso-${zone.id}-${themeKey(theme)}`;
+    const key = `zone-iso-${zone.id}-${themeKey(theme)}-${this.artReady ? "art" : "plain"}`;
     if (this.textures.exists(key)) return key;
     const size = isoCanvasSize(zone.width, zone.height);
     const tex = this.textures.createCanvas(key, size.width, size.height);
@@ -209,8 +212,27 @@ export class CampusScene extends Phaser.Scene {
           const sx = (x * 53 + y * 17) % maxX;
           const sy = (y * 47 + x * 11) % maxY;
           sctx.drawImage(source, sx, sy, sample, sample, 0, 0, TILE, TILE);
+          // Recolour the painted ground with the zone/style palette so the
+          // Bright/Focus toggle and per-zone tints stay visible on photo art:
+          // "color" keeps the painting's luminance but takes the themed hue.
+          const themed = themedColors(kind, theme);
+          sctx.save();
+          sctx.globalCompositeOperation = "color";
+          sctx.globalAlpha = style === "focus" ? 0.9 : 0.6;
+          sctx.fillStyle = hex(themed.base);
+          sctx.fillRect(0, 0, TILE, TILE);
+          sctx.restore();
+          // Paved kinds keep their theme path pattern (cobble, herringbone,
+          // boardwalk) layered over the painting.
+          if (kind === "path" || kind === "brick") {
+            sctx.save();
+            sctx.globalAlpha = 0.45;
+            sctx.translate(-x * TILE, -y * TILE);
+            drawGroundBed(sctx, kind, x, y, theme);
+            sctx.restore();
+          }
           if (style === "focus") {
-            sctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+            sctx.fillStyle = "rgba(240, 244, 236, 0.16)";
             sctx.fillRect(0, 0, TILE, TILE);
           }
         } else {
@@ -218,6 +240,7 @@ export class CampusScene extends Phaser.Scene {
           if (flat) drawTile(sctx, kind, x, y, theme);
           else drawGroundBed(sctx, kind, x, y, theme);
         }
+
         const top = isoFromTile(x, y, zone.height);
         ctx.save();
         ctx.setTransform(1, 0.5, -1, 0.5, top.x, top.y);
@@ -681,10 +704,23 @@ export class CampusScene extends Phaser.Scene {
    * Lifecycle
    * ---------------------------------------------------------------- */
 
-  preload() {
-    for (const [key, url] of Object.entries(ORIGINAL_ART)) {
-      if (!this.textures.exists(key)) this.load.image(key, url);
+  /**
+   * The hand-painted art is several megabytes, so it is NOT preloaded: the
+   * world paints instantly with the procedural 32px renderer and swaps to the
+   * paintings in the background once they arrive.
+   */
+  private loadOriginalArt(onReady: () => void) {
+    const pending = Object.entries(ORIGINAL_ART).filter(([key]) => !this.textures.exists(key));
+    if (pending.length === 0) {
+      this.artReady = true;
+      return;
     }
+    for (const [key, url] of pending) this.load.image(key, url);
+    this.load.once(Phaser.Loader.Events.COMPLETE, () => {
+      this.artReady = true;
+      onReady();
+    });
+    this.load.start();
   }
 
   create(data: { zoneId: string; x: number; y: number }) {
@@ -699,6 +735,12 @@ export class CampusScene extends Phaser.Scene {
     };
     drawGround();
     this.renderIsoObjects(this.zone);
+    this.loadOriginalArt(() => {
+      if (!this.scene.isActive()) return;
+      drawGround();
+      this.renderIsoObjects(this.zone);
+    });
+
     this.styleUnsub?.();
     this.styleUnsub = useStyleStore.subscribe((s) => {
       this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? (s.style === "focus" ? "#6eaa58" : "#7ec850") : (s.style === "focus" ? "#e6dfc7" : "#fff0d2"));
