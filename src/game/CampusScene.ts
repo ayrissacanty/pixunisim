@@ -456,6 +456,11 @@ export class CampusScene extends Phaser.Scene {
       g.fillStyle(color, alpha);
       g.fillPoints(pts, true, true);
     };
+    const ink = (pts: Phaser.Math.Vector2[], alpha = 0.82) => {
+      g.lineStyle(1, 0x3b2418, alpha);
+      g.strokePoints([...pts, pts[0]!], false);
+    };
+    const facadeSeed = (fp.x * 17 + fp.y * 31 + fp.w * 13 + fp.h * 7) % 3;
 
     const { x, y, w, h } = fp;
     const A = (l = 0) => p(x, y, l); // north
