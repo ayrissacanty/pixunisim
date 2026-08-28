@@ -103,6 +103,9 @@ export class CampusScene extends Phaser.Scene {
   private styleUnsub?: (() => void) | undefined;
   private groundImage?: Phaser.GameObjects.Image | undefined;
   private propImages: Phaser.GameObjects.Image[] = [];
+  /** True once the hand-painted ground/prop art has finished streaming in. */
+  private artReady = false;
+
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
