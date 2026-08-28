@@ -13,12 +13,13 @@ import type { ZoneMap } from "./world";
 export type IsoLayer = "ground" | "block" | "prop";
 
 const BLOCKS: Partial<Record<TileKind, number>> = {
-  // value = extrusion height in tiles
-  wall: 1,
-  buildingWall: 1.15,
-  buildingRoof: 1.5,
-  window: 1.15,
+  // value = extrusion height in tiles (1 tile ≈ one storey)
+  wall: 1.1,
+  buildingWall: 2.9,
+  buildingRoof: 3.5,
+  window: 2.9,
 };
+
 
 /**
  * Ground-hugging objects. They read better painted flat onto the tile diamond
@@ -107,6 +108,71 @@ export function isoObjectsFor(zone: ZoneMap): IsoObject[] {
   }
   // Painter's order: far tiles first. Depth values still drive Phaser sorting,
   // this simply keeps creation order predictable for tests and debugging.
+  out.sort((a, b) => a.x + a.y - (b.x + b.y));
+  return out;
+}
+
+/** Tile kinds that are part of a building shell (walls, glazing, roofs). */
+const BUILDING_KINDS = new Set<TileKind>(["buildingWall", "buildingRoof", "window"]);
+
+export function isBuildingKind(kind: TileKind): boolean {
+  return BUILDING_KINDS.has(kind);
+}
+
+export interface BuildingFootprint {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Tiles of the footprint that carry glazing, used to place window rows. */
+  hasWindows: boolean;
+}
+
+/**
+ * Groups contiguous building tiles into whole-structure footprints so the
+ * renderer can extrude ONE solid volume per building (walls + roof) instead of
+ * a grid of separate cubes.
+ */
+export function buildingFootprints(zone: ZoneMap): BuildingFootprint[] {
+  const seen = new Set<string>();
+  const out: BuildingFootprint[] = [];
+  const at = (x: number, y: number) => zone.tiles[y]?.[x];
+
+  for (let y = 0; y < zone.height; y += 1) {
+    for (let x = 0; x < zone.width; x += 1) {
+      const kind = at(x, y);
+      if (!kind || !BUILDING_KINDS.has(kind) || seen.has(`${x},${y}`)) continue;
+      // Flood fill the connected structure.
+      const stack = [[x, y] as const];
+      let x0 = x;
+      let x1 = x;
+      let y0 = y;
+      let y1 = y;
+      let hasWindows = false;
+      seen.add(`${x},${y}`);
+      while (stack.length) {
+        const [cx, cy] = stack.pop()!;
+        const k = at(cx, cy)!;
+        if (k === "window") hasWindows = true;
+        x0 = Math.min(x0, cx);
+        x1 = Math.max(x1, cx);
+        y0 = Math.min(y0, cy);
+        y1 = Math.max(y1, cy);
+        for (const [nx, ny] of [
+          [cx + 1, cy],
+          [cx - 1, cy],
+          [cx, cy + 1],
+          [cx, cy - 1],
+        ] as const) {
+          const nk = at(nx, ny);
+          if (!nk || !BUILDING_KINDS.has(nk) || seen.has(`${nx},${ny}`)) continue;
+          seen.add(`${nx},${ny}`);
+          stack.push([nx, ny]);
+        }
+      }
+      out.push({ x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1, hasWindows });
+    }
+  }
   out.sort((a, b) => a.x + a.y - (b.x + b.y));
   return out;
 }

@@ -1,7 +1,17 @@
 import Phaser from "phaser";
 import { TILE, type TileKind } from "@/lib/campus/tiles";
 import { OUTLINE, drawGroundBed, drawTile, drawTileObject, hex, shadeColor } from "@/lib/campus/tileart";
-import { blockHeight, bedKindFor, isFlatObject, isoLayerFor, isoObjectsFor, propHeight } from "@/lib/campus/isoprops";
+import {
+  blockHeight,
+  bedKindFor,
+  buildingFootprints,
+  isBuildingKind,
+  isFlatObject,
+  isoLayerFor,
+  isoObjectsFor,
+  propHeight,
+  type BuildingFootprint,
+} from "@/lib/campus/isoprops";
 import { footprintDepth, isoDepth, actorDepth, DEPTH_BIAS, GROUND_DEPTH, OVERLAY_DEPTH } from "@/lib/campus/depth";
 import { paintTheme, themeKey, themedColors } from "@/lib/campus/themes";
 import {
@@ -109,6 +119,8 @@ export class CampusScene extends Phaser.Scene {
   private styleUnsub?: (() => void) | undefined;
   private groundImage?: Phaser.GameObjects.Image | undefined;
   private propImages: Phaser.GameObjects.Image[] = [];
+  /** One graphics volume per building structure (walls + roof). */
+  private buildingShapes: Phaser.GameObjects.Graphics[] = [];
   /** Decor sprites (subset of propImages) paired with their placement data. */
   private decorSprites: { image: Phaser.GameObjects.Image; placement: DecorPlacement }[] = [];
   private propEditorOn = false;
@@ -283,33 +295,36 @@ export class CampusScene extends Phaser.Scene {
 
     const colors = themedColors(kind, theme);
     const top = hex(colors.base);
-    const left = shadeColor(colors.base, -0.22);
-    const right = shadeColor(colors.base, -0.38);
+    const left = shadeColor(colors.base, -0.18);
+    const right = shadeColor(colors.base, -0.4);
     const bottomY = height;
     const midY = height - ISO_H / 2;
     const topApex = bottomY - ISO_H - rise;
+    const isBuilding = kind === "buildingWall" || kind === "window" || kind === "buildingRoof";
 
-    // Left face.
-    ctx.fillStyle = left;
-    ctx.beginPath();
-    ctx.moveTo(0, midY);
-    ctx.lineTo(ISO_W / 2, bottomY);
-    ctx.lineTo(ISO_W / 2, bottomY - rise);
-    ctx.lineTo(0, midY - rise);
-    ctx.closePath();
-    ctx.fill();
+    /** Point on the left facade: t across (0..1), h up from the ground vertex. */
+    const lp = (t: number, h: number) => ({ x: (ISO_W / 2) * t, y: midY + (ISO_H / 2) * t - h });
+    /** Point on the right facade: t across (0..1) from the near vertex. */
+    const rp = (t: number, h: number) => ({
+      x: ISO_W / 2 + (ISO_W / 2) * t,
+      y: bottomY - (ISO_H / 2) * t - h,
+    });
+    const quad = (pts: { x: number; y: number }[], fill: string, alpha = 1) => {
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = fill;
+      ctx.beginPath();
+      ctx.moveTo(pts[0]!.x, pts[0]!.y);
+      for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i]!.x, pts[i]!.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    };
 
+    // Left face (t goes from the near vertex outwards to the left corner).
+    quad([lp(0, 0), lp(1, 0), lp(1, rise), lp(0, rise)], left);
     // Right face.
-    ctx.fillStyle = right;
-    ctx.beginPath();
-    ctx.moveTo(ISO_W, midY);
-    ctx.lineTo(ISO_W / 2, bottomY);
-    ctx.lineTo(ISO_W / 2, bottomY - rise);
-    ctx.lineTo(ISO_W, midY - rise);
-    ctx.closePath();
-    ctx.fill();
-
-    // Top face.
+    quad([rp(0, 0), rp(1, 0), rp(1, rise), rp(0, rise)], right);
+    // Top face (the diamond cap).
     ctx.fillStyle = top;
     ctx.beginPath();
     ctx.moveTo(ISO_W / 2, topApex);
@@ -319,19 +334,59 @@ export class CampusScene extends Phaser.Scene {
     ctx.closePath();
     ctx.fill();
 
-    // Detail band: glazing for windows, shingle line for roofs.
-    if (colors.detail !== undefined) {
-      ctx.fillStyle = hex(colors.detail);
-      ctx.globalAlpha = kind === "window" ? 0.9 : 0.35;
-      ctx.beginPath();
-      ctx.moveTo(0, midY - rise * 0.55);
-      ctx.lineTo(ISO_W / 2, bottomY - rise * 0.55);
-      ctx.lineTo(ISO_W / 2, bottomY - rise * 0.8);
-      ctx.lineTo(0, midY - rise * 0.8);
-      ctx.closePath();
-      ctx.fill();
-      ctx.globalAlpha = 1;
+    if (isBuilding) {
+      const storeys = Math.max(1, Math.round(rise / ISO_H));
+      const glassLeft = colors.detail !== undefined ? hex(colors.detail) : "#cfe6f2";
+      const glassRight = shadeColor(colors.detail ?? colors.base, -0.2);
+
+      for (let s = 0; s < storeys; s += 1) {
+        const base = (rise / storeys) * s;
+        const wTop = base + (rise / storeys) * 0.78;
+        const wBot = base + (rise / storeys) * 0.3;
+        // Two windows per facade per storey.
+        for (const [a, b] of [
+          [0.16, 0.44],
+          [0.56, 0.84],
+        ] as const) {
+          quad([lp(a, wBot), lp(b, wBot), lp(b, wTop), lp(a, wTop)], glassLeft, 0.85);
+          quad([rp(a, wBot), rp(b, wBot), rp(b, wTop), rp(a, wTop)], glassRight, 0.85);
+        }
+        // Floor-slab band between storeys.
+        if (s > 0) {
+          const y0 = base - 1.5;
+          const y1 = base + 1.5;
+          quad([lp(0, y0), lp(1, y0), lp(1, y1), lp(0, y1)], shadeColor(colors.base, -0.05), 0.6);
+          quad([rp(0, y0), rp(1, y0), rp(1, y1), rp(0, y1)], shadeColor(colors.base, -0.28), 0.6);
+        }
+      }
+      // Cornice under the roofline and a plinth at street level.
+      quad(
+        [lp(0, rise - 4), lp(1, rise - 4), lp(1, rise), lp(0, rise)],
+        shadeColor(colors.base, 0.12),
+        0.8,
+      );
+      quad(
+        [rp(0, rise - 4), rp(1, rise - 4), rp(1, rise), rp(0, rise)],
+        shadeColor(colors.base, -0.14),
+        0.8,
+      );
+      quad([lp(0, 0), lp(1, 0), lp(1, 5), lp(0, 5)], shadeColor(colors.base, -0.34), 0.75);
+      quad([rp(0, 0), rp(1, 0), rp(1, 5), rp(0, 5)], shadeColor(colors.base, -0.5), 0.75);
+    } else if (colors.detail !== undefined) {
+      quad(
+        [lp(0, rise * 0.55), lp(1, rise * 0.55), lp(1, rise * 0.8), lp(0, rise * 0.8)],
+        hex(colors.detail),
+        0.4,
+      );
     }
+
+    // Vertical corner seam adds a readable edge between the two facades.
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(ISO_W / 2, bottomY);
+    ctx.lineTo(ISO_W / 2, bottomY - rise);
+    ctx.stroke();
 
     // 1px dark contour keeps the storybook outline language.
     ctx.strokeStyle = OUTLINE;
@@ -350,6 +405,7 @@ export class CampusScene extends Phaser.Scene {
     return key;
   }
 
+
   /** Builds (and caches) a transparent billboard texture for a prop tile kind. */
   private propTexture(kind: TileKind, theme: ReturnType<typeof paintTheme>): string | null {
     const key = `iso-prop-${kind}-${themeKey(theme)}`;
@@ -364,6 +420,122 @@ export class CampusScene extends Phaser.Scene {
   }
 
   /**
+   * Extrudes ONE building volume for a whole footprint: solid walls with
+   * storey-high window rows plus a pitched hip roof, so a structure reads as a
+   * real building instead of a grid of separate cubes lying on the ground.
+   */
+  private drawBuilding(
+    zone: ZoneMap,
+    fp: BuildingFootprint,
+    theme: ReturnType<typeof paintTheme>,
+  ) {
+    const wall = themedColors("buildingWall", theme);
+    const roof = themedColors("buildingRoof", theme);
+    const glassBase = themedColors("window", theme);
+    const glass = glassBase.detail ?? glassBase.base;
+
+    const H = blockHeight("buildingWall") * ISO_H;
+    const R = ISO_H * (1 + Math.min(fp.w, fp.h) * 0.18);
+
+    const p = (u: number, v: number, lift = 0) => {
+      const s = isoFromTile(u, v, zone.height);
+      return new Phaser.Math.Vector2(s.x, s.y - lift);
+    };
+    const g = this.add.graphics();
+    const face = (pts: Phaser.Math.Vector2[], color: number, alpha = 1) => {
+      g.fillStyle(color, alpha);
+      g.fillPoints(pts, true, true);
+    };
+
+    const { x, y, w, h } = fp;
+    const A = (l = 0) => p(x, y, l); // north
+    const B = (l = 0) => p(x + w, y, l); // east
+    const C = (l = 0) => p(x + w, y + h, l); // south (nearest camera)
+    const D = (l = 0) => p(x, y + h, l); // west
+
+    // --- Roof (drawn first; the walls in front of it overlap correctly) ---
+    const ridgeLift = H + R;
+    let r1: Phaser.Math.Vector2;
+    let r2: Phaser.Math.Vector2;
+    if (w >= h) {
+      r1 = p(x + h / 2, y + h / 2, ridgeLift);
+      r2 = p(x + w - h / 2, y + h / 2, ridgeLift);
+    } else {
+      r1 = p(x + w / 2, y + w / 2, ridgeLift);
+      r2 = p(x + w / 2, y + h - w / 2, ridgeLift);
+    }
+    const eaveN = A(H);
+    const eaveE = B(H);
+    const eaveS = C(H);
+    const eaveW = D(H);
+    // Far slopes first, near slopes last; near slopes catch more light.
+    face([eaveN, eaveE, r2, r1], roof.base);
+    face([eaveN, eaveE, r2, r1], 0x000000, 0.25);
+    face([eaveN, eaveW, r1], roof.base);
+    face([eaveN, eaveW, r1], 0x000000, 0.18);
+    face([eaveE, eaveS, r2], roof.base);
+    face([eaveE, eaveS, r2], 0x000000, 0.12);
+    face([eaveS, eaveW, r1, r2], roof.base);
+    face([eaveS, eaveW, r1, r2], 0xffffff, 0.08);
+
+
+    // --- Walls: the two camera-facing faces ---
+    face([B(), C(), C(H), B(H)], wall.base, 1); // right / east face
+    face([C(), D(), D(H), C(H)], wall.base, 1); // left / south-west face
+    // Directional shading: the east face sits in shadow.
+    face([B(), C(), C(H), B(H)], 0x000000, 0.22);
+    face([C(), D(), D(H), C(H)], 0x000000, 0.06);
+
+    // --- Storey window rows on both visible faces ---
+    const storeys = Math.max(1, Math.round(H / ISO_H));
+    const winRow = (
+      from: (t: number, lift: number) => Phaser.Math.Vector2,
+      span: number,
+      shade: number,
+    ) => {
+      for (let s = 0; s < storeys; s += 1) {
+        const bottom = (H / storeys) * s + (H / storeys) * 0.28;
+        const top = (H / storeys) * s + (H / storeys) * 0.76;
+        for (let t = 0; t < span; t += 1) {
+          for (const [a, b] of [
+            [0.18, 0.44],
+            [0.56, 0.82],
+          ] as const) {
+            const t0 = t + a;
+            const t1 = t + b;
+            face(
+              [from(t0, bottom), from(t1, bottom), from(t1, top), from(t0, top)],
+              glass,
+              0.9,
+            );
+            face(
+              [from(t0, bottom), from(t1, bottom), from(t1, top), from(t0, top)],
+              0x000000,
+              shade,
+            );
+          }
+        }
+      }
+      // Cornice just under the eaves.
+      face([from(0, H - 5), from(span, H - 5), from(span, H), from(0, H)], 0xffffff, 0.12);
+      // Plinth at street level.
+      face([from(0, 0), from(span, 0), from(span, 6), from(0, 6)], 0x000000, 0.25);
+    };
+    // East face runs along v, west/south face runs along u.
+    winRow((t, lift) => p(x + w, y + t, lift), h, 0.25);
+    winRow((t, lift) => p(x + w - t, y + h, lift), w, 0.06);
+
+    // Corner seam + silhouette outline.
+    g.lineStyle(1, 0x000000, 0.35);
+    g.strokePoints([C(), C(H)], false);
+    g.lineStyle(1, Phaser.Display.Color.HexStringToColor(OUTLINE).color, 1);
+    g.strokePoints([D(), C(), B(), B(H), eaveE, r2, r1, eaveW, D(H), D()], false);
+
+    g.setDepth(footprintDepth(fp.x, fp.y, fp.w, fp.h));
+    this.buildingShapes.push(g);
+  }
+
+  /**
    * The single depth-sorted object layer.
    *
    * Everything that stands above the ground — extruded building blocks,
@@ -374,11 +546,19 @@ export class CampusScene extends Phaser.Scene {
   private renderIsoObjects(zone: ZoneMap, style = visualStyle()) {
     this.propImages.forEach((image) => image.destroy());
     this.propImages = [];
+    this.buildingShapes.forEach((g) => g.destroy());
+    this.buildingShapes = [];
     const theme = paintTheme(zone.id, style);
+
+    // Whole buildings are extruded as one solid volume per structure.
+    for (const fp of buildingFootprints(zone)) {
+      this.drawBuilding(zone, fp, theme);
+    }
 
     for (const object of isoObjectsFor(zone)) {
       const anchor = isoFromTile(object.x + 0.5, object.y + 0.5, zone.height);
       if (object.layer === "block") {
+        if (isBuildingKind(object.kind)) continue; // drawn as part of its building
         const key = this.blockTexture(object.kind, theme);
         if (!key) continue;
         // Anchored at the bottom vertex of the tile diamond.
@@ -390,6 +570,7 @@ export class CampusScene extends Phaser.Scene {
         this.propImages.push(image);
         continue;
       }
+
       const key = this.propTexture(object.kind, theme);
       if (!key) continue;
       const tiles = propHeight(object.kind);
@@ -1013,6 +1194,8 @@ export class CampusScene extends Phaser.Scene {
       this.groundImage = undefined;
       this.propImages.forEach((image) => image.destroy());
       this.propImages = [];
+      this.buildingShapes.forEach((shape) => shape.destroy());
+      this.buildingShapes = [];
       this.debugGraphics?.destroy();
       this.debugGraphics = undefined;
       this.debugDynamic?.destroy();
