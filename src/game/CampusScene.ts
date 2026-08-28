@@ -1,7 +1,17 @@
 import Phaser from "phaser";
 import { TILE, type TileKind } from "@/lib/campus/tiles";
 import { OUTLINE, drawGroundBed, drawTile, drawTileObject, hex, shadeColor } from "@/lib/campus/tileart";
-import { blockHeight, bedKindFor, isFlatObject, isoLayerFor, isoObjectsFor, propHeight } from "@/lib/campus/isoprops";
+import {
+  blockHeight,
+  bedKindFor,
+  buildingFootprints,
+  isBuildingKind,
+  isFlatObject,
+  isoLayerFor,
+  isoObjectsFor,
+  propHeight,
+  type BuildingFootprint,
+} from "@/lib/campus/isoprops";
 import { footprintDepth, isoDepth, actorDepth, DEPTH_BIAS, GROUND_DEPTH, OVERLAY_DEPTH } from "@/lib/campus/depth";
 import { paintTheme, themeKey, themedColors } from "@/lib/campus/themes";
 import {
