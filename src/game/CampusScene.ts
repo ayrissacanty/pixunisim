@@ -421,6 +421,102 @@ export class CampusScene extends Phaser.Scene {
   }
 
 
+  /* ---------------------------------------------------------------- *
+   * Debug prop placement editor
+   *
+   * Enabled from the campus preview (`?editor=1`). Decor props become
+   * draggable; on drop they snap to the true-iso tile footprint under the
+   * cursor, R / Shift+R flip and rotate the selection, and every change is
+   * persisted to localStorage (exportable as JSON for baking into world data).
+   * ---------------------------------------------------------------- */
+
+  private makeEditable(image: Phaser.GameObjects.Image) {
+    image.setInteractive({ draggable: true, useHandCursor: true });
+    this.input.setDraggable(image);
+    image.on("pointerdown", () => {
+      this.decorSprites.forEach(({ image: other }) => other.clearTint());
+      image.setTint(0xfff1a8);
+      this.selectedProp = image;
+    });
+    image.on("drag", (pointer: Phaser.Input.Pointer) => {
+      image.setPosition(pointer.worldX, pointer.worldY);
+    });
+    image.on("dragend", () => this.snapAndSave(image));
+  }
+
+  /** Snap a dragged prop to its tile footprint and persist the placement. */
+  private snapAndSave(image: Phaser.GameObjects.Image) {
+    const entry = this.decorSprites.find((s) => s.image === image);
+    if (!entry) return;
+    const world = worldFromIso(image.x, image.y, this.zone.height);
+    // Anchor is bottom-centre: footprint tile is the one beneath the anchor.
+    const tx = Phaser.Math.Clamp(Math.round(world.x / TILE - 0.5), 0, this.zone.width - 1);
+    const ty = Phaser.Math.Clamp(Math.round(world.y / TILE - 1), 0, this.zone.height - 1);
+    entry.placement.px = tx * TILE + TILE / 2;
+    entry.placement.py = (ty + 1) * TILE;
+    const at = this.iso(entry.placement.px, entry.placement.py);
+    image.setPosition(at.x, at.y);
+    image.setDepth(isoDepth(entry.placement.px, entry.placement.py));
+    this.persistPlacements();
+  }
+
+  /** Rotate (Q/E = ±15°) or flip (R) the selected prop. */
+  private nudgeSelectedProp(key: string) {
+    if (!this.propEditorOn || !this.selectedProp) return;
+    const entry = this.decorSprites.find((s) => s.image === this.selectedProp);
+    if (!entry) return;
+    if (key === "r") {
+      entry.placement.flipX = !entry.placement.flipX;
+      this.selectedProp.setFlipX(entry.placement.flipX);
+    } else {
+      const delta = key === "e" ? 15 : -15;
+      entry.placement.rotation = ((entry.placement.rotation ?? 0) + delta) % 360;
+      this.selectedProp.setAngle(entry.placement.rotation);
+    }
+    this.persistPlacements();
+  }
+
+  private placementsAsOverrides(): PropOverride[] {
+    return this.decorSprites.map(({ placement }) => ({
+      frame: placement.frame,
+      tx: Math.round(placement.px / TILE - 0.5),
+      ty: Math.round(placement.py / TILE - 1),
+      flipX: placement.flipX ?? false,
+      rotation: placement.rotation ?? 0,
+      scale: placement.scale,
+    }));
+  }
+
+  private persistPlacements() {
+    savePropOverrides(this.zone.id, this.placementsAsOverrides());
+  }
+
+  /** Toggle the editor. Turning it on captures the current layout as the baseline. */
+  setPropEditor(on: boolean) {
+    this.propEditorOn = on;
+    this.selectedProp = null;
+    this.decorSprites.forEach(({ image }) => {
+      image.clearTint();
+      if (on) {
+        this.makeEditable(image);
+      } else {
+        image.disableInteractive();
+      }
+    });
+    if (on) this.persistPlacements();
+  }
+
+  /** JSON export of the current placements, for baking into world data. */
+  exportPlacements(): string {
+    return exportPropOverrides(this.zone.id, this.placementsAsOverrides());
+  }
+
+  /** Drop saved overrides and re-render the procedural layout. */
+  resetPlacements() {
+    clearPropOverrides(this.zone.id);
+    this.renderIsoObjects(this.zone);
+  }
+
   /** Screen position for a cartesian world-pixel coordinate. */
   private iso(px: number, py: number) {
     return isoFromWorld(px, py, this.zone.height);
