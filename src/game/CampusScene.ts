@@ -109,6 +109,12 @@ export class CampusScene extends Phaser.Scene {
   private styleUnsub?: (() => void) | undefined;
   private groundImage?: Phaser.GameObjects.Image | undefined;
   private propImages: Phaser.GameObjects.Image[] = [];
+  /** Decor sprites (subset of propImages) paired with their placement data. */
+  private decorSprites: { image: Phaser.GameObjects.Image; placement: DecorPlacement }[] = [];
+  private propEditorOn = false;
+  private selectedProp: Phaser.GameObjects.Image | null = null;
+  private culledProps = 0;
+  private cullFrame = 0;
   /** True once the hand-painted ground/prop art has finished streaming in. */
   private artReady = false;
 
