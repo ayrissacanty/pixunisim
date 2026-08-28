@@ -24,11 +24,14 @@ export function CampusView({
   initialZone = "welcome-plaza",
   tour,
   preview = false,
+  propEditor = false,
 }: {
   initialZone?: string;
   tour?: string | undefined;
   /** Preview mode: no auth required, debug tools always available. */
   preview?: boolean;
+  /** Debug prop placement editor: drag/rotate/snap decor, persists per zone. */
+  propEditor?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
@@ -441,6 +444,43 @@ export function CampusView({
 
       <CampusHud onMove={move} onAction={interact} camera={cameraApi} forceDebug={preview} />
       <IsoDebugOverlay open={gridOn} getSnapshot={getDebugSnapshot} />
+      {propEditor && ready && (
+        <div
+          data-testid="prop-editor-toolbar"
+          className="absolute right-3 top-3 z-40 flex w-56 flex-col gap-2 rounded-lg border-2 border-accent bg-sidebar/95 p-3 text-sidebar-foreground shadow-lg"
+        >
+          <p className="font-display text-sm">Prop editor</p>
+          <p className="text-[11px] leading-snug opacity-80">
+            Drag decor props — they snap to the tile footprint on drop. Select a prop, then R flips
+            it and Q/E rotate ±15°. Changes save automatically per zone.
+          </p>
+          <button
+            type="button"
+            className="rounded-md border-2 border-accent bg-accent/20 px-2 py-1 text-xs font-semibold hover:bg-accent/40"
+            onClick={() => {
+              const scene = getScene();
+              if (!scene) return;
+              const json = scene.exportPlacements();
+              const blob = new Blob([json], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `prop-placements-${useCampusStore.getState().currentZone}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Export placements JSON
+          </button>
+          <button
+            type="button"
+            className="rounded-md border-2 border-destructive/60 px-2 py-1 text-xs hover:bg-destructive/20"
+            onClick={() => getScene()?.resetPlacements()}
+          >
+            Reset to procedural layout
+          </button>
+        </div>
+      )}
 
       <DialogueBox />
       <ReadingBox />
