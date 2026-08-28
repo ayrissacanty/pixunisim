@@ -122,7 +122,7 @@ export class CampusScene extends Phaser.Scene {
   /** Doors re-arm only after the player has stepped clear of the trigger. */
   private doorArmed = false;
   private motionUnsub?: (() => void) | undefined;
-  private appearanceUnsub?: () => void;
+  private appearanceUnsub?: (() => void) | undefined;
   private mascotUnsub?: (() => void) | undefined;
   private styleUnsub?: (() => void) | undefined;
   private groundImage?: Phaser.GameObjects.Image | undefined;
