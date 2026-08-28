@@ -489,7 +489,7 @@ export class CampusScene extends Phaser.Scene {
     // --- Storey window rows on both visible faces ---
     const storeys = Math.max(1, Math.round(H / ISO_H));
     const winRow = (
-      from: (t: number, lift: number) => { x: number; y: number },
+      from: (t: number, lift: number) => Phaser.Math.Vector2,
       span: number,
       shade: number,
     ) => {
