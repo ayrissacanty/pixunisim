@@ -15,7 +15,13 @@ import {
 } from "@/lib/campus/iso";
 import { useStyleStore, visualStyle } from "@/lib/a11y/style";
 import { getZone, type Interactable, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
-import { decorFor } from "@/lib/campus/decor";
+import { decorFor, type DecorPlacement } from "@/lib/campus/decor";
+import {
+  clearPropOverrides,
+  exportPropOverrides,
+  savePropOverrides,
+  type PropOverride,
+} from "@/lib/campus/prop-overrides";
 import { canStandBox } from "@/lib/campus/walkable";
 import { interactRadius, doorTriggerRadius } from "@/lib/a11y/assist";
 import { useCampusStore } from "@/lib/campus/store";
@@ -103,6 +109,12 @@ export class CampusScene extends Phaser.Scene {
   private styleUnsub?: (() => void) | undefined;
   private groundImage?: Phaser.GameObjects.Image | undefined;
   private propImages: Phaser.GameObjects.Image[] = [];
+  /** Decor sprites (subset of propImages) paired with their placement data. */
+  private decorSprites: { image: Phaser.GameObjects.Image; placement: DecorPlacement }[] = [];
+  private propEditorOn = false;
+  private selectedProp: Phaser.GameObjects.Image | null = null;
+  private culledProps = 0;
+  private cullFrame = 0;
   /** True once the hand-painted ground/prop art has finished streaming in. */
   private artReady = false;
 
@@ -145,7 +157,8 @@ export class CampusScene extends Phaser.Scene {
       zone: this.zone?.id ?? "—",
       streaming: false,
       placements: this.propImages.length,
-      liveProps: this.propImages.length,
+      liveProps: this.propImages.length - this.culledProps,
+      culledProps: this.culledProps,
       propSpawns: 0,
       propRecycles: 0,
       rooms: this.zone?.rooms.length ?? 0,
@@ -389,6 +402,7 @@ export class CampusScene extends Phaser.Scene {
     }
 
     // Original hand-painted scatter decor rides the same depth model.
+    this.decorSprites = [];
     for (const placement of decorFor(zone)) {
       const key = originalPropKey(placement.frame);
       if (!key || !this.textures.exists(key)) continue;
@@ -398,11 +412,140 @@ export class CampusScene extends Phaser.Scene {
         .setOrigin(0.5, 1)
         // The source art is 816px square; TILE/204 maps it onto one tile.
         .setScale(placement.scale * (TILE / 204))
+        .setAngle(placement.rotation ?? 0)
+        .setFlipX(placement.flipX ?? false)
         .setDepth(isoDepth(placement.px, placement.py));
       this.propImages.push(image);
+      this.decorSprites.push({ image, placement });
+      if (this.propEditorOn) this.makeEditable(image);
     }
   }
 
+
+  /* ---------------------------------------------------------------- *
+   * Debug prop placement editor
+   *
+   * Enabled from the campus preview (`?editor=1`). Decor props become
+   * draggable; on drop they snap to the true-iso tile footprint under the
+   * cursor, R / Shift+R flip and rotate the selection, and every change is
+   * persisted to localStorage (exportable as JSON for baking into world data).
+   * ---------------------------------------------------------------- */
+
+  private makeEditable(image: Phaser.GameObjects.Image) {
+    image.setInteractive({ draggable: true, useHandCursor: true });
+    this.input.setDraggable(image);
+    image.on("pointerdown", () => {
+      this.decorSprites.forEach(({ image: other }) => other.clearTint());
+      image.setTint(0xfff1a8);
+      this.selectedProp = image;
+    });
+    image.on("drag", (pointer: Phaser.Input.Pointer) => {
+      image.setPosition(pointer.worldX, pointer.worldY);
+    });
+    image.on("dragend", () => this.snapAndSave(image));
+  }
+
+  /** Snap a dragged prop to its tile footprint and persist the placement. */
+  private snapAndSave(image: Phaser.GameObjects.Image) {
+    const entry = this.decorSprites.find((s) => s.image === image);
+    if (!entry) return;
+    const world = worldFromIso(image.x, image.y, this.zone.height);
+    // Anchor is bottom-centre: footprint tile is the one beneath the anchor.
+    const tx = Phaser.Math.Clamp(Math.round(world.x / TILE - 0.5), 0, this.zone.width - 1);
+    const ty = Phaser.Math.Clamp(Math.round(world.y / TILE - 1), 0, this.zone.height - 1);
+    entry.placement.px = tx * TILE + TILE / 2;
+    entry.placement.py = (ty + 1) * TILE;
+    const at = this.iso(entry.placement.px, entry.placement.py);
+    image.setPosition(at.x, at.y);
+    image.setDepth(isoDepth(entry.placement.px, entry.placement.py));
+    this.persistPlacements();
+  }
+
+  /** Rotate (Q/E = ±15°) or flip (R) the selected prop. */
+  private nudgeSelectedProp(key: string) {
+    if (!this.propEditorOn || !this.selectedProp) return;
+    const entry = this.decorSprites.find((s) => s.image === this.selectedProp);
+    if (!entry) return;
+    if (key === "r") {
+      entry.placement.flipX = !entry.placement.flipX;
+      this.selectedProp.setFlipX(entry.placement.flipX);
+    } else {
+      const delta = key === "e" ? 15 : -15;
+      entry.placement.rotation = ((entry.placement.rotation ?? 0) + delta) % 360;
+      this.selectedProp.setAngle(entry.placement.rotation);
+    }
+    this.persistPlacements();
+  }
+
+  private placementsAsOverrides(): PropOverride[] {
+    return this.decorSprites.map(({ placement }) => ({
+      frame: placement.frame,
+      tx: Math.round(placement.px / TILE - 0.5),
+      ty: Math.round(placement.py / TILE - 1),
+      flipX: placement.flipX ?? false,
+      rotation: placement.rotation ?? 0,
+      scale: placement.scale,
+    }));
+  }
+
+  private persistPlacements() {
+    // Never persist an empty layout — that would read as "delete all decor".
+    if (this.decorSprites.length === 0) return;
+    savePropOverrides(this.zone.id, this.placementsAsOverrides());
+  }
+
+  /** Toggle the editor. Turning it on captures the current layout as the baseline. */
+  setPropEditor(on: boolean) {
+    this.propEditorOn = on;
+    this.selectedProp = null;
+    this.decorSprites.forEach(({ image }) => {
+      image.clearTint();
+      if (on) {
+        this.makeEditable(image);
+      } else {
+        image.disableInteractive();
+      }
+    });
+    if (on) this.persistPlacements();
+  }
+
+  /** JSON export of the current placements, for baking into world data. */
+  exportPlacements(): string {
+    return exportPropOverrides(this.zone.id, this.placementsAsOverrides());
+  }
+
+  /** Drop saved overrides and re-render the procedural layout. */
+  resetPlacements() {
+    clearPropOverrides(this.zone.id);
+    this.renderIsoObjects(this.zone);
+  }
+
+  /**
+   * Camera culling for the iso object layer. Phaser skips off-screen sprites
+   * in the renderer, but each visible sprite still costs transform + batch
+   * work every frame; hiding everything outside the inflated camera view
+   * keeps large zones cheap. Fully occluded props keep rendering — true
+   * occlusion queries cost more than the sprites themselves at this scale.
+   */
+  private cullIsoObjects() {
+    const view = this.cameras.main.worldView;
+    const margin = ISO_W * 3;
+    const left = view.x - margin;
+    const right = view.right + margin;
+    const top = view.y - margin;
+    const bottom = view.bottom + margin + ISO_H * 4; // tall sprites lean above their anchor
+    let culled = 0;
+    for (const image of this.propImages) {
+      const visible =
+        image.x >= left - image.displayWidth &&
+        image.x <= right + image.displayWidth &&
+        image.y >= top - image.displayHeight &&
+        image.y <= bottom;
+      image.setVisible(visible);
+      if (!visible) culled += 1;
+    }
+    this.culledProps = culled;
+  }
 
   /** Screen position for a cartesian world-pixel coordinate. */
   private iso(px: number, py: number) {
@@ -724,6 +867,10 @@ export class CampusScene extends Phaser.Scene {
   }
 
   create(data: { zoneId: string; x: number; y: number }) {
+    // Preview-only debug handle for E2E tests and the prop editor.
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/campus-preview")) {
+      (window as unknown as Record<string, unknown>)["__campusScene"] = this;
+    }
     this.zone = getZone(data.zoneId);
     this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#7ec850" : "#fff0d2");
 
@@ -885,6 +1032,12 @@ export class CampusScene extends Phaser.Scene {
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
     this.keys = kb.addKeys("W,A,S,D,E,M,C") as Record<string, Phaser.Input.Keyboard.Key>;
+    // Prop-editor hotkeys: R flips, Q/E rotate the selected prop (no-ops
+    // unless the editor is enabled, so gameplay keys are unaffected).
+    kb.on("keydown", (event: KeyboardEvent) => {
+      const k = event.key.toLowerCase();
+      if (k === "r" || k === "q" || k === "e") this.nudgeSelectedProp(k);
+    });
     this.keys["E"]!.on("down", () => this.interact());
     this.keys["M"]!.on("down", () => useCampusStore.getState().setMapOpen(true));
     this.keys["C"]!.on("down", () => {
@@ -1128,6 +1281,11 @@ export class CampusScene extends Phaser.Scene {
       this.perfFrames = 1;
       this.perfTotal = delta;
     }
+
+    // Cull the iso object layer every few frames (camera moves are smooth,
+    // so a 5-frame cadence never pops a sprite into view late).
+    this.cullFrame = (this.cullFrame + 1) % 5;
+    if (this.cullFrame === 0) this.cullIsoObjects();
 
     const store = useCampusStore.getState();
     const blocked = !!(store.dialogue || store.reading || store.lessonOpen || store.mapOpen);

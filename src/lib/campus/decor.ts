@@ -1,5 +1,6 @@
 import type { ZoneMap } from "./world";
 import { TILE } from "./tiles";
+import { propOverridesFor, overridePlacement } from "./prop-overrides";
 
 export interface DecorPlacement {
   /** Original UNIFY prop id, resolved to a loaded transparent image by the scene. */
@@ -10,6 +11,9 @@ export interface DecorPlacement {
   scale: number;
   /** Whether the prop physically blocks movement (feeds the walkability mask). */
   solid: boolean;
+  /** Editor-authored orientation (defaults: upright, unflipped). */
+  flipX?: boolean;
+  rotation?: number;
 }
 
 const GARDEN = ["flower", "bench", "sign"];
@@ -29,6 +33,9 @@ function hash(x: number, y: number, salt: number) {
  */
 export function decorFor(zone: ZoneMap): DecorPlacement[] {
   if (zone.kind !== "outdoor") return [];
+  // Placements saved by the debug prop editor replace the procedural scatter.
+  const overrides = propOverridesFor(zone.id);
+  if (overrides) return overrides.map(overridePlacement);
   const blocked = new Set<string>();
   const reserve = (x: number, y: number, r = 1) => {
     for (let dy = -r; dy <= r; dy += 1)
