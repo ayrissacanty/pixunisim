@@ -87,6 +87,7 @@ export const SOLID_TILES = new Set<TileKind>([
   "window",
   "desk",
   "table",
+  "chair",
   "shelf",
   "computer",
   "bed",
