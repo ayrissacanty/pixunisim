@@ -157,7 +157,8 @@ export class CampusScene extends Phaser.Scene {
       zone: this.zone?.id ?? "—",
       streaming: false,
       placements: this.propImages.length,
-      liveProps: this.propImages.length,
+      liveProps: this.propImages.length - this.culledProps,
+      culledProps: this.culledProps,
       propSpawns: 0,
       propRecycles: 0,
       rooms: this.zone?.rooms.length ?? 0,
@@ -998,6 +999,12 @@ export class CampusScene extends Phaser.Scene {
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
     this.keys = kb.addKeys("W,A,S,D,E,M,C") as Record<string, Phaser.Input.Keyboard.Key>;
+    // Prop-editor hotkeys: R flips, Q/E rotate the selected prop (no-ops
+    // unless the editor is enabled, so gameplay keys are unaffected).
+    kb.on("keydown", (event: KeyboardEvent) => {
+      const k = event.key.toLowerCase();
+      if (k === "r" || k === "q" || k === "e") this.nudgeSelectedProp(k);
+    });
     this.keys["E"]!.on("down", () => this.interact());
     this.keys["M"]!.on("down", () => useCampusStore.getState().setMapOpen(true));
     this.keys["C"]!.on("down", () => {
