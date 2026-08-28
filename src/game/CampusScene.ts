@@ -418,11 +418,19 @@ export class CampusScene extends Phaser.Scene {
   private renderIsoObjects(zone: ZoneMap, style = visualStyle()) {
     this.propImages.forEach((image) => image.destroy());
     this.propImages = [];
+    this.buildingShapes.forEach((g) => g.destroy());
+    this.buildingShapes = [];
     const theme = paintTheme(zone.id, style);
+
+    // Whole buildings are extruded as one solid volume per structure.
+    for (const fp of buildingFootprints(zone)) {
+      this.drawBuilding(zone, fp, theme);
+    }
 
     for (const object of isoObjectsFor(zone)) {
       const anchor = isoFromTile(object.x + 0.5, object.y + 0.5, zone.height);
       if (object.layer === "block") {
+        if (isBuildingKind(object.kind)) continue; // drawn as part of its building
         const key = this.blockTexture(object.kind, theme);
         if (!key) continue;
         // Anchored at the bottom vertex of the tile diamond.
@@ -434,6 +442,7 @@ export class CampusScene extends Phaser.Scene {
         this.propImages.push(image);
         continue;
       }
+
       const key = this.propTexture(object.kind, theme);
       if (!key) continue;
       const tiles = propHeight(object.kind);
