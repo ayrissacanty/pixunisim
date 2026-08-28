@@ -1,15 +1,18 @@
 import type Phaser from "phaser";
 
 /**
- * Original 32x32 character sprite sheets, generated at runtime.
+ * Original UNIFY character art, drawn at runtime in a hand-illustrated style.
  *
- * Each sheet is a 3x4 grid: three walk frames per row, rows ordered
- * down / left / right / up. Sprites use a limited palette (skin, hair,
- * shirt, trousers, shoes, accent), 1px dark outlines and soft top-down
- * shading so they read like classic top-down RPG characters.
+ * Every character is painted with soft curved shapes, a warm ink contour,
+ * cel-shaded volumes and painted cheeks — closer to a storybook illustration
+ * than to a blocky pixel doll. Sheets are a 3x4 grid of walk frames ordered
+ * down / left / right / up, so the scene's animation wiring is unchanged.
  */
 
-export const FRAME = 32;
+/** Source resolution of one frame. Sprites are drawn big and scaled down. */
+export const FRAME = 64;
+/** Scale applied by the scene so a character reads ~40px tall in the world. */
+export const CHAR_RENDER_SCALE = 0.62;
 export const DIRECTIONS = ["down", "left", "right", "up"] as const;
 export type SpriteDirection = (typeof DIRECTIONS)[number];
 
@@ -25,7 +28,7 @@ export interface CharacterLook {
   accent: number;
 }
 
-const OUTLINE = "#241812";
+const INK = "#3a2418";
 
 function hex(v: number) {
   return `#${v.toString(16).padStart(6, "0")}`;
@@ -44,15 +47,17 @@ function shade(color: number, amount: number) {
  * Deterministic casting
  * ------------------------------------------------------------------ */
 
-const SKINS = [0xf6d3b0, 0xecbc8e, 0xd39a68, 0xb4784a, 0x8c5733, 0x64402a];
-const HAIRS = [0x2c1d16, 0x5a3620, 0x8c5a2b, 0xc98b3a, 0xe0c176, 0x9c3f3f, 0x3d4f7a, 0x6b4a86];
-const SHIRTS = [
-  0xff6f52, 0xffd54a, 0x54c0ec, 0x5ec25e, 0xff9ab0, 0x8a6bd1, 0xf3a35c, 0x3f8a5a, 0x2e6fa8,
-  0xe0503a,
+export const SKIN_TONES = [0xf7d7b8, 0xefc094, 0xd8a06e, 0xb87c4c, 0x8d5a35, 0x60402b];
+export const HAIR_COLORS = [
+  0x2c1d16, 0x5a3620, 0x8c5a2b, 0xc98b3a, 0xe6cf92, 0x9c3f3f, 0x3d4f7a, 0x6b4a86,
 ];
-const PANTS = [0x3d4f7a, 0x4a3b30, 0x2f5d52, 0x6b4a86, 0x7a4b3a, 0x36506b];
-const SHOES = [0x2c231d, 0x4a3b30, 0x8a4a2c];
-const STYLES: HairStyle[] = ["short", "long", "bun", "curly", "braids", "cap"];
+export const OUTFIT_COLORS = [
+  0xff6f52, 0xffd54a, 0x54c0ec, 0x5ec25e, 0xff9ab0, 0x8a6bd1, 0xf3a35c, 0x3f8a5a, 0x2e6fa8,
+  0x6d2f34,
+];
+export const BOTTOM_COLORS = [0x3d4f7a, 0x4a3b30, 0x2f5d52, 0x6b4a86, 0x7a4b3a, 0x36506b];
+export const SHOE_COLORS = [0x2c231d, 0x4a3b30, 0x8a4a2c, 0xd8d2c4];
+export const HAIR_STYLES: HairStyle[] = ["short", "long", "bun", "curly", "braids", "cap"];
 
 function hash(value: string) {
   let h = 2166136261;
@@ -69,180 +74,307 @@ export function lookFor(id: string, role = ""): CharacterLook {
   const at = <T>(arr: T[], shift: number) => arr[(h >>> shift) % arr.length]!;
   const staff = role.length > 0 && !role.toLowerCase().includes("student");
   return {
-    skin: at(SKINS, 2),
-    hair: at(HAIRS, 6),
-    hairStyle: at(STYLES, 11),
-    // Staff wear the heritage bordeaux/terracotta accents; students wear the
-    // bright storybook primaries.
-    shirt: staff ? [0x6d2f34, 0xa8543f, 0x3f6446][(h >>> 15) % 3]! : at(SHIRTS, 15),
-    pants: at(PANTS, 19),
-    shoes: at(SHOES, 23),
-    accent: at(SHIRTS, 27),
+    skin: at(SKIN_TONES, 2),
+    hair: at(HAIR_COLORS, 6),
+    hairStyle: at(HAIR_STYLES, 11),
+    shirt: staff ? [0x6d2f34, 0xa8543f, 0x3f6446][(h >>> 15) % 3]! : at(OUTFIT_COLORS, 15),
+    pants: at(BOTTOM_COLORS, 19),
+    shoes: at(SHOE_COLORS, 23),
+    accent: at(OUTFIT_COLORS, 27),
   };
 }
 
 /* ------------------------------------------------------------------ *
- * Drawing
+ * Drawing helpers — soft, hand-inked shapes
  * ------------------------------------------------------------------ */
 
 type Ctx = CanvasRenderingContext2D;
 
-function box(ctx: Ctx, x: number, y: number, w: number, h: number, fill: string, outline = true) {
-  if (w <= 0 || h <= 0) return;
-  if (outline) {
-    ctx.fillStyle = OUTLINE;
-    ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
-  }
+function inked(ctx: Ctx, fill: string, width = 2.4) {
   ctx.fillStyle = fill;
-  ctx.fillRect(x, y, w, h);
+  ctx.fill();
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = width;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.stroke();
 }
 
-function drawHair(ctx: Ctx, ox: number, oy: number, look: CharacterLook, dir: SpriteDirection) {
+/** Rounded capsule used for limbs and torsos. */
+function capsule(
+  ctx: Ctx,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  fill: string,
+  r = Math.min(w, h) / 2,
+  outline = true,
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  if (outline) inked(ctx, fill);
+  else {
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+}
+
+function ellipse(ctx: Ctx, cx: number, cy: number, rx: number, ry: number, fill: string, outline = true) {
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  if (outline) inked(ctx, fill);
+  else {
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+}
+
+/** Clip helper so shading strokes stay inside the shape they belong to. */
+function clipped(ctx: Ctx, path: () => void, paint: () => void) {
+  ctx.save();
+  ctx.beginPath();
+  path();
+  ctx.clip();
+  paint();
+  ctx.restore();
+}
+
+function drawHair(ctx: Ctx, cx: number, headY: number, look: CharacterLook, dir: SpriteDirection) {
   const hair = hex(look.hair);
-  const hi = shade(look.hair, 0.28);
+  const dark = shade(look.hair, -0.3);
   const back = dir === "up";
+
+  // Back mass first so it reads behind the head.
+  if (look.hairStyle === "long" || back) {
+    ellipse(ctx, cx, headY + 4, 12.5, 13, look.hairStyle === "cap" ? hex(look.accent) : hair);
+  }
+
   switch (look.hairStyle) {
     case "long":
-      box(ctx, ox + 9, oy + 2, 14, 5, hair);
-      box(ctx, ox + 8, oy + 4, 3, 12, hair);
-      box(ctx, ox + 21, oy + 4, 3, 12, hair);
-      if (back) box(ctx, ox + 10, oy + 5, 12, 9, hair, false);
+      capsule(ctx, cx - 13, headY - 6, 7, 24, hair, 3.5);
+      capsule(ctx, cx + 6, headY - 6, 7, 24, hair, 3.5);
       break;
     case "bun":
-      box(ctx, ox + 10, oy + 2, 12, 4, hair);
-      box(ctx, ox + 13, oy - 1, 6, 4, hair);
-      if (back) box(ctx, ox + 10, oy + 4, 12, 9, hair, false);
+      ellipse(ctx, cx, headY - 13, 5.5, 5, hair);
       break;
     case "curly":
-      box(ctx, ox + 9, oy + 1, 14, 6, hair);
-      ctx.fillStyle = hair;
-      ctx.fillRect(ox + 8, oy + 4, 2, 4);
-      ctx.fillRect(ox + 22, oy + 4, 2, 4);
-      if (back) box(ctx, ox + 10, oy + 5, 12, 9, hair, false);
+      for (const [dx, dy, r] of [
+        [-10, -6, 5],
+        [-3, -10, 5.5],
+        [5, -9, 5],
+        [11, -4, 4.5],
+        [-12, 1, 4],
+        [12, 2, 4],
+      ] as const) {
+        ellipse(ctx, cx + dx, headY + dy, r, r * 0.9, hair);
+      }
       break;
     case "braids":
-      box(ctx, ox + 10, oy + 2, 12, 4, hair);
-      box(ctx, ox + 7, oy + 6, 3, 9, hair);
-      box(ctx, ox + 22, oy + 6, 3, 9, hair);
-      if (back) box(ctx, ox + 10, oy + 4, 12, 9, hair, false);
+      capsule(ctx, cx - 15, headY - 3, 6, 20, hair, 3);
+      capsule(ctx, cx + 9, headY - 3, 6, 20, hair, 3);
+      ellipse(ctx, cx - 12, headY + 17, 3.4, 3, dark);
+      ellipse(ctx, cx + 12, headY + 17, 3.4, 3, dark);
       break;
     case "cap":
-      box(ctx, ox + 9, oy + 1, 14, 5, hex(look.accent));
-      if (!back) box(ctx, ox + 9, oy + 6, 15, 2, shade(look.accent, -0.25), false);
+      ctx.beginPath();
+      ctx.ellipse(cx, headY - 2, 12, 10, 0, Math.PI, Math.PI * 2);
+      ctx.closePath();
+      inked(ctx, hex(look.accent));
+      if (!back) {
+        ctx.beginPath();
+        ctx.ellipse(cx + 2, headY - 2, 14, 4, 0, 0, Math.PI);
+        ctx.closePath();
+        inked(ctx, shade(look.accent, -0.25));
+      }
       break;
     default:
-      box(ctx, ox + 10, oy + 2, 12, 4, hair);
-      if (back) box(ctx, ox + 10, oy + 4, 12, 9, hair, false);
       break;
   }
-  if (!back && look.hairStyle !== "cap") {
-    ctx.fillStyle = hi;
-    ctx.fillRect(ox + 12, oy + 3, 4, 2);
+
+  if (look.hairStyle !== "cap") {
+    // Fringe cap over the top of the skull.
+    ctx.beginPath();
+    ctx.ellipse(cx, headY - 3, 12.4, 10.5, 0, Math.PI, Math.PI * 2);
+    ctx.quadraticCurveTo(cx + 6, headY + 2, cx - 12.4, headY - 3);
+    ctx.closePath();
+    inked(ctx, hair);
+    // Painted highlight sweep.
+    clipped(
+      ctx,
+      () => ctx.ellipse(cx, headY - 3, 12.4, 10.5, 0, 0, Math.PI * 2),
+      () => {
+        ctx.strokeStyle = shade(look.hair, 0.35);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx - 1, headY - 2, 8, Math.PI * 1.15, Math.PI * 1.75);
+        ctx.stroke();
+      },
+    );
   }
 }
 
-function drawFrame(ctx: Ctx, ox: number, oy: number, look: CharacterLook, dir: SpriteDirection, frame: number) {
+function drawFrame(
+  ctx: Ctx,
+  ox: number,
+  oy: number,
+  look: CharacterLook,
+  dir: SpriteDirection,
+  frame: number,
+) {
   const swing = frame === 0 ? -1 : frame === 2 ? 1 : 0;
-  const bob = frame === 1 ? 0 : -1;
-
-  // Ground shadow.
-  ctx.fillStyle = "rgba(20,14,10,0.22)";
-  ctx.beginPath();
-  ctx.ellipse(ox + 16, oy + 29, 8, 3, 0, 0, Math.PI * 2);
-  ctx.fill();
-
+  const bob = frame === 1 ? 0 : -1.5;
+  const cx = ox + 32;
+  const skin = hex(look.skin);
+  const shirt = hex(look.shirt);
   const pants = hex(look.pants);
   const shoes = hex(look.shoes);
-  const shirt = hex(look.shirt);
-  const skin = hex(look.skin);
 
-  // Legs + shoes.
-  const legTop = 22 + bob;
+  // Soft ground shadow.
+  ctx.fillStyle = "rgba(30,20,14,0.20)";
+  ctx.beginPath();
+  ctx.ellipse(cx, oy + 57, 14, 4.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const hipY = oy + 40 + bob;
+  // Legs.
   if (dir === "left" || dir === "right") {
-    box(ctx, ox + 13, oy + legTop + swing, 5, 6 - swing, pants);
-    box(ctx, ox + 13, oy + legTop + swing + (6 - swing), 6, 2, shoes);
+    capsule(ctx, cx - 5, hipY + swing, 9, 13 - swing, pants, 4);
+    capsule(ctx, cx - 7 + swing * 2, hipY + 12, 13, 6, shoes, 3);
   } else {
-    box(ctx, ox + 11, oy + legTop - Math.max(0, swing), 4, 6, pants);
-    box(ctx, ox + 17, oy + legTop - Math.max(0, -swing), 4, 6, pants);
-    box(ctx, ox + 11, oy + legTop + 6 - Math.max(0, swing), 4, 2, shoes);
-    box(ctx, ox + 17, oy + legTop + 6 - Math.max(0, -swing), 4, 2, shoes);
+    capsule(ctx, cx - 9, hipY - Math.max(0, swing) * 1.5, 8, 14, pants, 4);
+    capsule(ctx, cx + 1, hipY - Math.max(0, -swing) * 1.5, 8, 14, pants, 4);
+    capsule(ctx, cx - 10, hipY + 12 - Math.max(0, swing) * 1.5, 10, 6, shoes, 3);
+    capsule(ctx, cx, hipY + 12 - Math.max(0, -swing) * 1.5, 10, 6, shoes, 3);
   }
 
-  // Torso with collar, side shading and a belt.
-  const torsoY = 12 + bob;
-  box(ctx, ox + 10, oy + torsoY, 12, 11, shirt);
-  ctx.fillStyle = shade(look.shirt, 0.24);
-  ctx.fillRect(ox + 10, oy + torsoY, 12, 2);
-  ctx.fillRect(ox + 10, oy + torsoY, 2, 9);
-  ctx.fillStyle = shade(look.shirt, -0.22);
-  ctx.fillRect(ox + 20, oy + torsoY + 1, 2, 10);
-  // Accent collar / trim so each character reads distinctly.
-  ctx.fillStyle = hex(look.accent);
-  if (dir === "down") {
-    ctx.fillRect(ox + 14, oy + torsoY, 4, 2);
-  } else if (dir !== "up") {
-    ctx.fillRect(ox + 12, oy + torsoY, 8, 2);
-  }
-  ctx.fillStyle = shade(look.pants, 0.1);
-  ctx.fillRect(ox + 10, oy + torsoY + 9, 12, 2);
-  ctx.fillStyle = OUTLINE;
-  ctx.fillRect(ox + 10, oy + torsoY + 11, 12, 1);
+  // Torso — a soft rounded tunic that flares slightly at the hem.
+  const torsoY = oy + 23 + bob;
+  ctx.beginPath();
+  ctx.moveTo(cx - 10, torsoY + 2);
+  ctx.quadraticCurveTo(cx, torsoY - 4, cx + 10, torsoY + 2);
+  ctx.quadraticCurveTo(cx + 14, torsoY + 12, cx + 12, torsoY + 19);
+  ctx.quadraticCurveTo(cx, torsoY + 23, cx - 12, torsoY + 19);
+  ctx.quadraticCurveTo(cx - 14, torsoY + 12, cx - 10, torsoY + 2);
+  ctx.closePath();
+  inked(ctx, shirt);
+  clipped(
+    ctx,
+    () => {
+      ctx.moveTo(cx - 14, torsoY - 4);
+      ctx.lineTo(cx + 14, torsoY - 4);
+      ctx.lineTo(cx + 14, torsoY + 24);
+      ctx.lineTo(cx - 14, torsoY + 24);
+    },
+    () => {
+      ctx.fillStyle = shade(look.shirt, -0.22);
+      ctx.fillRect(cx + 5, torsoY - 6, 12, 32);
+      ctx.fillStyle = shade(look.shirt, 0.26);
+      ctx.fillRect(cx - 13, torsoY - 6, 5, 32);
+      // Accent hem + collar trim.
+      ctx.fillStyle = hex(look.accent);
+      ctx.fillRect(cx - 16, torsoY + 16, 32, 3);
+      if (dir !== "up") {
+        ctx.beginPath();
+        ctx.ellipse(cx, torsoY + 1, 6, 3.5, 0, 0, Math.PI);
+        ctx.fill();
+      }
+    },
+  );
 
   // Arms.
+  const armY = torsoY + 3;
   if (dir === "left") {
-    box(ctx, ox + 8, oy + torsoY + 1 - swing, 3, 8, shirt);
-    box(ctx, ox + 8, oy + torsoY + 9 - swing, 3, 3, skin);
+    capsule(ctx, cx - 14, armY - swing, 7, 15, shirt, 3.5);
+    ellipse(ctx, cx - 10.5, armY + 16 - swing, 3.6, 3.4, skin);
   } else if (dir === "right") {
-    box(ctx, ox + 21, oy + torsoY + 1 + swing, 3, 8, shirt);
-    box(ctx, ox + 21, oy + torsoY + 9 + swing, 3, 3, skin);
+    capsule(ctx, cx + 7, armY + swing, 7, 15, shirt, 3.5);
+    ellipse(ctx, cx + 10.5, armY + 16 + swing, 3.6, 3.4, skin);
   } else {
-    box(ctx, ox + 7, oy + torsoY + 1 - swing, 3, 8, shirt);
-    box(ctx, ox + 22, oy + torsoY + 1 + swing, 3, 8, shirt);
-    box(ctx, ox + 7, oy + torsoY + 9 - swing, 3, 3, skin);
-    box(ctx, ox + 22, oy + torsoY + 9 + swing, 3, 3, skin);
+    capsule(ctx, cx - 16, armY - swing, 7, 15, shirt, 3.5);
+    capsule(ctx, cx + 9, armY + swing, 7, 15, shirt, 3.5);
+    ellipse(ctx, cx - 12.5, armY + 16 - swing, 3.6, 3.4, skin);
+    ellipse(ctx, cx + 12.5, armY + 16 + swing, 3.6, 3.4, skin);
   }
 
-  // Head with jaw shading and a lit cheek.
-  const headY = 3 + bob;
-  box(ctx, ox + 10, oy + headY, 12, 11, skin);
-  ctx.fillStyle = shade(look.skin, -0.18);
-  ctx.fillRect(ox + 10, oy + headY + 9, 12, 2);
-  ctx.fillRect(ox + 20, oy + headY + 2, 2, 8);
-  ctx.fillStyle = shade(look.skin, 0.2);
-  ctx.fillRect(ox + 11, oy + headY + 2, 2, 6);
-  // Neck.
-  ctx.fillStyle = shade(look.skin, -0.28);
-  ctx.fillRect(ox + 14, oy + headY + 11, 4, 1);
+  // Head.
+  const headY = oy + 15 + bob;
+  capsule(ctx, cx - 3, headY + 8, 6, 6, shade(look.skin, -0.22), 3);
+  ellipse(ctx, cx, headY, 12, 12.5, skin);
+  clipped(
+    ctx,
+    () => ctx.ellipse(cx, headY, 12, 12.5, 0, 0, Math.PI * 2),
+    () => {
+      ctx.fillStyle = shade(look.skin, -0.16);
+      ctx.fillRect(cx + 5, headY - 14, 14, 28);
+      ctx.fillStyle = shade(look.skin, 0.22);
+      ctx.beginPath();
+      ctx.ellipse(cx - 5, headY - 3, 5, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    },
+  );
 
-  // Face: eye whites + pupil, blush, mouth.
+  // Face.
   if (dir !== "up") {
     const eye = (ex: number) => {
-      ctx.fillStyle = "#fdfaf4";
-      ctx.fillRect(ox + ex, oy + headY + 5, 3, 2);
-      ctx.fillStyle = OUTLINE;
-      ctx.fillRect(ox + ex + 1, oy + headY + 5, 2, 2);
+      ellipse(ctx, cx + ex, headY + 1, 2.6, 3, "#fffaf1", false);
+      ctx.fillStyle = INK;
+      ctx.beginPath();
+      ctx.ellipse(cx + ex + (dir === "left" ? -0.6 : dir === "right" ? 0.6 : 0), headY + 1.4, 1.5, 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.fillRect(cx + ex - 0.4, headY, 1.1, 1.1);
+      ctx.strokeStyle = shade(look.hair, -0.1);
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(cx + ex, headY + 0.5, 3.4, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.stroke();
+    };
+    const blush = (bx: number) => {
+      ctx.fillStyle = "rgba(232,124,110,0.35)";
+      ctx.beginPath();
+      ctx.ellipse(cx + bx, headY + 5, 3, 1.8, 0, 0, Math.PI * 2);
+      ctx.fill();
     };
     if (dir === "left") {
-      eye(11);
-      ctx.fillStyle = shade(look.skin, -0.32);
-      ctx.fillRect(ox + 11, oy + headY + 8, 3, 1);
+      eye(-4);
+      blush(-7);
     } else if (dir === "right") {
-      eye(18);
-      ctx.fillStyle = shade(look.skin, -0.32);
-      ctx.fillRect(ox + 18, oy + headY + 8, 3, 1);
+      eye(4);
+      blush(7);
     } else {
-      eye(12);
-      eye(17);
-      ctx.fillStyle = "rgba(230,120,110,0.45)";
-      ctx.fillRect(ox + 11, oy + headY + 7, 2, 2);
-      ctx.fillRect(ox + 19, oy + headY + 7, 2, 2);
-      ctx.fillStyle = shade(look.skin, -0.34);
-      ctx.fillRect(ox + 14, oy + headY + 8, 4, 1);
+      eye(-4.5);
+      eye(4.5);
+      blush(-8);
+      blush(8);
     }
+    // Smile.
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    const mx = dir === "left" ? -3 : dir === "right" ? 3 : 0;
+    ctx.arc(cx + mx, headY + 5.5, 2.6, Math.PI * 0.15, Math.PI * 0.85);
+    ctx.stroke();
   }
 
+  drawHair(ctx, cx, headY, look, dir);
+}
 
-  drawHair(ctx, ox, oy + bob, look, dir);
+/** Paints one hand-drawn character frame into any 2D canvas context. */
+export function paintCharacter(
+  ctx: Ctx,
+  look: CharacterLook,
+  dir: SpriteDirection = "down",
+  frame = 1,
+  ox = 0,
+  oy = 0,
+) {
+  drawFrame(ctx, ox, oy, look, dir, frame);
 }
 
 /** Builds (or reuses) a 3x4 walk-cycle sheet texture for one look. */
@@ -251,7 +383,7 @@ export function ensureCharacterTexture(scene: Phaser.Scene, key: string, look: C
   const tex = scene.textures.createCanvas(key, FRAME * 3, FRAME * 4);
   if (!tex) return key;
   const ctx = tex.context;
-  ctx.imageSmoothingEnabled = false;
+  ctx.imageSmoothingEnabled = true;
   DIRECTIONS.forEach((dir, row) => {
     for (let col = 0; col < 3; col += 1) {
       drawFrame(ctx, col * FRAME, row * FRAME, look, dir, col);
