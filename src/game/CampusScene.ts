@@ -41,6 +41,7 @@ import { currentMascot, mascotAccessoryOf, mascotColorOf, useMascotStore } from 
 import { isWalkableTile, reachabilityReport } from "@/lib/campus/walkable";
 import {
   ensureCharacterAnims,
+  CHAR_RENDER_SCALE,
   ensureCharacterTexture,
   idleFrame,
   lookFor,
@@ -1318,9 +1319,10 @@ export class CampusScene extends Phaser.Scene {
     const sprite = this.add
       .sprite(at.x, at.y, key, idleFrame("down"))
       .setOrigin(0.5, 0.86)
+      .setScale(CHAR_RENDER_SCALE)
       .setDepth(actorDepth(px, py));
     const text = this.add
-      .text(at.x, at.y - 34, label, { fontFamily: "monospace", fontSize: "10px", color: "#fff3d8" })
+      .text(at.x, at.y - 38, label, { fontFamily: "monospace", fontSize: "10px", color: "#fff3d8" })
       .setOrigin(0.5)
       .setPadding(3, 1, 3, 1)
       .setBackgroundColor("#3a241caa")
