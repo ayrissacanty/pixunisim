@@ -13,12 +13,13 @@ import type { ZoneMap } from "./world";
 export type IsoLayer = "ground" | "block" | "prop";
 
 const BLOCKS: Partial<Record<TileKind, number>> = {
-  // value = extrusion height in tiles
-  wall: 1,
-  buildingWall: 1.15,
-  buildingRoof: 1.5,
-  window: 1.15,
+  // value = extrusion height in tiles (1 tile ≈ one storey)
+  wall: 1.1,
+  buildingWall: 2.9,
+  buildingRoof: 3.5,
+  window: 2.9,
 };
+
 
 /**
  * Ground-hugging objects. They read better painted flat onto the tile diamond
