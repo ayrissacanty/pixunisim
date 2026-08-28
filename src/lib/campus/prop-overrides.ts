@@ -29,9 +29,11 @@ function read(zoneId: string): PropOverride[] | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PropOverride[];
     if (!Array.isArray(parsed)) return null;
-    return parsed.filter(
+    const valid = parsed.filter(
       (p) => typeof p.frame === "string" && Number.isFinite(p.tx) && Number.isFinite(p.ty),
     );
+    // An empty list means "no saved layout", not "delete every prop".
+    return valid.length > 0 ? valid : null;
   } catch {
     return null;
   }

@@ -489,6 +489,8 @@ export class CampusScene extends Phaser.Scene {
   }
 
   private persistPlacements() {
+    // Never persist an empty layout — that would read as "delete all decor".
+    if (this.decorSprites.length === 0) return;
     savePropOverrides(this.zone.id, this.placementsAsOverrides());
   }
 
