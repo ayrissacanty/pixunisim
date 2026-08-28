@@ -1337,7 +1337,7 @@ export class CampusScene extends Phaser.Scene {
     const at = this.iso(px, py);
     actor.sprite.setPosition(at.x, at.y);
     actor.sprite.setDepth(actorDepth(px, py));
-    actor.label.setPosition(at.x, at.y - 34);
+    actor.label.setPosition(at.x, at.y - 38);
     actor.label.setDepth(actorDepth(px, py, DEPTH_BIAS.label));
     actor.badge?.setPosition(at.x, at.y - 24);
     actor.badge?.setDepth(actorDepth(px, py, DEPTH_BIAS.label));
