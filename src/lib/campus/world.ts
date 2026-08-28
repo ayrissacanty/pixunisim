@@ -124,8 +124,14 @@ function building(g: Grid, x: number, y: number, w: number, h: number, doorX: nu
   g.hLine(x, x + w - 1, y, "buildingRoof");
   if (h > 2) g.hLine(x, x + w - 1, y + 1, "buildingRoof");
   for (let i = x + 1; i < x + w - 1; i += 2) g.set(i, y + Math.floor(h / 2), "window");
-  g.set(doorX, y + h - 1, "door");
+  // Entrance sits on the APRON row in front of the volume. The renderer
+  // extrudes the whole footprint as one solid mass, so a door stamped inside
+  // the footprint would be buried under three storeys of wall.
+  g.set(doorX, y + h, "door");
+  // Approach tile so the player always has walkable ground at the threshold.
+  g.set(doorX, y + h + 1, "path");
 }
+
 
 /* --------------------------------- outdoor -------------------------------- */
 
