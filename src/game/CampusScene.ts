@@ -1194,6 +1194,8 @@ export class CampusScene extends Phaser.Scene {
       this.groundImage = undefined;
       this.propImages.forEach((image) => image.destroy());
       this.propImages = [];
+      this.buildingShapes.forEach((shape) => shape.destroy());
+      this.buildingShapes = [];
       this.debugGraphics?.destroy();
       this.debugGraphics = undefined;
       this.debugDynamic?.destroy();
