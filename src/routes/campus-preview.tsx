@@ -8,8 +8,10 @@ import { CampusView } from "@/components/campus/CampusView";
  */
 export const Route = createFileRoute("/campus-preview")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>): { zone?: string } =>
-    typeof search["zone"] === "string" ? { zone: search["zone"] as string } : {},
+  validateSearch: (search: Record<string, unknown>): { zone?: string; editor?: boolean } => ({
+    ...(typeof search["zone"] === "string" ? { zone: search["zone"] as string } : {}),
+    ...(search["editor"] === true || search["editor"] === "1" ? { editor: true } : {}),
+  }),
   head: () => ({
     meta: [
       { title: "Campus Preview — Unify University" },
@@ -33,6 +35,6 @@ export const Route = createFileRoute("/campus-preview")({
 });
 
 function CampusPreviewRoute() {
-  const { zone } = Route.useSearch();
-  return <CampusView initialZone={zone ?? "welcome-plaza"} preview />;
+  const { zone, editor } = Route.useSearch();
+  return <CampusView initialZone={zone ?? "welcome-plaza"} preview propEditor={editor === true} />;
 }
