@@ -514,11 +514,24 @@ export class CampusScene extends Phaser.Scene {
 
 
     // --- Walls: the two camera-facing faces ---
-    face([B(), C(), C(H), B(H)], wall.base, 1); // right / east face
-    face([C(), D(), D(H), C(H)], wall.base, 1); // left / south-west face
+    face([B(), C(), C(H), B(H)], wall.base); // right / east face
+    face([C(), D(), D(H), C(H)], wall.base); // left / south-west face
     // Directional shading: the east face sits in shadow.
     face([B(), C(), C(H), B(H)], 0x000000, 0.22);
     face([C(), D(), D(H), C(H)], 0x000000, 0.06);
+
+    // Quiet, deterministic plaster/brick bands make each facade feel drawn
+    // by hand without turning the building into a noisy texture tile.
+    const band = wall.detail ?? wall.base;
+    const bandAlpha = 0.08 + facadeSeed * 0.025;
+    for (let level = 0; level < Math.max(1, Math.round(H / ISO_H)); level += 1) {
+      const lift = level * ISO_H + ISO_H * (0.12 + facadeSeed * 0.03);
+      face([p(x + w, y, lift), p(x + w, y + h, lift), p(x + w, y + h, lift + 2), p(x + w, y, lift + 2)], band, bandAlpha);
+      face([p(x + w, y + h, lift), p(x, y + h, lift), p(x, y + h, lift + 2), p(x + w, y + h, lift + 2)], band, bandAlpha + 0.02);
+      g.lineStyle(1, 0x3b2418, 0.2);
+      g.strokePoints([p(x + w, y, lift + 2), p(x + w, y + h, lift + 2)], false);
+      g.strokePoints([p(x + w, y + h, lift + 2), p(x, y + h, lift + 2)], false);
+    }
 
     // --- Storey window rows on both visible faces ---
     const storeys = Math.max(1, Math.round(H / ISO_H));
