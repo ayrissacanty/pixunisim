@@ -209,8 +209,27 @@ export class CampusScene extends Phaser.Scene {
           const sx = (x * 53 + y * 17) % maxX;
           const sy = (y * 47 + x * 11) % maxY;
           sctx.drawImage(source, sx, sy, sample, sample, 0, 0, TILE, TILE);
+          // Recolour the painted ground with the zone/style palette so the
+          // Bright/Focus toggle and per-zone tints stay visible on photo art:
+          // "color" keeps the painting's luminance but takes the themed hue.
+          const themed = themedColors(kind, theme);
+          sctx.save();
+          sctx.globalCompositeOperation = "color";
+          sctx.globalAlpha = style === "focus" ? 0.9 : 0.6;
+          sctx.fillStyle = hex(themed.base);
+          sctx.fillRect(0, 0, TILE, TILE);
+          sctx.restore();
+          // Paved kinds keep their theme path pattern (cobble, herringbone,
+          // boardwalk) layered over the painting.
+          if (kind === "path" || kind === "brick") {
+            sctx.save();
+            sctx.globalAlpha = 0.45;
+            sctx.translate(-x * TILE, -y * TILE);
+            drawGroundBed(sctx, kind, x, y, theme);
+            sctx.restore();
+          }
           if (style === "focus") {
-            sctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+            sctx.fillStyle = "rgba(240, 244, 236, 0.16)";
             sctx.fillRect(0, 0, TILE, TILE);
           }
         } else {
@@ -218,6 +237,7 @@ export class CampusScene extends Phaser.Scene {
           if (flat) drawTile(sctx, kind, x, y, theme);
           else drawGroundBed(sctx, kind, x, y, theme);
         }
+
         const top = isoFromTile(x, y, zone.height);
         ctx.save();
         ctx.setTransform(1, 0.5, -1, 0.5, top.x, top.y);
