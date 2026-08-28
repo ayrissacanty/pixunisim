@@ -456,6 +456,11 @@ export class CampusScene extends Phaser.Scene {
       g.fillStyle(color, alpha);
       g.fillPoints(pts, true, true);
     };
+    const ink = (pts: Phaser.Math.Vector2[], alpha = 0.82) => {
+      g.lineStyle(1, 0x3b2418, alpha);
+      g.strokePoints([...pts, pts[0]!], false);
+    };
+    const facadeSeed = (fp.x * 17 + fp.y * 31 + fp.w * 13 + fp.h * 7) % 3;
 
     const { x, y, w, h } = fp;
     const A = (l = 0) => p(x, y, l); // north
@@ -509,11 +514,24 @@ export class CampusScene extends Phaser.Scene {
 
 
     // --- Walls: the two camera-facing faces ---
-    face([B(), C(), C(H), B(H)], wall.base, 1); // right / east face
-    face([C(), D(), D(H), C(H)], wall.base, 1); // left / south-west face
+    face([B(), C(), C(H), B(H)], wall.base); // right / east face
+    face([C(), D(), D(H), C(H)], wall.base); // left / south-west face
     // Directional shading: the east face sits in shadow.
     face([B(), C(), C(H), B(H)], 0x000000, 0.22);
     face([C(), D(), D(H), C(H)], 0x000000, 0.06);
+
+    // Quiet, deterministic plaster/brick bands make each facade feel drawn
+    // by hand without turning the building into a noisy texture tile.
+    const band = wall.detail ?? wall.base;
+    const bandAlpha = 0.08 + facadeSeed * 0.025;
+    for (let level = 0; level < Math.max(1, Math.round(H / ISO_H)); level += 1) {
+      const lift = level * ISO_H + ISO_H * (0.12 + facadeSeed * 0.03);
+      face([p(x + w, y, lift), p(x + w, y + h, lift), p(x + w, y + h, lift + 2), p(x + w, y, lift + 2)], band, bandAlpha);
+      face([p(x + w, y + h, lift), p(x, y + h, lift), p(x, y + h, lift + 2), p(x + w, y + h, lift + 2)], band, bandAlpha + 0.02);
+      g.lineStyle(1, 0x3b2418, 0.2);
+      g.strokePoints([p(x + w, y, lift + 2), p(x + w, y + h, lift + 2)], false);
+      g.strokePoints([p(x + w, y + h, lift + 2), p(x, y + h, lift + 2)], false);
+    }
 
     // --- Storey window rows on both visible faces ---
     const storeys = Math.max(1, Math.round(H / ISO_H));
@@ -532,30 +550,63 @@ export class CampusScene extends Phaser.Scene {
           ] as const) {
             const t0 = t + a;
             const t1 = t + b;
-            face(
-              [from(t0, bottom), from(t1, bottom), from(t1, top), from(t0, top)],
-              glass,
-              0.9,
-            );
-            face(
-              [from(t0, bottom), from(t1, bottom), from(t1, top), from(t0, top)],
-              0x000000,
-              shade,
-            );
+            const panel = [from(t0, bottom), from(t1, bottom), from(t1, top), from(t0, top)];
+            face(panel, glass, 0.9);
+            face(panel, 0x000000, shade);
+            // Ink frame, mullion and sill keep windows legible at game scale.
+            ink(panel, 0.9);
+            g.lineStyle(1, 0xf7f0cf, 0.42);
+            g.strokePoints([
+              from(t0 + (t1 - t0) * 0.18, bottom + (top - bottom) * 0.16),
+              from(t0 + (t1 - t0) * 0.18, top - (top - bottom) * 0.16),
+            ], false);
+            g.lineStyle(1, 0x3b2418, 0.58);
+            g.strokePoints([from((t0 + t1) / 2, bottom), from((t0 + t1) / 2, top)], false);
+            g.strokePoints([from(t0 - 0.03, bottom), from(t1 + 0.03, bottom)], false);
           }
         }
       }
-      // Cornice just under the eaves.
-      face([from(0, H - 5), from(span, H - 5), from(span, H), from(0, H)], 0xffffff, 0.12);
-      // Plinth at street level.
-      face([from(0, 0), from(span, 0), from(span, 6), from(0, 6)], 0x000000, 0.25);
+      // Cornice and plinth are outlined like the rest of the inked facade.
+      const cornice = [from(0, H - 5), from(span, H - 5), from(span, H), from(0, H)];
+      face(cornice, 0xffffff, 0.12);
+      ink(cornice, 0.45);
+      const plinth = [from(0, 0), from(span, 0), from(span, 6), from(0, 6)];
+      face(plinth, 0x000000, 0.25);
+      ink(plinth, 0.5);
     };
     // East face runs along v, west/south face runs along u.
     winRow((t, lift) => p(x + w, y + t, lift), h, 0.25);
     winRow((t, lift) => p(x + w - t, y + h, lift), w, 0.06);
 
-    // Corner seam + silhouette outline.
-    g.lineStyle(1, 0x000000, 0.35);
+    // Corner seam and entrance details. The door is projected on the near
+    // facade at the same tile column as the exterior trigger.
+    const doorTile = zone.tiles[y + h]?.findIndex(
+      (kind, index) => kind === "door" && index >= x && index < x + w,
+    );
+    const doorU = (doorTile !== undefined && doorTile >= 0 ? doorTile - x : Math.floor(w / 2)) + 0.5;
+    const door = [
+      p(x + doorU - 0.3, y + h + 0.015, 0),
+      p(x + doorU + 0.3, y + h + 0.015, 0),
+      p(x + doorU + 0.3, y + h + 0.015, ISO_H * 1.15),
+      p(x + doorU - 0.3, y + h + 0.015, ISO_H * 1.15),
+    ];
+    face(door, 0x8a4a2c);
+    ink(door, 1);
+    g.lineStyle(1, 0xf7d174, 0.9);
+    g.strokePoints([
+      p(x + doorU, y + h + 0.02, ISO_H * 0.08),
+      p(x + doorU, y + h + 0.02, ISO_H * 1.05),
+    ], false);
+    const step = [
+      p(x + doorU - 0.42, y + h + 0.04, 0),
+      p(x + doorU + 0.42, y + h + 0.04, 0),
+      p(x + doorU + 0.42, y + h + 0.04, 4),
+      p(x + doorU - 0.42, y + h + 0.04, 4),
+    ];
+    face(step, 0x3b2418, 0.55);
+    ink(step, 0.7);
+
+    g.lineStyle(1, 0x3b2418, 0.48);
     g.strokePoints([C(), C(H)], false);
     g.lineStyle(1, Phaser.Display.Color.HexStringToColor(OUTLINE).color, 1);
     g.strokePoints([D(), C(), B(), B(H), eaveE, r2, r1, eaveW, D(H), D()], false);

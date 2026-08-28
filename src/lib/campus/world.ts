@@ -124,8 +124,14 @@ function building(g: Grid, x: number, y: number, w: number, h: number, doorX: nu
   g.hLine(x, x + w - 1, y, "buildingRoof");
   if (h > 2) g.hLine(x, x + w - 1, y + 1, "buildingRoof");
   for (let i = x + 1; i < x + w - 1; i += 2) g.set(i, y + Math.floor(h / 2), "window");
-  g.set(doorX, y + h - 1, "door");
+  // Entrance sits on the APRON row in front of the volume. The renderer
+  // extrudes the whole footprint as one solid mass, so a door stamped inside
+  // the footprint would be buried under three storeys of wall.
+  g.set(doorX, y + h, "door");
+  // Approach tile so the player always has walkable ground at the threshold.
+  g.set(doorX, y + h + 1, "path");
 }
+
 
 /* --------------------------------- outdoor -------------------------------- */
 
@@ -249,7 +255,7 @@ function welcomePlaza(): ZoneMap {
       {
         id: "wp-admin-door",
         x: 5,
-        y: 13,
+        y: 14,
         verb: "ENTER",
         label: "Administration",
         action: { kind: "travel", zone: "administration", spawnX: 12, spawnY: 12 },
@@ -257,7 +263,7 @@ function welcomePlaza(): ZoneMap {
       {
         id: "wp-home-door",
         x: 4,
-        y: 22,
+        y: 23,
         verb: "ENTER",
         label: "Personal Student Space",
         action: { kind: "travel", zone: "personal-space", spawnX: 9, spawnY: 11 },
@@ -398,7 +404,7 @@ function centralQuad(): ZoneMap {
       {
         id: "cq-math",
         x: 8,
-        y: 8,
+        y: 9,
         verb: "ENTER",
         label: "Mathematics & Technology Hall",
         action: { kind: "travel", zone: "math-tech-hall", spawnX: 12, spawnY: 12 },
@@ -406,7 +412,7 @@ function centralQuad(): ZoneMap {
       {
         id: "cq-science",
         x: 31,
-        y: 8,
+        y: 9,
         verb: "ENTER",
         label: "Science & Discovery Hall",
         action: { kind: "travel", zone: "science-hall", spawnX: 12, spawnY: 12 },
@@ -414,7 +420,7 @@ function centralQuad(): ZoneMap {
       {
         id: "cq-humanities",
         x: 8,
-        y: 26,
+        y: 27,
         verb: "ENTER",
         label: "Humanities Hall",
         action: { kind: "travel", zone: "humanities-hall", spawnX: 12, spawnY: 12 },
@@ -422,7 +428,7 @@ function centralQuad(): ZoneMap {
       {
         id: "cq-arts",
         x: 31,
-        y: 26,
+        y: 27,
         verb: "ENTER",
         label: "Arts & Creative Center",
         action: { kind: "travel", zone: "arts-center", spawnX: 12, spawnY: 12 },
@@ -430,7 +436,7 @@ function centralQuad(): ZoneMap {
       {
         id: "cq-library",
         x: 20,
-        y: 4,
+        y: 5,
         verb: "ENTER",
         label: "University Library",
         action: { kind: "travel", zone: "university-library", spawnX: 14, spawnY: 15 },
@@ -544,7 +550,7 @@ function studentCommons(): ZoneMap {
       {
         id: "sc-center",
         x: 8,
-        y: 8,
+        y: 9,
         verb: "ENTER",
         label: "Student Center",
         action: { kind: "travel", zone: "student-center", spawnX: 13, spawnY: 14 },
@@ -552,7 +558,7 @@ function studentCommons(): ZoneMap {
       {
         id: "sc-career",
         x: 21,
-        y: 8,
+        y: 9,
         verb: "ENTER",
         label: "Career Center",
         action: { kind: "travel", zone: "career-center", spawnX: 12, spawnY: 13 },
