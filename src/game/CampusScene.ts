@@ -324,10 +324,9 @@ export class CampusScene extends Phaser.Scene {
 
     if (isBuilding) {
       const storeys = Math.max(1, Math.round(rise / ISO_H));
-      const glass = hex(colors.detail ?? shadeColor(colors.base, 0.4).replace("#", "0x") as never);
       const glassLeft = colors.detail !== undefined ? hex(colors.detail) : "#cfe6f2";
       const glassRight = shadeColor(colors.detail ?? colors.base, -0.2);
-      void glass;
+
       for (let s = 0; s < storeys; s += 1) {
         const base = (rise / storeys) * s;
         const wTop = base + (rise / storeys) * 0.78;
