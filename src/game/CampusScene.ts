@@ -550,16 +550,19 @@ export class CampusScene extends Phaser.Scene {
           ] as const) {
             const t0 = t + a;
             const t1 = t + b;
-            face(
-              [from(t0, bottom), from(t1, bottom), from(t1, top), from(t0, top)],
-              glass,
-              0.9,
-            );
-            face(
-              [from(t0, bottom), from(t1, bottom), from(t1, top), from(t0, top)],
-              0x000000,
-              shade,
-            );
+            const panel = [from(t0, bottom), from(t1, bottom), from(t1, top), from(t0, top)];
+            face(panel, glass, 0.9);
+            face(panel, 0x000000, shade);
+            // Ink frame, mullion and sill keep windows legible at game scale.
+            ink(panel, 0.9);
+            g.lineStyle(1, 0xf7f0cf, 0.42);
+            g.strokePoints([
+              from(t0 + (t1 - t0) * 0.18, bottom + (top - bottom) * 0.16),
+              from(t0 + (t1 - t0) * 0.18, top - (top - bottom) * 0.16),
+            ], false);
+            g.lineStyle(1, 0x3b2418, 0.58);
+            g.strokePoints([from((t0 + t1) / 2, bottom), from((t0 + t1) / 2, top)], false);
+            g.strokePoints([from(t0 - 0.03, bottom), from(t1 + 0.03, bottom)], false);
           }
         }
       }
