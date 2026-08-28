@@ -101,8 +101,6 @@ export function CampusView({
         y: spawn.y,
       });
       sceneRef.current = game.scene.getScene("campus") as CampusScene;
-      // Debug handle for E2E tests and the prop editor (preview only).
-      if (preview) (window as unknown as Record<string, unknown>)["__campusScene"] = sceneRef.current;
       setReady(true);
 
       const store = useCampusStore.getState();

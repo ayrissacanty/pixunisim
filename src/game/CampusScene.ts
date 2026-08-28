@@ -867,6 +867,10 @@ export class CampusScene extends Phaser.Scene {
   }
 
   create(data: { zoneId: string; x: number; y: number }) {
+    // Preview-only debug handle for E2E tests and the prop editor.
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/campus-preview")) {
+      (window as unknown as Record<string, unknown>)["__campusScene"] = this;
+    }
     this.zone = getZone(data.zoneId);
     this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? "#7ec850" : "#fff0d2");
 
