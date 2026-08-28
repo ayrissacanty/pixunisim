@@ -566,10 +566,13 @@ export class CampusScene extends Phaser.Scene {
           }
         }
       }
-      // Cornice just under the eaves.
-      face([from(0, H - 5), from(span, H - 5), from(span, H), from(0, H)], 0xffffff, 0.12);
-      // Plinth at street level.
-      face([from(0, 0), from(span, 0), from(span, 6), from(0, 6)], 0x000000, 0.25);
+      // Cornice and plinth are outlined like the rest of the inked facade.
+      const cornice = [from(0, H - 5), from(span, H - 5), from(span, H), from(0, H)];
+      face(cornice, 0xffffff, 0.12);
+      ink(cornice, 0.45);
+      const plinth = [from(0, 0), from(span, 0), from(span, 6), from(0, 6)];
+      face(plinth, 0x000000, 0.25);
+      ink(plinth, 0.5);
     };
     // East face runs along v, west/south face runs along u.
     winRow((t, lift) => p(x + w, y + t, lift), h, 0.25);
