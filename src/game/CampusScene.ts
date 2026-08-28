@@ -439,10 +439,10 @@ export class CampusScene extends Phaser.Scene {
 
     const p = (u: number, v: number, lift = 0) => {
       const s = isoFromTile(u, v, zone.height);
-      return { x: s.x, y: s.y - lift };
+      return new Phaser.Math.Vector2(s.x, s.y - lift);
     };
     const g = this.add.graphics();
-    const face = (pts: { x: number; y: number }[], color: number, alpha = 1) => {
+    const face = (pts: Phaser.Math.Vector2[], color: number, alpha = 1) => {
       g.fillStyle(color, alpha);
       g.fillPoints(pts, true, true);
     };
@@ -455,8 +455,8 @@ export class CampusScene extends Phaser.Scene {
 
     // --- Roof (drawn first; the walls in front of it overlap correctly) ---
     const ridgeLift = H + R;
-    let r1: { x: number; y: number };
-    let r2: { x: number; y: number };
+    let r1: Phaser.Math.Vector2;
+    let r2: Phaser.Math.Vector2;
     if (w >= h) {
       r1 = p(x + h / 2, y + h / 2, ridgeLift);
       r2 = p(x + w - h / 2, y + h / 2, ridgeLift);
@@ -468,17 +468,16 @@ export class CampusScene extends Phaser.Scene {
     const eaveE = B(H);
     const eaveS = C(H);
     const eaveW = D(H);
-    // Far slopes first, near slopes last.
-    face([eaveN, eaveE, r2, r1], shadeColor(roof.base, -0.3).startsWith("#") ? roof.base : roof.base, 1);
-    g.fillStyle(roof.base, 1);
-    g.fillPoints([eaveN, eaveE, r2, r1], true, true);
-    g.fillStyle(roof.base, 1);
-    g.fillPoints([eaveN, eaveW, r1], true, true);
-    // Near-facing slopes catch the light.
-    g.fillStyle(roof.base, 1);
-    g.fillPoints([eaveE, eaveS, r2], true, true);
-    g.fillStyle(roof.base, 1);
-    g.fillPoints([eaveS, eaveW, r1, r2], true, true);
+    // Far slopes first, near slopes last; near slopes catch more light.
+    face([eaveN, eaveE, r2, r1], roof.base);
+    face([eaveN, eaveE, r2, r1], 0x000000, 0.25);
+    face([eaveN, eaveW, r1], roof.base);
+    face([eaveN, eaveW, r1], 0x000000, 0.18);
+    face([eaveE, eaveS, r2], roof.base);
+    face([eaveE, eaveS, r2], 0x000000, 0.12);
+    face([eaveS, eaveW, r1, r2], roof.base);
+    face([eaveS, eaveW, r1, r2], 0xffffff, 0.08);
+
 
     // --- Walls: the two camera-facing faces ---
     face([B(), C(), C(H), B(H)], wall.base, 1); // right / east face
