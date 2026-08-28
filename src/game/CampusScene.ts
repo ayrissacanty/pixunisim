@@ -283,33 +283,36 @@ export class CampusScene extends Phaser.Scene {
 
     const colors = themedColors(kind, theme);
     const top = hex(colors.base);
-    const left = shadeColor(colors.base, -0.22);
-    const right = shadeColor(colors.base, -0.38);
+    const left = shadeColor(colors.base, -0.18);
+    const right = shadeColor(colors.base, -0.4);
     const bottomY = height;
     const midY = height - ISO_H / 2;
     const topApex = bottomY - ISO_H - rise;
+    const isBuilding = kind === "buildingWall" || kind === "window" || kind === "buildingRoof";
 
-    // Left face.
-    ctx.fillStyle = left;
-    ctx.beginPath();
-    ctx.moveTo(0, midY);
-    ctx.lineTo(ISO_W / 2, bottomY);
-    ctx.lineTo(ISO_W / 2, bottomY - rise);
-    ctx.lineTo(0, midY - rise);
-    ctx.closePath();
-    ctx.fill();
+    /** Point on the left facade: t across (0..1), h up from the ground vertex. */
+    const lp = (t: number, h: number) => ({ x: (ISO_W / 2) * t, y: midY + (ISO_H / 2) * t - h });
+    /** Point on the right facade: t across (0..1) from the near vertex. */
+    const rp = (t: number, h: number) => ({
+      x: ISO_W / 2 + (ISO_W / 2) * t,
+      y: bottomY - (ISO_H / 2) * t - h,
+    });
+    const quad = (pts: { x: number; y: number }[], fill: string, alpha = 1) => {
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = fill;
+      ctx.beginPath();
+      ctx.moveTo(pts[0]!.x, pts[0]!.y);
+      for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i]!.x, pts[i]!.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    };
 
+    // Left face (t goes from the near vertex outwards to the left corner).
+    quad([lp(0, 0), lp(1, 0), lp(1, rise), lp(0, rise)], left);
     // Right face.
-    ctx.fillStyle = right;
-    ctx.beginPath();
-    ctx.moveTo(ISO_W, midY);
-    ctx.lineTo(ISO_W / 2, bottomY);
-    ctx.lineTo(ISO_W / 2, bottomY - rise);
-    ctx.lineTo(ISO_W, midY - rise);
-    ctx.closePath();
-    ctx.fill();
-
-    // Top face.
+    quad([rp(0, 0), rp(1, 0), rp(1, rise), rp(0, rise)], right);
+    // Top face (the diamond cap).
     ctx.fillStyle = top;
     ctx.beginPath();
     ctx.moveTo(ISO_W / 2, topApex);
@@ -319,19 +322,60 @@ export class CampusScene extends Phaser.Scene {
     ctx.closePath();
     ctx.fill();
 
-    // Detail band: glazing for windows, shingle line for roofs.
-    if (colors.detail !== undefined) {
-      ctx.fillStyle = hex(colors.detail);
-      ctx.globalAlpha = kind === "window" ? 0.9 : 0.35;
-      ctx.beginPath();
-      ctx.moveTo(0, midY - rise * 0.55);
-      ctx.lineTo(ISO_W / 2, bottomY - rise * 0.55);
-      ctx.lineTo(ISO_W / 2, bottomY - rise * 0.8);
-      ctx.lineTo(0, midY - rise * 0.8);
-      ctx.closePath();
-      ctx.fill();
-      ctx.globalAlpha = 1;
+    if (isBuilding) {
+      const storeys = Math.max(1, Math.round(rise / ISO_H));
+      const glass = hex(colors.detail ?? shadeColor(colors.base, 0.4).replace("#", "0x") as never);
+      const glassLeft = colors.detail !== undefined ? hex(colors.detail) : "#cfe6f2";
+      const glassRight = shadeColor(colors.detail ?? colors.base, -0.2);
+      void glass;
+      for (let s = 0; s < storeys; s += 1) {
+        const base = (rise / storeys) * s;
+        const wTop = base + (rise / storeys) * 0.78;
+        const wBot = base + (rise / storeys) * 0.3;
+        // Two windows per facade per storey.
+        for (const [a, b] of [
+          [0.16, 0.44],
+          [0.56, 0.84],
+        ] as const) {
+          quad([lp(a, wBot), lp(b, wBot), lp(b, wTop), lp(a, wTop)], glassLeft, 0.85);
+          quad([rp(a, wBot), rp(b, wBot), rp(b, wTop), rp(a, wTop)], glassRight, 0.85);
+        }
+        // Floor-slab band between storeys.
+        if (s > 0) {
+          const y0 = base - 1.5;
+          const y1 = base + 1.5;
+          quad([lp(0, y0), lp(1, y0), lp(1, y1), lp(0, y1)], shadeColor(colors.base, -0.05), 0.6);
+          quad([rp(0, y0), rp(1, y0), rp(1, y1), rp(0, y1)], shadeColor(colors.base, -0.28), 0.6);
+        }
+      }
+      // Cornice under the roofline and a plinth at street level.
+      quad(
+        [lp(0, rise - 4), lp(1, rise - 4), lp(1, rise), lp(0, rise)],
+        shadeColor(colors.base, 0.12),
+        0.8,
+      );
+      quad(
+        [rp(0, rise - 4), rp(1, rise - 4), rp(1, rise), rp(0, rise)],
+        shadeColor(colors.base, -0.14),
+        0.8,
+      );
+      quad([lp(0, 0), lp(1, 0), lp(1, 5), lp(0, 5)], shadeColor(colors.base, -0.34), 0.75);
+      quad([rp(0, 0), rp(1, 0), rp(1, 5), rp(0, 5)], shadeColor(colors.base, -0.5), 0.75);
+    } else if (colors.detail !== undefined) {
+      quad(
+        [lp(0, rise * 0.55), lp(1, rise * 0.55), lp(1, rise * 0.8), lp(0, rise * 0.8)],
+        hex(colors.detail),
+        0.4,
+      );
     }
+
+    // Vertical corner seam adds a readable edge between the two facades.
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(ISO_W / 2, bottomY);
+    ctx.lineTo(ISO_W / 2, bottomY - rise);
+    ctx.stroke();
 
     // 1px dark contour keeps the storybook outline language.
     ctx.strokeStyle = OUTLINE;
@@ -349,6 +393,7 @@ export class CampusScene extends Phaser.Scene {
     tex.refresh();
     return key;
   }
+
 
   /** Builds (and caches) a transparent billboard texture for a prop tile kind. */
   private propTexture(kind: TileKind, theme: ReturnType<typeof paintTheme>): string | null {
