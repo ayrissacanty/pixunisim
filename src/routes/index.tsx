@@ -224,7 +224,13 @@ function Landing() {
       </section>
 
       <footer className="border-t-[3px] border-sidebar-border px-6 py-8 text-center text-xs text-sidebar-foreground/60">
-        Unify University · A homeschool campus for K-12 families.
+        <p>Unify University · A homeschool campus for K-12 families.</p>
+        <p className="mt-2">
+          Graphics created by Penzilla Design. ·{" "}
+          <Link to="/credits" className="underline underline-offset-2">
+            Full asset credits
+          </Link>
+        </p>
       </footer>
     </main>
   );
