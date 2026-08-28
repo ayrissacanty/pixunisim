@@ -117,10 +117,15 @@ describe("occlusion order — interiors and door thresholds", () => {
       if (zone.kind !== "interior") continue;
       checked.push(id);
       expect(isoLayerFor("door")).toBe("ground");
-      for (const door of zone.doors ?? []) {
-        expect(isWalkableTile(zone, door.x, door.y)).toBe(true);
-        // Door tiles must not be spawned as depth-sorted objects.
-        expect(isoObjectsFor(zone).some((o) => o.x === door.x && o.y === door.y)).toBe(false);
+      // Door thresholds are tiles of kind "door" in the zone grid.
+      const objects = isoObjectsFor(zone);
+      for (let y = 0; y < zone.height; y += 1) {
+        for (let x = 0; x < zone.width; x += 1) {
+          if (zone.tiles[y]?.[x] !== "door") continue;
+          expect(isWalkableTile(zone, x, y)).toBe(true);
+          // Door tiles must not be spawned as depth-sorted objects.
+          expect(objects.some((o) => o.x === x && o.y === y)).toBe(false);
+        }
       }
       // And its props still sort with footprintDepth.
       for (const o of isoObjectsFor(zone)) {
