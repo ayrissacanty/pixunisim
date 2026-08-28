@@ -367,6 +367,14 @@ export function CampusView({
     [],
   );
 
+  // Debug prop editor: enabled for the whole session, survives zone travel
+  // (the scene re-arms draggable props whenever it re-renders the zone).
+  useEffect(() => {
+    if (!ready) return;
+    getScene()?.setPropEditor(propEditor);
+    return () => getScene()?.setPropEditor(false);
+  }, [ready, propEditor, getScene]);
+
   const move = useCallback(
     (x: number, y: number) => {
       const scene = getScene();
