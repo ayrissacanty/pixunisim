@@ -10,7 +10,9 @@ export const Route = createFileRoute("/campus-preview")({
   ssr: false,
   validateSearch: (search: Record<string, unknown>): { zone?: string; editor?: boolean } => ({
     ...(typeof search["zone"] === "string" ? { zone: search["zone"] as string } : {}),
-    ...(search["editor"] === true || search["editor"] === "1" ? { editor: true } : {}),
+    ...(search["editor"] === true || search["editor"] === "1" || search["editor"] === 1
+      ? { editor: true }
+      : {}),
   }),
   head: () => ({
     meta: [
