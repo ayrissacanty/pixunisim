@@ -15,7 +15,13 @@ import {
 } from "@/lib/campus/iso";
 import { useStyleStore, visualStyle } from "@/lib/a11y/style";
 import { getZone, type Interactable, type NpcSpawn, type ZoneMap } from "@/lib/campus/world";
-import { decorFor } from "@/lib/campus/decor";
+import { decorFor, type DecorPlacement } from "@/lib/campus/decor";
+import {
+  clearPropOverrides,
+  exportPropOverrides,
+  savePropOverrides,
+  type PropOverride,
+} from "@/lib/campus/prop-overrides";
 import { canStandBox } from "@/lib/campus/walkable";
 import { interactRadius, doorTriggerRadius } from "@/lib/a11y/assist";
 import { useCampusStore } from "@/lib/campus/store";
@@ -389,6 +395,7 @@ export class CampusScene extends Phaser.Scene {
     }
 
     // Original hand-painted scatter decor rides the same depth model.
+    this.decorSprites = [];
     for (const placement of decorFor(zone)) {
       const key = originalPropKey(placement.frame);
       if (!key || !this.textures.exists(key)) continue;
@@ -398,8 +405,12 @@ export class CampusScene extends Phaser.Scene {
         .setOrigin(0.5, 1)
         // The source art is 816px square; TILE/204 maps it onto one tile.
         .setScale(placement.scale * (TILE / 204))
+        .setAngle(placement.rotation ?? 0)
+        .setFlipX(placement.flipX ?? false)
         .setDepth(isoDepth(placement.px, placement.py));
       this.propImages.push(image);
+      this.decorSprites.push({ image, placement });
+      if (this.propEditorOn) this.makeEditable(image);
     }
   }
 
