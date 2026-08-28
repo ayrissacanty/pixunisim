@@ -420,6 +420,123 @@ export class CampusScene extends Phaser.Scene {
   }
 
   /**
+   * Extrudes ONE building volume for a whole footprint: solid walls with
+   * storey-high window rows plus a pitched hip roof, so a structure reads as a
+   * real building instead of a grid of separate cubes lying on the ground.
+   */
+  private drawBuilding(
+    zone: ZoneMap,
+    fp: BuildingFootprint,
+    theme: ReturnType<typeof paintTheme>,
+  ) {
+    const wall = themedColors("buildingWall", theme);
+    const roof = themedColors("buildingRoof", theme);
+    const glassBase = themedColors("window", theme);
+    const glass = glassBase.detail ?? glassBase.base;
+
+    const H = blockHeight("buildingWall") * ISO_H;
+    const R = ISO_H * (1 + Math.min(fp.w, fp.h) * 0.18);
+
+    const p = (u: number, v: number, lift = 0) => {
+      const s = isoFromTile(u, v, zone.height);
+      return { x: s.x, y: s.y - lift };
+    };
+    const g = this.add.graphics();
+    const face = (pts: { x: number; y: number }[], color: number, alpha = 1) => {
+      g.fillStyle(color, alpha);
+      g.fillPoints(pts, true, true);
+    };
+
+    const { x, y, w, h } = fp;
+    const A = (l = 0) => p(x, y, l); // north
+    const B = (l = 0) => p(x + w, y, l); // east
+    const C = (l = 0) => p(x + w, y + h, l); // south (nearest camera)
+    const D = (l = 0) => p(x, y + h, l); // west
+
+    // --- Roof (drawn first; the walls in front of it overlap correctly) ---
+    const ridgeLift = H + R;
+    let r1: { x: number; y: number };
+    let r2: { x: number; y: number };
+    if (w >= h) {
+      r1 = p(x + h / 2, y + h / 2, ridgeLift);
+      r2 = p(x + w - h / 2, y + h / 2, ridgeLift);
+    } else {
+      r1 = p(x + w / 2, y + w / 2, ridgeLift);
+      r2 = p(x + w / 2, y + h - w / 2, ridgeLift);
+    }
+    const eaveN = A(H);
+    const eaveE = B(H);
+    const eaveS = C(H);
+    const eaveW = D(H);
+    // Far slopes first, near slopes last.
+    face([eaveN, eaveE, r2, r1], shadeColor(roof.base, -0.3).startsWith("#") ? roof.base : roof.base, 1);
+    g.fillStyle(roof.base, 1);
+    g.fillPoints([eaveN, eaveE, r2, r1], true, true);
+    g.fillStyle(roof.base, 1);
+    g.fillPoints([eaveN, eaveW, r1], true, true);
+    // Near-facing slopes catch the light.
+    g.fillStyle(roof.base, 1);
+    g.fillPoints([eaveE, eaveS, r2], true, true);
+    g.fillStyle(roof.base, 1);
+    g.fillPoints([eaveS, eaveW, r1, r2], true, true);
+
+    // --- Walls: the two camera-facing faces ---
+    face([B(), C(), C(H), B(H)], wall.base, 1); // right / east face
+    face([C(), D(), D(H), C(H)], wall.base, 1); // left / south-west face
+    // Directional shading: the east face sits in shadow.
+    face([B(), C(), C(H), B(H)], 0x000000, 0.22);
+    face([C(), D(), D(H), C(H)], 0x000000, 0.06);
+
+    // --- Storey window rows on both visible faces ---
+    const storeys = Math.max(1, Math.round(H / ISO_H));
+    const winRow = (
+      from: (t: number, lift: number) => { x: number; y: number },
+      span: number,
+      shade: number,
+    ) => {
+      for (let s = 0; s < storeys; s += 1) {
+        const bottom = (H / storeys) * s + (H / storeys) * 0.28;
+        const top = (H / storeys) * s + (H / storeys) * 0.76;
+        for (let t = 0; t < span; t += 1) {
+          for (const [a, b] of [
+            [0.18, 0.44],
+            [0.56, 0.82],
+          ] as const) {
+            const t0 = t + a;
+            const t1 = t + b;
+            face(
+              [from(t0, bottom), from(t1, bottom), from(t1, top), from(t0, top)],
+              glass,
+              0.9,
+            );
+            face(
+              [from(t0, bottom), from(t1, bottom), from(t1, top), from(t0, top)],
+              0x000000,
+              shade,
+            );
+          }
+        }
+      }
+      // Cornice just under the eaves.
+      face([from(0, H - 5), from(span, H - 5), from(span, H), from(0, H)], 0xffffff, 0.12);
+      // Plinth at street level.
+      face([from(0, 0), from(span, 0), from(span, 6), from(0, 6)], 0x000000, 0.25);
+    };
+    // East face runs along v, west/south face runs along u.
+    winRow((t, lift) => p(x + w, y + t, lift), h, 0.25);
+    winRow((t, lift) => p(x + w - t, y + h, lift), w, 0.06);
+
+    // Corner seam + silhouette outline.
+    g.lineStyle(1, 0x000000, 0.35);
+    g.strokePoints([C(), C(H)], false);
+    g.lineStyle(1, Phaser.Display.Color.HexStringToColor(OUTLINE).color, 1);
+    g.strokePoints([D(), C(), B(), B(H), eaveE, r2, r1, eaveW, D(H), D()], false);
+
+    g.setDepth(footprintDepth(fp.x, fp.y, fp.w, fp.h));
+    this.buildingShapes.push(g);
+  }
+
+  /**
    * The single depth-sorted object layer.
    *
    * Everything that stands above the ground — extruded building blocks,
