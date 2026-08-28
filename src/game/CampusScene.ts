@@ -463,30 +463,49 @@ export class CampusScene extends Phaser.Scene {
     const C = (l = 0) => p(x + w, y + h, l); // south (nearest camera)
     const D = (l = 0) => p(x, y + h, l); // west
 
-    // --- Roof (drawn first; the walls in front of it overlap correctly) ---
+    // --- Roof: a proper gable with upright triangular end walls ---
+    // The ridge runs the FULL length of the long axis (no inset), so the
+    // short ends become vertical gable triangles in wall colour — that is
+    // what makes the massing read as an upright building instead of a
+    // pyramid tent lying on the ground.
     const ridgeLift = H + R;
     let r1: Phaser.Math.Vector2;
     let r2: Phaser.Math.Vector2;
-    if (w >= h) {
-      r1 = p(x + h / 2, y + h / 2, ridgeLift);
-      r2 = p(x + w - h / 2, y + h / 2, ridgeLift);
-    } else {
-      r1 = p(x + w / 2, y + w / 2, ridgeLift);
-      r2 = p(x + w / 2, y + h - w / 2, ridgeLift);
-    }
     const eaveN = A(H);
     const eaveE = B(H);
     const eaveS = C(H);
     const eaveW = D(H);
-    // Far slopes first, near slopes last; near slopes catch more light.
-    face([eaveN, eaveE, r2, r1], roof.base);
-    face([eaveN, eaveE, r2, r1], 0x000000, 0.25);
-    face([eaveN, eaveW, r1], roof.base);
-    face([eaveN, eaveW, r1], 0x000000, 0.18);
-    face([eaveE, eaveS, r2], roof.base);
-    face([eaveE, eaveS, r2], 0x000000, 0.12);
-    face([eaveS, eaveW, r1, r2], roof.base);
-    face([eaveS, eaveW, r1, r2], 0xffffff, 0.08);
+    if (w >= h) {
+      // Ridge along the east-west axis; gables on the west and east ends.
+      r1 = p(x, y + h / 2, ridgeLift);
+      r2 = p(x + w, y + h / 2, ridgeLift);
+      // Far (north) slope first — darkest, in shadow.
+      face([eaveN, eaveE, r2, r1], roof.base);
+      face([eaveN, eaveE, r2, r1], 0x000000, 0.28);
+      // Gable end walls (upright triangles, wall colour).
+      face([eaveN, eaveW, r1], wall.base); // west gable
+      face([eaveN, eaveW, r1], 0x000000, 0.1);
+      face([eaveN, eaveE, r2], wall.base); // east gable
+      face([eaveN, eaveE, r2], 0x000000, 0.22);
+      // Near (south) slope last — catches the light.
+      face([eaveS, eaveW, r1, r2], roof.base);
+      face([eaveS, eaveW, r1, r2], 0xffffff, 0.1);
+    } else {
+      // Ridge along the north-south axis; gables on the north and south ends.
+      r1 = p(x + w / 2, y, ridgeLift);
+      r2 = p(x + w / 2, y + h, ridgeLift);
+      // Far (west) slope first.
+      face([eaveN, eaveW, r2, r1], roof.base);
+      face([eaveN, eaveW, r2, r1], 0x000000, 0.22);
+      // Gable end walls.
+      face([eaveN, eaveE, r1], wall.base); // north gable
+      face([eaveN, eaveE, r1], 0x000000, 0.18);
+      face([eaveS, eaveW, r2], wall.base); // south gable
+      face([eaveS, eaveW, r2], 0x000000, 0.08);
+      // Near (east) slope last.
+      face([eaveE, eaveS, r2, r1], roof.base);
+      face([eaveE, eaveS, r2, r1], 0x000000, 0.1);
+    }
 
 
     // --- Walls: the two camera-facing faces ---
