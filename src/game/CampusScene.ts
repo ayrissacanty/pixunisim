@@ -172,7 +172,7 @@ export class CampusScene extends Phaser.Scene {
   /** Bakes the whole zone into one isometric canvas texture. */
   private bakeZone(zone: ZoneMap, style = visualStyle()): string | null {
     const theme = paintTheme(zone.id, style);
-    const key = `zone-iso-${zone.id}-${themeKey(theme)}`;
+    const key = `zone-iso-${zone.id}-${themeKey(theme)}-${this.artReady ? "art" : "plain"}`;
     if (this.textures.exists(key)) return key;
     const size = isoCanvasSize(zone.width, zone.height);
     const tex = this.textures.createCanvas(key, size.width, size.height);
