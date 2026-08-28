@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS character_look JSONB NOT NULL DEFAULT '{}'::jsonb;
