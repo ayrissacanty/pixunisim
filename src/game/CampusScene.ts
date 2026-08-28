@@ -443,7 +443,9 @@ export class CampusScene extends Phaser.Scene {
     const glass = glassBase.detail ?? glassBase.base;
 
     const H = blockHeight("buildingWall") * ISO_H;
-    const R = ISO_H * (1 + Math.min(fp.w, fp.h) * 0.18);
+    // Modest, fixed roof rise: a tall pyramid reads as a slab lying on the
+    // ground, while a shallow pitched roof keeps the building reading upright.
+    const R = ISO_H * 0.85;
 
     const p = (u: number, v: number, lift = 0) => {
       const s = isoFromTile(u, v, zone.height);
