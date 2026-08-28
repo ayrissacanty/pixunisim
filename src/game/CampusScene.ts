@@ -578,8 +578,35 @@ export class CampusScene extends Phaser.Scene {
     winRow((t, lift) => p(x + w, y + t, lift), h, 0.25);
     winRow((t, lift) => p(x + w - t, y + h, lift), w, 0.06);
 
-    // Corner seam + silhouette outline.
-    g.lineStyle(1, 0x000000, 0.35);
+    // Corner seam and entrance details. The door is projected on the near
+    // facade at the same tile column as the exterior trigger.
+    const doorTile = zone.tiles[y + h]?.findIndex(
+      (kind, index) => kind === "door" && index >= x && index < x + w,
+    );
+    const doorU = (doorTile !== undefined && doorTile >= 0 ? doorTile - x : Math.floor(w / 2)) + 0.5;
+    const door = [
+      p(x + doorU - 0.3, y + h + 0.015, 0),
+      p(x + doorU + 0.3, y + h + 0.015, 0),
+      p(x + doorU + 0.3, y + h + 0.015, ISO_H * 1.15),
+      p(x + doorU - 0.3, y + h + 0.015, ISO_H * 1.15),
+    ];
+    face(door, 0x8a4a2c);
+    ink(door, 1);
+    g.lineStyle(1, 0xf7d174, 0.9);
+    g.strokePoints([
+      p(x + doorU, y + h + 0.02, ISO_H * 0.08),
+      p(x + doorU, y + h + 0.02, ISO_H * 1.05),
+    ], false);
+    const step = [
+      p(x + doorU - 0.42, y + h + 0.04, 0),
+      p(x + doorU + 0.42, y + h + 0.04, 0),
+      p(x + doorU + 0.42, y + h + 0.04, 4),
+      p(x + doorU - 0.42, y + h + 0.04, 4),
+    ];
+    face(step, 0x3b2418, 0.55);
+    ink(step, 0.7);
+
+    g.lineStyle(1, 0x3b2418, 0.48);
     g.strokePoints([C(), C(H)], false);
     g.lineStyle(1, Phaser.Display.Color.HexStringToColor(OUTLINE).color, 1);
     g.strokePoints([D(), C(), B(), B(H), eaveE, r2, r1, eaveW, D(H), D()], false);
