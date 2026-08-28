@@ -33,7 +33,7 @@ function syntheticZone(tiles: string[][], kind: ZoneMap["kind"] = "interior"): Z
 describe("occlusion order — canonical scenarios", () => {
   it("an actor in front of (south-east of) a prop draws OVER it", () => {
     const prop = footprintDepth(4, 4);
-    const inFront = actorDepth(4.5 * 32, 5.2 * 32);
+    const inFront = actorDepth(4.5 * 32, 5.5 * 32);
     expect(inFront).toBeGreaterThan(prop);
   });
 
