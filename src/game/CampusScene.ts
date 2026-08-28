@@ -518,6 +518,33 @@ export class CampusScene extends Phaser.Scene {
     this.renderIsoObjects(this.zone);
   }
 
+  /**
+   * Camera culling for the iso object layer. Phaser skips off-screen sprites
+   * in the renderer, but each visible sprite still costs transform + batch
+   * work every frame; hiding everything outside the inflated camera view
+   * keeps large zones cheap. Fully occluded props keep rendering — true
+   * occlusion queries cost more than the sprites themselves at this scale.
+   */
+  private cullIsoObjects() {
+    const view = this.cameras.main.worldView;
+    const margin = ISO_W * 3;
+    const left = view.x - margin;
+    const right = view.right + margin;
+    const top = view.y - margin;
+    const bottom = view.bottom + margin + ISO_H * 4; // tall sprites lean above their anchor
+    let culled = 0;
+    for (const image of this.propImages) {
+      const visible =
+        image.x >= left - image.displayWidth &&
+        image.x <= right + image.displayWidth &&
+        image.y >= top - image.displayHeight &&
+        image.y <= bottom;
+      image.setVisible(visible);
+      if (!visible) culled += 1;
+    }
+    this.culledProps = culled;
+  }
+
   /** Screen position for a cartesian world-pixel coordinate. */
   private iso(px: number, py: number) {
     return isoFromWorld(px, py, this.zone.height);
@@ -1248,6 +1275,11 @@ export class CampusScene extends Phaser.Scene {
       this.perfFrames = 1;
       this.perfTotal = delta;
     }
+
+    // Cull the iso object layer every few frames (camera moves are smooth,
+    // so a 5-frame cadence never pops a sprite into view late).
+    this.cullFrame = (this.cullFrame + 1) % 5;
+    if (this.cullFrame === 0) this.cullIsoObjects();
 
     const store = useCampusStore.getState();
     const blocked = !!(store.dialogue || store.reading || store.lessonOpen || store.mapOpen);
