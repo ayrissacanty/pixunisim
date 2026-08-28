@@ -105,7 +105,14 @@ describe("occlusion order — interiors and door thresholds", () => {
   });
 
   it("every interior zone's door thresholds stay walkable ground (never an object)", () => {
-    const interiorIds = ["algebra-204", "library", "science-lab", "student-center"];
+    const interiorIds = [
+      "algebra-204",
+      "university-library",
+      "student-center",
+      "career-center",
+      "administration",
+      "personal-space",
+    ];
     const checked: string[] = [];
     for (const id of interiorIds) {
       let zone: ZoneMap;
