@@ -119,6 +119,8 @@ export class CampusScene extends Phaser.Scene {
   private styleUnsub?: (() => void) | undefined;
   private groundImage?: Phaser.GameObjects.Image | undefined;
   private propImages: Phaser.GameObjects.Image[] = [];
+  /** One graphics volume per building structure (walls + roof). */
+  private buildingShapes: Phaser.GameObjects.Graphics[] = [];
   /** Decor sprites (subset of propImages) paired with their placement data. */
   private decorSprites: { image: Phaser.GameObjects.Image; placement: DecorPlacement }[] = [];
   private propEditorOn = false;
