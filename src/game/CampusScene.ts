@@ -701,10 +701,23 @@ export class CampusScene extends Phaser.Scene {
    * Lifecycle
    * ---------------------------------------------------------------- */
 
-  preload() {
-    for (const [key, url] of Object.entries(ORIGINAL_ART)) {
-      if (!this.textures.exists(key)) this.load.image(key, url);
+  /**
+   * The hand-painted art is several megabytes, so it is NOT preloaded: the
+   * world paints instantly with the procedural 32px renderer and swaps to the
+   * paintings in the background once they arrive.
+   */
+  private loadOriginalArt(onReady: () => void) {
+    const pending = Object.entries(ORIGINAL_ART).filter(([key]) => !this.textures.exists(key));
+    if (pending.length === 0) {
+      this.artReady = true;
+      return;
     }
+    for (const [key, url] of pending) this.load.image(key, url);
+    this.load.once(Phaser.Loader.Events.COMPLETE, () => {
+      this.artReady = true;
+      onReady();
+    });
+    this.load.start();
   }
 
   create(data: { zoneId: string; x: number; y: number }) {
@@ -719,6 +732,12 @@ export class CampusScene extends Phaser.Scene {
     };
     drawGround();
     this.renderIsoObjects(this.zone);
+    this.loadOriginalArt(() => {
+      if (!this.scene.isActive()) return;
+      drawGround();
+      this.renderIsoObjects(this.zone);
+    });
+
     this.styleUnsub?.();
     this.styleUnsub = useStyleStore.subscribe((s) => {
       this.cameras.main.setBackgroundColor(this.zone.kind === "outdoor" ? (s.style === "focus" ? "#6eaa58" : "#7ec850") : (s.style === "focus" ? "#e6dfc7" : "#fff0d2"));
