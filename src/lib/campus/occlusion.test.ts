@@ -25,9 +25,9 @@ function syntheticZone(tiles: string[][], kind: ZoneMap["kind"] = "interior"): Z
     rooms: [],
     interactables: [],
     npcs: [],
-    doors: [],
+    mapPos: { x: 0.5, y: 0.5 },
     defaultSpawn: { x: 1, y: 1 },
-  } as ZoneMap;
+  };
 }
 
 describe("occlusion order — canonical scenarios", () => {
