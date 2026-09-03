@@ -12,7 +12,7 @@ import {
   propHeight,
   type BuildingFootprint,
 } from "@/lib/campus/isoprops";
-import { footprintDepth, isoDepth, actorDepth, DEPTH_BIAS, GROUND_DEPTH, OVERLAY_DEPTH } from "@/lib/campus/depth";
+import { buildingDepthFor, footprintDepth, isoDepth, actorDepth, DEPTH_BIAS, GROUND_DEPTH, OVERLAY_DEPTH } from "@/lib/campus/depth";
 import { paintTheme, themeKey, themedColors } from "@/lib/campus/themes";
 import {
   ISO_H,
@@ -129,6 +129,8 @@ export class CampusScene extends Phaser.Scene {
   private propImages: Phaser.GameObjects.Image[] = [];
   /** One graphics volume per building structure (walls + roof). */
   private buildingShapes: Phaser.GameObjects.Graphics[] = [];
+  /** Building volumes paired with their footprint, for viewer-aware sorting. */
+  private buildingVolumes: { g: Phaser.GameObjects.Graphics; fp: { x: number; y: number; w: number; h: number } }[] = [];
   /** Decor sprites (subset of propImages) paired with their placement data. */
   private decorSprites: { image: Phaser.GameObjects.Image; placement: DecorPlacement }[] = [];
   private propEditorOn = false;
@@ -611,8 +613,9 @@ export class CampusScene extends Phaser.Scene {
     g.lineStyle(1, Phaser.Display.Color.HexStringToColor(OUTLINE).color, 1);
     g.strokePoints([D(), C(), B(), B(H), eaveE, r2, r1, eaveW, D(H), D()], false);
 
-    g.setDepth(footprintDepth(fp.x, fp.y, fp.w, fp.h));
+    g.setDepth(buildingDepthFor(fp.x, fp.y, fp.w, fp.h, this.player?.px ?? 0, this.player?.py ?? 0));
     this.buildingShapes.push(g);
+    this.buildingVolumes.push({ g, fp: { x: fp.x, y: fp.y, w: fp.w, h: fp.h } });
   }
 
   /**
@@ -628,6 +631,7 @@ export class CampusScene extends Phaser.Scene {
     this.propImages = [];
     this.buildingShapes.forEach((g) => g.destroy());
     this.buildingShapes = [];
+    this.buildingVolumes = [];
     const theme = paintTheme(zone.id, style);
 
     // Whole buildings are extruded as one solid volume per structure.
@@ -1277,6 +1281,7 @@ export class CampusScene extends Phaser.Scene {
       this.propImages = [];
       this.buildingShapes.forEach((shape) => shape.destroy());
       this.buildingShapes = [];
+      this.buildingVolumes = [];
       this.debugGraphics?.destroy();
       this.debugGraphics = undefined;
       this.debugDynamic?.destroy();
@@ -1419,6 +1424,13 @@ export class CampusScene extends Phaser.Scene {
       .setBackgroundColor("#3a241caa")
       .setDepth(actorDepth(px, py, DEPTH_BIAS.label));
     return { sprite, label: text, key, dir: "down", moving: false, px, py };
+  }
+
+  /** Keeps building volumes sorted behind the player when they stand in front. */
+  private sortBuildings() {
+    for (const { g, fp } of this.buildingVolumes) {
+      g.setDepth(buildingDepthFor(fp.x, fp.y, fp.w, fp.h, this.player.px, this.player.py));
+    }
   }
 
   /** Moves an actor in cartesian space and re-projects everything it owns. */
@@ -1634,6 +1646,7 @@ export class CampusScene extends Phaser.Scene {
     if (this.moveTarget && blockedX && blockedY) this.moveTarget = null;
 
     this.setActorPosition(this.player, this.player.px, this.player.py);
+    this.sortBuildings();
     if (this.debugOn) this.drawDynamicDebug();
 
 
