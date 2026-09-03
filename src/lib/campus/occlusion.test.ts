@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actorDepth, DEPTH_BIAS, footprintDepth, GROUND_DEPTH, isoDepth, tileDepth } from "./depth";
+import { actorDepth, buildingDepthFor, DEPTH_BIAS, footprintDepth, GROUND_DEPTH, isoDepth, tileDepth } from "./depth";
 import { isoObjectsFor, isoLayerFor } from "./isoprops";
 import { getZone } from "./world";
 import { isWalkableTile } from "./walkable";
@@ -159,5 +159,23 @@ describe("occlusion order — interiors and door thresholds", () => {
     // Actor fully inside the room (row 2) is in front of it.
     const inside = actorDepth(1.5 * 32, 2.5 * 32);
     expect(inside).toBeGreaterThan(footprintDepth(desk.x, desk.y));
+  });
+});
+
+describe("occlusion order — large building footprints vs the player", () => {
+  it("a player on the door apron of a 10x6 hall draws OVER the building volume", () => {
+    // Central Quad math hall: building(3, 3, 10, 6)
+    const atDoor = actorDepth(8.5 * 32, 9.5 * 32);
+    expect(atDoor).toBeGreaterThan(buildingDepthFor(3, 3, 10, 6, 8.5 * 32, 9.5 * 32));
+  });
+
+  it("a player standing behind (north of) the hall stays hidden by it", () => {
+    const behind = actorDepth(8.5 * 32, 2.5 * 32);
+    expect(behind).toBeLessThan(buildingDepthFor(3, 3, 10, 6, 8.5 * 32, 2.5 * 32));
+  });
+
+  it("a player east of the hall draws over it", () => {
+    const east = actorDepth(13.5 * 32, 5.5 * 32);
+    expect(east).toBeGreaterThan(buildingDepthFor(3, 3, 10, 6, 13.5 * 32, 5.5 * 32));
   });
 });

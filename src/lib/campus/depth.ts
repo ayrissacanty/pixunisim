@@ -61,3 +61,30 @@ export function tileDepth(tileX: number, tileY: number, bias: number = DEPTH_BIA
 export function actorDepth(px: number, py: number, bias: number = DEPTH_BIAS.actor) {
   return isoDepth(px, py, bias);
 }
+
+/**
+ * Depth for a large building volume, resolved against the viewer/actor.
+ *
+ * A whole building is drawn as ONE graphics object, so a single footprint
+ * depth anchored at its near corner makes the entire mass sort in front of a
+ * player standing at its front door (the door sits far from that corner along
+ * x). When the actor is past the building's near faces, the volume is pushed
+ * back to its nearest edge tile so the character stays visible.
+ */
+export function buildingDepthFor(
+  tileX: number,
+  tileY: number,
+  w: number,
+  h: number,
+  actorPx: number,
+  actorPy: number,
+) {
+  const base = footprintDepth(tileX, tileY, w, h);
+  const southOf = actorPy >= (tileY + h) * TILE;
+  const eastOf = actorPx >= (tileX + w) * TILE;
+  if (!southOf && !eastOf) return base;
+  const candidates: number[] = [base];
+  if (southOf) candidates.push(isoDepth(tileX * TILE, (tileY + h) * TILE));
+  if (eastOf) candidates.push(isoDepth((tileX + w) * TILE, tileY * TILE));
+  return Math.min(...candidates);
+}
