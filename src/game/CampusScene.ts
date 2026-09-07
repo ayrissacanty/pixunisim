@@ -1214,12 +1214,15 @@ export class CampusScene extends Phaser.Scene {
         lookFor(spawn.id, spawn.role),
         spawn.name.split(" ")[0]!,
       );
+      const homeX = spawn.x * TILE + 16;
+      const homeY = spawn.y * TILE + 16;
       return {
         ...actor,
         spawn,
-        homeX: spawn.x * TILE + 16,
-        homeY: spawn.y * TILE + 16,
+        homeX,
+        homeY,
         timer: 0,
+        brain: createBrain(spawn, homeX, homeY),
       };
     });
 
