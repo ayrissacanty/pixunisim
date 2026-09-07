@@ -1516,6 +1516,30 @@ export class CampusScene extends Phaser.Scene {
     return canStandBox(this.zone, px, py);
   }
 
+  /**
+   * Draws the proximity action reticle: a hand-inked ring on the ground plus
+   * the verb the player would trigger (Inspect / Talk / Sit / Enter).
+   */
+  private drawReticle(x: number, y: number, verb: string) {
+    const ring = this.reticleRing;
+    const text = this.reticleText;
+    if (!ring || !text) return;
+    ring.clear();
+    ring.lineStyle(2, 0xeedcc5, 0.9);
+    ring.strokeEllipse(x, y + 4, 34, 17);
+    ring.lineStyle(3, 0xc27847, 0.95);
+    for (let i = 0; i < 4; i += 1) {
+      const a = Math.PI / 4 + (i * Math.PI) / 2;
+      ring.beginPath();
+      ring.arc(x, y + 4, 17, a - 0.22, a + 0.22);
+      ring.strokePath();
+    }
+    ring.setVisible(true);
+    text.setText(`${verb}  ·  E`);
+    text.setPosition(x, y - 12);
+    text.setVisible(true);
+  }
+
   private nearestInteraction() {
     const px = this.player.px / TILE;
     const py = this.player.py / TILE;
