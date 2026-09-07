@@ -71,6 +71,12 @@
   --color-sunflower: var(--sunflower);
   --color-grass: var(--grass);
   --color-sky: var(--sky);
+  --color-ink-night: var(--ink-night);
+  --color-bark: var(--bark);
+  --color-amber: var(--amber);
+  --color-wheat: var(--wheat);
+  --color-parchment-warm: var(--parchment-warm);
+  --color-toile-blue: var(--toile-blue);
   --font-display: var(--font-display);
   --font-body: var(--font-body);
 }
