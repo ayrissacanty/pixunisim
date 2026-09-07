@@ -1,4 +1,4 @@
-import type Phaser from "phaser";
+import Phaser from "phaser";
 import { TILE } from "./tiles";
 import { OVERLAY_DEPTH } from "./depth";
 import type { ZoneMap } from "./world";
