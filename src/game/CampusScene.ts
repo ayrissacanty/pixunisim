@@ -1327,6 +1327,12 @@ export class CampusScene extends Phaser.Scene {
       this.recenterTimer = undefined;
       this.tapMarker?.destroy();
       this.tapMarker = undefined;
+      this.ambience?.destroy();
+      this.ambience = undefined;
+      this.reticleRing?.destroy();
+      this.reticleRing = undefined;
+      this.reticleText?.destroy();
+      this.reticleText = undefined;
       this.input.off("pointerdown");
       this.input.off("pointermove");
       this.input.off("pointerup");
