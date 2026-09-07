@@ -143,6 +143,12 @@ export class CampusScene extends Phaser.Scene {
   private cullFrame = 0;
   /** True once the hand-painted ground/prop art has finished streaming in. */
   private artReady = false;
+  /** Weather / day-night atmosphere layer. */
+  private ambience?: Ambience | undefined;
+  private ambientTimer = 0;
+  /** Proximity action reticle drawn on the nearest interactable. */
+  private reticleRing?: Phaser.GameObjects.Graphics | undefined;
+  private reticleText?: Phaser.GameObjects.Text | undefined;
 
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
