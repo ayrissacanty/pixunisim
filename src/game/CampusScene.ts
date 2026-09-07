@@ -55,6 +55,9 @@ import {
   type SpriteDirection,
 } from "@/lib/campus/charart";
 import { ORIGINAL_ART, originalGroundKey, originalPropKey } from "@/lib/campus/isoart";
+import { applyAmbient, createAmbience, type Ambience } from "@/lib/campus/ambience";
+import { phaseAt, useClockStore } from "@/lib/campus/daynight";
+import { createBrain, stepBrain, type NpcBrain } from "@/lib/campus/npc-brain";
 
 const SPEED = 168;
 /** Pixels/sec^2 used to ease into and out of a walk so movement is not snappy. */
