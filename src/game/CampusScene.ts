@@ -1277,6 +1277,28 @@ export class CampusScene extends Phaser.Scene {
       this.cameras.main.setLerp(l, l);
     });
 
+    // Atmosphere: drifting leaves, fountain splashes and the ambient wash.
+    this.ambience?.destroy();
+    this.ambience = createAmbience(this, this.zone, (px, py) => this.iso(px, py), {
+      motion: bobScale(),
+    });
+    this.ambientTimer = 1000;
+
+    // Proximity action reticle.
+    this.reticleRing = this.add.graphics().setDepth(OVERLAY_DEPTH - 10).setVisible(false);
+    this.reticleText = this.add
+      .text(0, 0, "", {
+        fontFamily: "monospace",
+        fontStyle: "bold",
+        fontSize: "10px",
+        color: "#eedcc5",
+        backgroundColor: "#1a1510cc",
+        padding: { x: 5, y: 2 },
+      })
+      .setOrigin(0.5, 1)
+      .setDepth(OVERLAY_DEPTH - 9)
+      .setVisible(false);
+
     this.setupPointerWalk();
     this.setupCameraControls();
 
