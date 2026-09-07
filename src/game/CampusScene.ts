@@ -113,6 +113,7 @@ interface NpcActor extends Actor {
   homeX: number;
   homeY: number;
   timer: number;
+  brain: NpcBrain;
 }
 
 export class CampusScene extends Phaser.Scene {
