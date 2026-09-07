@@ -1726,10 +1726,27 @@ export class CampusScene extends Phaser.Scene {
       this.doorCooldown -= delta;
     }
 
-    // NPC behaviour — skip anyone off camera, and skip idle motion entirely
-    // when reduced motion is on.
+    // Day/night clock + ambient wash. The tint only needs refreshing a few
+    // times a second, so it rides a one-second timer.
+    useClockStore.getState().advance(delta);
+    this.ambientTimer += delta;
+    if (this.ambience && this.ambientTimer >= 500) {
+      this.ambientTimer = 0;
+      const tint = applyAmbient(
+        this,
+        this.ambience,
+        useClockStore.getState().minutes,
+        this.zone.kind === "outdoor",
+      );
+      if (this.zone.kind === "outdoor") this.cameras.main.setBackgroundColor(tint.sky);
+    }
+
+    // NPC behaviour — a small state machine per character, skipped for anyone
+    // off camera, with time-of-day waypoints driving where they should be.
     const view = this.cameras.main.worldView;
-    const idleMotion = bobScale() > 0;
+    const idleMotion = bobScale();
+    const phase = phaseAt(useClockStore.getState().minutes);
+    const talkingTo = store.dialogue?.speakerId;
     this.npcs.forEach((n) => {
       n.timer += delta;
       const projected = this.iso(n.px, n.py);
@@ -1740,14 +1757,41 @@ export class CampusScene extends Phaser.Scene {
         projected.y > view.bottom + 64
       )
         return;
-      if (n.spawn.behavior === "walk") {
-        const targetX = idleMotion ? n.homeX + Math.sin(n.timer / 1400) * 48 : n.homeX;
-        const walking = idleMotion && this.canStand(targetX, n.py);
-        if (walking) this.setActorPosition(n, targetX, n.py);
-        this.animate(n, Math.cos(n.timer / 1400) > 0 ? "right" : "left", walking);
-      } else {
-        this.animate(n, "down", false);
+      const target = stepBrain(n.brain, {
+        spawn: n.spawn,
+        phase,
+        homeX: n.homeX,
+        homeY: n.homeY,
+        x: n.px,
+        y: n.py,
+        delta,
+        talking: talkingTo === n.spawn.id,
+        motion: idleMotion,
+        canStand: (x, y) => this.canStand(x, y),
+      });
+      if (!target || idleMotion <= 0) {
+        this.animate(n, n.dir, false);
+        return;
       }
+      const dx = target.x - n.px;
+      const dy = target.y - n.py;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 1) {
+        this.animate(n, n.dir, false);
+        return;
+      }
+      const step = Math.min(dist, (SPEED * 0.42 * Math.min(delta, 50)) / 1000);
+      const nx = n.px + (dx / dist) * step;
+      const ny = n.py + (dy / dist) * step;
+      const walked = this.canStand(nx, ny);
+      if (walked) this.setActorPosition(n, nx, ny);
+      else n.brain.target = null;
+      // Facing follows the on-screen direction of travel, like the player.
+      const svx = (dx / dist - dy / dist) * (ISO_W / 2);
+      const svy = (dx / dist + dy / dist) * (ISO_H / 2);
+      const dir =
+        Math.abs(svx) > Math.abs(svy) ? (svx > 0 ? "right" : "left") : svy > 0 ? "down" : "up";
+      this.animate(n, dir, walked);
     });
 
     // Prompt + room tracking, throttled well below human reaction time.
