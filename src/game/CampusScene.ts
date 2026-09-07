@@ -1822,10 +1822,21 @@ export class CampusScene extends Phaser.Scene {
         marker.setScale(active ? 1.16 : 1);
         marker.setAlpha(active ? 1 : 0.8);
       });
+      const at =
+        hit.kind === "object"
+          ? isoFromTile(
+              this.zone.interactables[hit.index]!.x + 0.5,
+              this.zone.interactables[hit.index]!.y + 0.5,
+              this.zone.height,
+            )
+          : this.iso(this.npcs[hit.index]!.px, this.npcs[hit.index]!.py);
+      this.drawReticle(at.x, at.y, prompt.verb);
     } else if (this.lastPromptId) {
       this.lastPromptId = null;
       store.setPrompt(undefined);
       this.interactionMarkers.forEach((marker) => marker.setScale(1).setAlpha(0.8));
+      this.reticleRing?.setVisible(false);
+      this.reticleText?.setVisible(false);
     }
 
     const tx = this.player.px / TILE;
