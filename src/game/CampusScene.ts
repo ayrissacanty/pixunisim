@@ -55,6 +55,9 @@ import {
   type SpriteDirection,
 } from "@/lib/campus/charart";
 import { ORIGINAL_ART, originalGroundKey, originalPropKey } from "@/lib/campus/isoart";
+import { applyAmbient, createAmbience, type Ambience } from "@/lib/campus/ambience";
+import { phaseAt, useClockStore } from "@/lib/campus/daynight";
+import { createBrain, stepBrain, type NpcBrain } from "@/lib/campus/npc-brain";
 
 const SPEED = 168;
 /** Pixels/sec^2 used to ease into and out of a walk so movement is not snappy. */
@@ -110,6 +113,7 @@ interface NpcActor extends Actor {
   homeX: number;
   homeY: number;
   timer: number;
+  brain: NpcBrain;
 }
 
 export class CampusScene extends Phaser.Scene {
@@ -139,6 +143,12 @@ export class CampusScene extends Phaser.Scene {
   private cullFrame = 0;
   /** True once the hand-painted ground/prop art has finished streaming in. */
   private artReady = false;
+  /** Weather / day-night atmosphere layer. */
+  private ambience?: Ambience | undefined;
+  private ambientTimer = 0;
+  /** Proximity action reticle drawn on the nearest interactable. */
+  private reticleRing?: Phaser.GameObjects.Graphics | undefined;
+  private reticleText?: Phaser.GameObjects.Text | undefined;
 
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -1210,12 +1220,15 @@ export class CampusScene extends Phaser.Scene {
         lookFor(spawn.id, spawn.role),
         spawn.name.split(" ")[0]!,
       );
+      const homeX = spawn.x * TILE + 16;
+      const homeY = spawn.y * TILE + 16;
       return {
         ...actor,
         spawn,
-        homeX: spawn.x * TILE + 16,
-        homeY: spawn.y * TILE + 16,
+        homeX,
+        homeY,
         timer: 0,
+        brain: createBrain(spawn, homeX, homeY),
       };
     });
 
@@ -1264,6 +1277,28 @@ export class CampusScene extends Phaser.Scene {
       this.cameras.main.setLerp(l, l);
     });
 
+    // Atmosphere: drifting leaves, fountain splashes and the ambient wash.
+    this.ambience?.destroy();
+    this.ambience = createAmbience(this, this.zone, (px, py) => this.iso(px, py), {
+      motion: bobScale(),
+    });
+    this.ambientTimer = 1000;
+
+    // Proximity action reticle.
+    this.reticleRing = this.add.graphics().setDepth(OVERLAY_DEPTH - 10).setVisible(false);
+    this.reticleText = this.add
+      .text(0, 0, "", {
+        fontFamily: "monospace",
+        fontStyle: "bold",
+        fontSize: "10px",
+        color: "#eedcc5",
+        backgroundColor: "#1a1510cc",
+        padding: { x: 5, y: 2 },
+      })
+      .setOrigin(0.5, 1)
+      .setDepth(OVERLAY_DEPTH - 9)
+      .setVisible(false);
+
     this.setupPointerWalk();
     this.setupCameraControls();
 
@@ -1292,6 +1327,12 @@ export class CampusScene extends Phaser.Scene {
       this.recenterTimer = undefined;
       this.tapMarker?.destroy();
       this.tapMarker = undefined;
+      this.ambience?.destroy();
+      this.ambience = undefined;
+      this.reticleRing?.destroy();
+      this.reticleRing = undefined;
+      this.reticleText?.destroy();
+      this.reticleText = undefined;
       this.input.off("pointerdown");
       this.input.off("pointermove");
       this.input.off("pointerup");
@@ -1473,6 +1514,30 @@ export class CampusScene extends Phaser.Scene {
 
   private canStand(px: number, py: number) {
     return canStandBox(this.zone, px, py);
+  }
+
+  /**
+   * Draws the proximity action reticle: a hand-inked ring on the ground plus
+   * the verb the player would trigger (Inspect / Talk / Sit / Enter).
+   */
+  private drawReticle(x: number, y: number, verb: string) {
+    const ring = this.reticleRing;
+    const text = this.reticleText;
+    if (!ring || !text) return;
+    ring.clear();
+    ring.lineStyle(2, 0xeedcc5, 0.9);
+    ring.strokeEllipse(x, y + 4, 34, 17);
+    ring.lineStyle(3, 0xc27847, 0.95);
+    for (let i = 0; i < 4; i += 1) {
+      const a = Math.PI / 4 + (i * Math.PI) / 2;
+      ring.beginPath();
+      ring.arc(x, y + 4, 17, a - 0.22, a + 0.22);
+      ring.strokePath();
+    }
+    ring.setVisible(true);
+    text.setText(`${verb}  ·  E`);
+    text.setPosition(x, y - 12);
+    text.setVisible(true);
   }
 
   private nearestInteraction() {
@@ -1685,10 +1750,27 @@ export class CampusScene extends Phaser.Scene {
       this.doorCooldown -= delta;
     }
 
-    // NPC behaviour — skip anyone off camera, and skip idle motion entirely
-    // when reduced motion is on.
+    // Day/night clock + ambient wash. The tint only needs refreshing a few
+    // times a second, so it rides a one-second timer.
+    useClockStore.getState().advance(delta);
+    this.ambientTimer += delta;
+    if (this.ambience && this.ambientTimer >= 500) {
+      this.ambientTimer = 0;
+      const tint = applyAmbient(
+        this,
+        this.ambience,
+        useClockStore.getState().minutes,
+        this.zone.kind === "outdoor",
+      );
+      if (this.zone.kind === "outdoor") this.cameras.main.setBackgroundColor(tint.sky);
+    }
+
+    // NPC behaviour — a small state machine per character, skipped for anyone
+    // off camera, with time-of-day waypoints driving where they should be.
     const view = this.cameras.main.worldView;
-    const idleMotion = bobScale() > 0;
+    const idleMotion = bobScale();
+    const phase = phaseAt(useClockStore.getState().minutes);
+    const talkingTo = store.dialogue?.speakerId;
     this.npcs.forEach((n) => {
       n.timer += delta;
       const projected = this.iso(n.px, n.py);
@@ -1699,14 +1781,41 @@ export class CampusScene extends Phaser.Scene {
         projected.y > view.bottom + 64
       )
         return;
-      if (n.spawn.behavior === "walk") {
-        const targetX = idleMotion ? n.homeX + Math.sin(n.timer / 1400) * 48 : n.homeX;
-        const walking = idleMotion && this.canStand(targetX, n.py);
-        if (walking) this.setActorPosition(n, targetX, n.py);
-        this.animate(n, Math.cos(n.timer / 1400) > 0 ? "right" : "left", walking);
-      } else {
-        this.animate(n, "down", false);
+      const target = stepBrain(n.brain, {
+        spawn: n.spawn,
+        phase,
+        homeX: n.homeX,
+        homeY: n.homeY,
+        x: n.px,
+        y: n.py,
+        delta,
+        talking: talkingTo === n.spawn.id,
+        motion: idleMotion,
+        canStand: (x, y) => this.canStand(x, y),
+      });
+      if (!target || idleMotion <= 0) {
+        this.animate(n, n.dir, false);
+        return;
       }
+      const dx = target.x - n.px;
+      const dy = target.y - n.py;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 1) {
+        this.animate(n, n.dir, false);
+        return;
+      }
+      const step = Math.min(dist, (SPEED * 0.42 * Math.min(delta, 50)) / 1000);
+      const nx = n.px + (dx / dist) * step;
+      const ny = n.py + (dy / dist) * step;
+      const walked = this.canStand(nx, ny);
+      if (walked) this.setActorPosition(n, nx, ny);
+      else n.brain.target = null;
+      // Facing follows the on-screen direction of travel, like the player.
+      const svx = (dx / dist - dy / dist) * (ISO_W / 2);
+      const svy = (dx / dist + dy / dist) * (ISO_H / 2);
+      const dir =
+        Math.abs(svx) > Math.abs(svy) ? (svx > 0 ? "right" : "left") : svy > 0 ? "down" : "up";
+      this.animate(n, dir, walked);
     });
 
     // Prompt + room tracking, throttled well below human reaction time.
@@ -1737,10 +1846,21 @@ export class CampusScene extends Phaser.Scene {
         marker.setScale(active ? 1.16 : 1);
         marker.setAlpha(active ? 1 : 0.8);
       });
+      const at =
+        hit.kind === "object"
+          ? isoFromTile(
+              this.zone.interactables[hit.index]!.x + 0.5,
+              this.zone.interactables[hit.index]!.y + 0.5,
+              this.zone.height,
+            )
+          : this.iso(this.npcs[hit.index]!.px, this.npcs[hit.index]!.py);
+      this.drawReticle(at.x, at.y, prompt.verb);
     } else if (this.lastPromptId) {
       this.lastPromptId = null;
       store.setPrompt(undefined);
       this.interactionMarkers.forEach((marker) => marker.setScale(1).setAlpha(0.8));
+      this.reticleRing?.setVisible(false);
+      this.reticleText?.setVisible(false);
     }
 
     const tx = this.player.px / TILE;

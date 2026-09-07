@@ -14,6 +14,7 @@ import { STYLE_LABELS } from "@/lib/campus/themes";
 import { TouchControls } from "@/components/campus/TouchControls";
 import { MobileA11ySettings } from "@/components/campus/MobileA11ySettings";
 import { CampusCameraControls } from "@/components/campus/CampusCameraControls";
+import { CampusClock } from "@/components/campus/CampusClock";
 
 
 const MemoizedMinimap = memo(Minimap);
@@ -83,6 +84,7 @@ export function CampusHud({
             </div>
           </div>
 
+          <CampusClock />
           <MemoizedObjectiveTracker />
           {debug && (
             <div className="flex flex-col gap-2">
