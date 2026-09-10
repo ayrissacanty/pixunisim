@@ -15,6 +15,7 @@ import {
   Users,
   Compass,
 } from "lucide-react";
+import { FACULTY } from "@/lib/campus/faculty";
 
 const DESCRIPTION =
   "Unify University is a K-12 homeschool platform where kids learn by exploring a real campus — guided by Alley, an AI teacher, on standards-aligned curriculum parents can track.";
@@ -168,6 +169,9 @@ function Landing() {
                 <ShieldCheck className="h-4 w-4 text-accent" />
                 <span>Standards-aligned curriculum underneath every room.</span>
               </div>
+              <Button asChild variant="ghost" className="w-fit gap-2 px-0 text-accent hover:bg-transparent hover:text-foreground">
+                <Link to="/campus-preview"><Compass className="size-4" /> Tour the campus without signing in</Link>
+              </Button>
             </div>
           </div>
 
@@ -302,6 +306,34 @@ function Landing() {
                 </span>
                 <h3 className="mt-3 font-display text-base font-bold">{p.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p.body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-border/30 bg-[#141210]">
+        <div className="mx-auto max-w-7xl px-6 py-16 lg:py-20">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-[.22em] text-accent">Meet the faculty</p>
+            <h2 className="mt-2 font-display text-3xl font-bold">Every room has a keeper and a quest.</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">Faculty dialogue gives each subject a memorable voice. Standards, lesson records, and parent controls remain visible beneath the story.</p>
+          </div>
+          <div className="mt-8 grid gap-5 lg:grid-cols-3">
+            {FACULTY.map((faculty) => (
+              <article key={faculty.id} className="group overflow-hidden rounded-2xl border border-border bg-card">
+                <div className="relative aspect-[16/10] overflow-hidden bg-primary">
+                  <img src={faculty.portrait} alt={`${faculty.name}, ${faculty.title}`} width={768} height={768} loading="lazy" className="h-full w-full object-cover object-[center_28%] transition-transform duration-500 group-hover:scale-105 [image-rendering:pixelated]" />
+                  <span className="absolute bottom-3 left-3 rounded-md border border-[#eedcc5]/25 bg-[#141210]/85 px-2 py-1 text-[10px] font-bold text-[#eedcc5] backdrop-blur">{faculty.standard}</span>
+                </div>
+                <div className="p-5">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-accent">{faculty.title}</p>
+                  <h3 className="mt-1 font-display text-xl font-bold">{faculty.name}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{faculty.backstory}</p>
+                  <ol className="mt-4 space-y-2 border-t border-border/50 pt-4">
+                    {faculty.quest.map((step, index) => <li key={step} className="flex items-center gap-2 text-xs"><span className="flex size-5 items-center justify-center rounded-full bg-primary font-mono text-[10px] text-primary-foreground">{index + 1}</span>{step}</li>)}
+                  </ol>
+                </div>
               </article>
             ))}
           </div>
