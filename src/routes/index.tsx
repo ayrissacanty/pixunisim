@@ -15,6 +15,7 @@ import {
   Users,
   Compass,
 } from "lucide-react";
+import { FACULTY } from "@/lib/campus/faculty";
 
 const DESCRIPTION =
   "Unify University is a K-12 homeschool platform where kids learn by exploring a real campus — guided by Alley, an AI teacher, on standards-aligned curriculum parents can track.";
@@ -61,17 +62,43 @@ const PILLARS = [
 
 const STEPS = [
   ["01", "Create a family", "One parent account holds the household, the roster and the reports."],
-  ["02", "Add your learners", "Share your family code; each child joins with their own student record."],
-  ["03", "Walk to class", "They explore, meet faculty, sit down and complete real lessons with Alley."],
+  [
+    "02",
+    "Add your learners",
+    "Share your family code; each child joins with their own student record.",
+  ],
+  [
+    "03",
+    "Walk to class",
+    "They explore, meet faculty, sit down and complete real lessons with Alley.",
+  ],
   ["04", "Read the report", "Today's Report summarises what got finished, scored and celebrated."],
 ];
 
 type Room = "classroom" | "library" | "hall";
 
 const ROOMS: { id: Room; label: string; tag: string; title: string; badge: string }[] = [
-  { id: "classroom", label: "Classroom #1", tag: "Active Session", title: "Algebra 204: Linear Equations", badge: "Standard Code: HS-ALG.2" },
-  { id: "library", label: "The Library", tag: "Reading Stacks", title: "American Literature Archive", badge: "Quiet Zone" },
-  { id: "hall", label: "Academic Hall", tag: "Central Junction", title: "Main Academic Hallway", badge: "13 Zones Unlocked" },
+  {
+    id: "classroom",
+    label: "Classroom #1",
+    tag: "Active Session",
+    title: "Algebra 204: Linear Equations",
+    badge: "Standard Code: HS-ALG.2",
+  },
+  {
+    id: "library",
+    label: "The Library",
+    tag: "Reading Stacks",
+    title: "American Literature Archive",
+    badge: "Quiet Zone",
+  },
+  {
+    id: "hall",
+    label: "Academic Hall",
+    tag: "Central Junction",
+    title: "Main Academic Hallway",
+    badge: "13 Zones Unlocked",
+  },
 ];
 
 function Landing() {
@@ -89,15 +116,25 @@ function Landing() {
               <Feather className="h-5 w-5" />
             </div>
             <div>
-              <span className="block font-display text-xl font-bold tracking-tight text-foreground">UNIFY</span>
-              <span className="block text-[11px] uppercase tracking-[0.2em] text-muted-foreground">K-12 Pixel Campus</span>
+              <span className="block font-display text-xl font-bold tracking-tight text-foreground">
+                UNIFY
+              </span>
+              <span className="block text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                K-12 Pixel Campus
+              </span>
             </div>
           </div>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-foreground/80 md:flex">
-            <a href="#world" className="transition-colors hover:text-accent">The World</a>
-            <a href="#curriculum" className="transition-colors hover:text-accent">Curriculum</a>
-            <a href="#parents" className="transition-colors hover:text-accent">Parent Ledger</a>
+            <a href="#world" className="transition-colors hover:text-accent">
+              The World
+            </a>
+            <a href="#curriculum" className="transition-colors hover:text-accent">
+              Curriculum
+            </a>
+            <a href="#parents" className="transition-colors hover:text-accent">
+              Parent Ledger
+            </a>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -143,9 +180,9 @@ function Landing() {
             </h1>
 
             <p className="max-w-xl text-lg font-normal leading-relaxed text-muted-foreground">
-              Step away from sterile, flat software. Unify gives your child an exquisite, hand-drawn pixel world of
-              academic halls, quiet study corners, and interactive classrooms — paired with a calm, rigorous workspace
-              for parents.
+              Step away from sterile, flat software. Unify gives your child an exquisite, hand-drawn
+              pixel world of academic halls, quiet study corners, and interactive classrooms —
+              paired with a calm, rigorous workspace for parents.
             </p>
 
             <div className="flex flex-col items-stretch gap-4 pt-2 sm:flex-row sm:items-center">
@@ -168,6 +205,15 @@ function Landing() {
                 <ShieldCheck className="h-4 w-4 text-accent" />
                 <span>Standards-aligned curriculum underneath every room.</span>
               </div>
+              <Button
+                asChild
+                variant="ghost"
+                className="w-fit gap-2 px-0 text-accent hover:bg-transparent hover:text-foreground"
+              >
+                <Link to="/campus-preview">
+                  <Compass className="size-4" /> Tour the campus without signing in
+                </Link>
+              </Button>
             </div>
           </div>
 
@@ -204,8 +250,12 @@ function Landing() {
                     <div key={r.id} className="space-y-4">
                       <div className="flex items-center justify-between border-b border-border/40 pb-4">
                         <div>
-                          <span className="text-xs font-semibold uppercase tracking-wider text-accent">{r.tag}</span>
-                          <h3 className="font-display text-xl font-bold text-foreground">{r.title}</h3>
+                          <span className="text-xs font-semibold uppercase tracking-wider text-accent">
+                            {r.tag}
+                          </span>
+                          <h3 className="font-display text-xl font-bold text-foreground">
+                            {r.title}
+                          </h3>
                         </div>
                         <span className="rounded-full border border-border/60 bg-primary/40 px-3 py-1 font-mono text-xs text-accent">
                           {r.badge}
@@ -224,7 +274,11 @@ function Landing() {
                           />
                         ) : (
                           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-secondary bg-primary text-accent">
-                            {r.id === "library" ? <BookOpen className="h-6 w-6" /> : <Landmark className="h-6 w-6" />}
+                            {r.id === "library" ? (
+                              <BookOpen className="h-6 w-6" />
+                            ) : (
+                              <Landmark className="h-6 w-6" />
+                            )}
                           </div>
                         )}
                         <div className="space-y-1">
@@ -232,10 +286,13 @@ function Landing() {
                             <>
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-bold text-foreground">Alley</span>
-                                <span className="rounded bg-accent/20 px-2 py-0.5 text-[10px] text-accent">AI Instructor</span>
+                                <span className="rounded bg-accent/20 px-2 py-0.5 text-[10px] text-accent">
+                                  AI Instructor
+                                </span>
                               </div>
                               <p className="text-xs italic text-foreground/80">
-                                “Take a seat at desk four. Let’s break down slope-intercept forms together, step by step.”
+                                “Take a seat at desk four. Let’s break down slope-intercept forms
+                                together, step by step.”
                               </p>
                             </>
                           ) : (
@@ -296,12 +353,73 @@ function Landing() {
           </h2>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {PILLARS.map((p) => (
-              <article key={p.tag} className="rounded-2xl border border-border/60 bg-card p-5 text-card-foreground">
+              <article
+                key={p.tag}
+                className="rounded-2xl border border-border/60 bg-card p-5 text-card-foreground"
+              >
                 <span className="inline-block rounded-lg border border-border/60 bg-primary px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
                   {p.tag}
                 </span>
                 <h3 className="mt-3 font-display text-base font-bold">{p.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p.body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-border/30 bg-[#141210]">
+        <div className="mx-auto max-w-7xl px-6 py-16 lg:py-20">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-[.22em] text-accent">
+              Meet the faculty
+            </p>
+            <h2 className="mt-2 font-display text-3xl font-bold">
+              Every room has a keeper and a quest.
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Faculty dialogue gives each subject a memorable voice. Standards, lesson records, and
+              parent controls remain visible beneath the story.
+            </p>
+          </div>
+          <div className="mt-8 grid gap-5 lg:grid-cols-3">
+            {FACULTY.map((faculty) => (
+              <article
+                key={faculty.id}
+                className="group overflow-hidden rounded-2xl border border-border bg-card"
+              >
+                <div className="relative aspect-[16/10] overflow-hidden bg-primary">
+                  <img
+                    src={faculty.portrait}
+                    alt={`${faculty.name}, ${faculty.title}`}
+                    width={768}
+                    height={768}
+                    loading="lazy"
+                    className="h-full w-full object-cover object-[center_28%] transition-transform duration-500 group-hover:scale-105 [image-rendering:pixelated]"
+                  />
+                  <span className="absolute bottom-3 left-3 rounded-md border border-[#eedcc5]/25 bg-[#141210]/85 px-2 py-1 text-[10px] font-bold text-[#eedcc5] backdrop-blur">
+                    {faculty.standard}
+                  </span>
+                </div>
+                <div className="p-5">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-accent">
+                    {faculty.title}
+                  </p>
+                  <h3 className="mt-1 font-display text-xl font-bold">{faculty.name}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    {faculty.backstory}
+                  </p>
+                  <ol className="mt-4 space-y-2 border-t border-border/50 pt-4">
+                    {faculty.quest.map((step, index) => (
+                      <li key={step} className="flex items-center gap-2 text-xs">
+                        <span className="flex size-5 items-center justify-center rounded-full bg-primary font-mono text-[10px] text-primary-foreground">
+                          {index + 1}
+                        </span>
+                        {step}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
               </article>
             ))}
           </div>
@@ -339,9 +457,12 @@ function Landing() {
             loading="lazy"
             className="mx-auto h-24 w-24 [image-rendering:pixelated]"
           />
-          <h2 className="mt-4 font-display text-2xl font-bold sm:text-3xl">Class starts whenever your family is ready.</h2>
+          <h2 className="mt-4 font-display text-2xl font-bold sm:text-3xl">
+            Class starts whenever your family is ready.
+          </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
-            Set up the household in a minute, hand your learner a family code, and let them find their first classroom.
+            Set up the household in a minute, hand your learner a family code, and let them find
+            their first classroom.
           </p>
           {!loading && !user && (
             <div className="mt-7 flex flex-wrap justify-center gap-3">

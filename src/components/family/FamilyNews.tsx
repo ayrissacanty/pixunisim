@@ -15,7 +15,6 @@ export function FamilyNews() {
   const { speak, stop, speaking, loading, lineIndex, muted, setMuted, supported, usingCloud } =
     useBriefingSpeech(lines);
 
-
   const mascot = profile?.mascot ?? DEFAULT_MASCOT;
 
   return (
@@ -92,8 +91,8 @@ export function FamilyNews() {
 
           {!supported ? (
             <p className="mt-3 text-xs font-semibold text-muted-foreground">
-              This browser can&apos;t read the report aloud — the written briefing above is the
-              full report.
+              This browser can&apos;t read the report aloud — the written briefing above is the full
+              report.
             </p>
           ) : (
             !usingCloud && (
@@ -102,7 +101,6 @@ export function FamilyNews() {
               </p>
             )
           )}
-
         </div>
       </div>
 
@@ -135,6 +133,43 @@ export function FamilyNews() {
             </li>
           ))}
         </ul>
+      )}
+      {report && report.members.length > 0 && (
+        <div
+          className="mt-5 overflow-x-auto rounded-lg border border-border"
+          data-testid="parent-ledger"
+        >
+          <div className="border-b border-border bg-muted px-3 py-2">
+            <h3 className="font-display text-sm font-bold">Parent learning ledger</h3>
+            <p className="text-[11px] text-muted-foreground">
+              Read-only household reporting from the same campus progress record.
+            </p>
+          </div>
+          <table className="w-full min-w-[520px] text-left text-xs">
+            <thead className="bg-background text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2">Learner</th>
+                <th className="px-3 py-2">Today</th>
+                <th className="px-3 py-2">7 days</th>
+                <th className="px-3 py-2">Average</th>
+                <th className="px-3 py-2">Objectives</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.members.map((member) => (
+                <tr key={member.id} className="border-t border-border">
+                  <td className="px-3 py-2 font-semibold">{member.name}</td>
+                  <td className="px-3 py-2">{member.completedToday.length}</td>
+                  <td className="px-3 py-2">{member.completedThisWeek}</td>
+                  <td className="px-3 py-2">
+                    {member.averageScore == null ? "—" : `${member.averageScore}%`}
+                  </td>
+                  <td className="px-3 py-2">{member.objectivesToday}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

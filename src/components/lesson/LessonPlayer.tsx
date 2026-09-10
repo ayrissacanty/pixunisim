@@ -23,13 +23,7 @@ const SECTION_LABEL: Record<string, string> = {
   activity: "Try it",
 };
 
-function QuestionCard({
-  q,
-  onAnswered,
-}: {
-  q: Question;
-  onAnswered: (correct: boolean) => void;
-}) {
+function QuestionCard({ q, onAnswered }: { q: Question; onAnswered: (correct: boolean) => void }) {
   const [picked, setPicked] = useState<string | null>(null);
   const revealed = picked !== null;
   return (
@@ -168,7 +162,10 @@ export function LessonPlayer({
     await persist("completed", sections.length, Math.max(totalSteps - 1, 0));
     useCampusStore
       .getState()
-      .logEvent("assessment", `Assessment recorded — ${lesson.title}${score === null ? "" : ` (${score}%)`}`);
+      .logEvent(
+        "assessment",
+        `Assessment recorded — ${lesson.title}${score === null ? "" : ` (${score}%)`}`,
+      );
     onComplete?.();
   };
 
@@ -180,16 +177,19 @@ export function LessonPlayer({
         <div className="mb-4">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{lesson.summary ? "Lesson" : "Lesson"}</Badge>
+            {lesson.standard_code && <Badge variant="outline">{lesson.standard_code}</Badge>}
             {existing?.status === "completed" && (
               <Badge className="bg-secondary text-secondary-foreground">Completed</Badge>
             )}
           </div>
           <h2 className="mt-2 text-2xl font-bold text-foreground">{lesson.title}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{lesson.summary}</p>
-          <ProgressBar
-            value={((step + 1) / Math.max(totalSteps, 1)) * 100}
-            className="mt-4 h-2"
-          />
+          <p className="mt-2 text-[11px] font-medium text-muted-foreground">
+            {lesson.curriculum_source ?? "UNIFY authored curriculum"}
+            {lesson.subject ? ` · ${lesson.subject}` : ""}
+            {lesson.grade != null ? ` · Grade ${lesson.grade}` : ""}
+          </p>
+          <ProgressBar value={((step + 1) / Math.max(totalSteps, 1)) * 100} className="mt-4 h-2" />
           <p className="mt-1 text-xs text-muted-foreground">
             Step {step + 1} of {totalSteps}
           </p>
@@ -254,11 +254,7 @@ export function LessonPlayer({
         )}
 
         <div className="mt-5 flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={back}
-            disabled={step === 0}
-          >
+          <Button variant="outline" onClick={back} disabled={step === 0}>
             <ChevronLeft className="size-4" /> Back
           </Button>
           <Button onClick={next} disabled={step >= totalSteps - 1}>
