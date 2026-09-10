@@ -5,6 +5,8 @@ import { CharacterAvatar } from "@/components/campus/CharacterAvatar";
 import { classmatesFor, characterOf, TEACHER_CHARACTER } from "@/lib/characters";
 import { useAvatar } from "@/lib/profile";
 import { Button } from "@/components/ui/button";
+import { facultyForRoom } from "@/lib/campus/faculty";
+import { BookOpenCheck, CheckCircle2, Circle } from "lucide-react";
 
 /**
  * Layer 3 — the classroom beat, drawn entirely in 2D.
@@ -74,6 +76,7 @@ export function ClassroomBeat() {
   const line = script[Math.min(step, script.length - 1)] ?? "";
   const start = () => openLesson(classroom.lessonId, classroom.courseId, classroom.roomId);
   const teacher = characterOf(TEACHER_CHARACTER);
+  const faculty = facultyForRoom(classroom.roomId);
 
   return (
     <div
@@ -113,9 +116,9 @@ export function ClassroomBeat() {
       {/* Cast */}
       <div className="relative z-10 flex items-end justify-center gap-6 pb-2 sm:gap-12">
         <div data-testid="beat-teacher" className="flex flex-col items-center">
-          <CharacterAvatar character={TEACHER_CHARACTER} size={104} />
+          <img src={faculty.portrait} alt={faculty.name} width={768} height={768} loading="lazy" className="size-28 rounded-xl border-[3px] border-accent object-cover shadow-lg [image-rendering:pixelated]" />
           <span className="block-chip mt-1 border-warm-brown bg-ochre px-2 py-0.5 font-display text-[11px] font-bold text-[var(--warm-brown)]">
-            {classroom.teacher ?? teacher.name}
+            {faculty.name ?? classroom.teacher ?? teacher.name}
           </span>
         </div>
         <div className="hidden flex-col items-center sm:flex">
@@ -137,8 +140,25 @@ export function ClassroomBeat() {
           {classroom.roomName}
         </p>
         <p data-testid="beat-line" className="mt-1 font-display text-sm">
-          <span className="font-bold">{classroom.teacher}:</span> {line}
+          <span className="font-bold">{faculty.name}:</span> {line}
         </p>
+
+        {phase === "arrive" && (
+          <div className="mt-3 grid gap-3 border-t border-sidebar-foreground/15 pt-3 sm:grid-cols-[1.25fr_1fr]">
+            <div>
+              <p className="text-xs font-semibold text-accent">{faculty.title} · {faculty.standard}</p>
+              <p className="mt-1 text-xs leading-relaxed text-sidebar-foreground/75">{faculty.backstory}</p>
+            </div>
+            <ol className="space-y-1.5 text-xs" aria-label="Class quest steps">
+              {faculty.quest.map((quest, index) => (
+                <li key={quest} className="flex items-center gap-2">
+                  {index === 0 ? <CheckCircle2 className="size-3.5 text-accent" /> : <Circle className="size-3.5 text-sidebar-foreground/40" />}
+                  <span>{quest}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
 
         {phase === "arrive" && objective && (
           <p
@@ -159,7 +179,7 @@ export function ClassroomBeat() {
                 </Button>
               )}
               <Button size="sm" data-testid="start-class" onClick={start}>
-                Start the class
+                <BookOpenCheck className="size-4" /> Start the class
               </Button>
               <Button size="sm" variant="ghost" onClick={leaveClassroom}>
                 Not now

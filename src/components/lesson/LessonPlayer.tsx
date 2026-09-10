@@ -180,12 +180,18 @@ export function LessonPlayer({
         <div className="mb-4">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{lesson.summary ? "Lesson" : "Lesson"}</Badge>
+            {lesson.standard_code && <Badge variant="outline">{lesson.standard_code}</Badge>}
             {existing?.status === "completed" && (
               <Badge className="bg-secondary text-secondary-foreground">Completed</Badge>
             )}
           </div>
           <h2 className="mt-2 text-2xl font-bold text-foreground">{lesson.title}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{lesson.summary}</p>
+          <p className="mt-2 text-[11px] font-medium text-muted-foreground">
+            {lesson.curriculum_source ?? "UNIFY authored curriculum"}
+            {lesson.subject ? ` · ${lesson.subject}` : ""}
+            {lesson.grade != null ? ` · Grade ${lesson.grade}` : ""}
+          </p>
           <ProgressBar
             value={((step + 1) / Math.max(totalSteps, 1)) * 100}
             className="mt-4 h-2"
