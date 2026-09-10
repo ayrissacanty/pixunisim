@@ -30,6 +30,10 @@ export interface Lesson {
   render_mode?: "2d" | "3d";
   /** Alley's opening line in the Layer 3 classroom beat. */
   alley_greeting?: string | null;
+  standard_code?: string | null;
+  curriculum_source?: string;
+  subject?: string | null;
+  grade?: number | null;
 }
 
 export interface Question {
