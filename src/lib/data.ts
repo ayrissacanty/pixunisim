@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { db } from "@/lib/offline/db";
 import { mergeProgress } from "@/lib/offline/merge";
 
-
 export interface LessonSection {
   heading: string;
   type: "concept" | "example" | "activity";
@@ -157,9 +156,7 @@ export function useProgress() {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth.user?.id;
       if (!userId) return [];
-      const { data, error } = await supabase
-        .from("student_progress")
-        .select(PROGRESS_COLUMNS);
+      const { data, error } = await supabase.from("student_progress").select(PROGRESS_COLUMNS);
       if (error || !data) {
         const cached = await local?.progress.where("user_id").equals(userId).toArray();
         return (cached ?? []) as Progress[];
@@ -193,7 +190,10 @@ export function useSaveProgress() {
         .eq("lesson_id", input.lesson_id)
         .maybeSingle();
 
-      const resolved = { ...mergeProgress(merged, (remote as Progress | null) ?? null), user_id: userId };
+      const resolved = {
+        ...mergeProgress(merged, (remote as Progress | null) ?? null),
+        user_id: userId,
+      };
       await local?.progress.put(resolved);
 
       const { error } = await supabase
@@ -258,7 +258,6 @@ export function useOfflineSync() {
   }, [qc]);
 }
 
-
 /* --------------------------------- campus --------------------------------- */
 
 export interface CampusRoom {
@@ -312,4 +311,3 @@ export function useAlleyDialogue(roomId?: string) {
 export function progressFor(list: Progress[] | undefined, lessonId: string) {
   return list?.find((p) => p.lesson_id === lessonId);
 }
-

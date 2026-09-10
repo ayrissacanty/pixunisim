@@ -262,7 +262,14 @@ export function CampusMapOverlay() {
             style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})` }}
           >
             <svg viewBox={`0 0 ${VIEW} ${VIEW}`} className="h-full w-full">
-              <rect x={0} y={0} width={VIEW} height={VIEW} className="fill-[var(--grass,#7ec850)]" opacity={0.5} />
+              <rect
+                x={0}
+                y={0}
+                width={VIEW}
+                height={VIEW}
+                className="fill-[var(--grass,#7ec850)]"
+                opacity={0.5}
+              />
               {/* Connecting paths between every zone and the quad hub */}
               {nodes
                 .filter((n) => n.id !== "central-quad")
@@ -299,7 +306,13 @@ export function CampusMapOverlay() {
                   strokeLinejoin="round"
                   strokeDasharray="26 18"
                 >
-                  <animate attributeName="stroke-dashoffset" from="44" to="0" dur="1s" repeatCount="indefinite" />
+                  <animate
+                    attributeName="stroke-dashoffset"
+                    from="44"
+                    to="0"
+                    dur="1s"
+                    repeatCount="indefinite"
+                  />
                 </polyline>
               )}
 
@@ -428,18 +441,40 @@ export function CampusMapOverlay() {
           const faculty = FACULTY.find((member) => member.zoneId === selectedId);
           if (!selected || !discovered.includes(selectedId)) return null;
           return (
-            <aside data-testid="map-inspector" className="grid gap-3 border-t-[3px] border-border bg-card px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+            <aside
+              data-testid="map-inspector"
+              className="grid gap-3 border-t-[3px] border-border bg-card px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-center"
+            >
               <div className="flex min-w-0 items-center gap-3">
-                {faculty && <img src={faculty.portrait} alt="" width={768} height={768} loading="lazy" className="size-14 rounded-lg border-2 border-accent object-cover [image-rendering:pixelated]" />}
+                {faculty && (
+                  <img
+                    src={faculty.portrait}
+                    alt=""
+                    width={768}
+                    height={768}
+                    loading="lazy"
+                    className="size-14 rounded-lg border-2 border-accent object-cover [image-rendering:pixelated]"
+                  />
+                )}
                 <div className="min-w-0">
                   <p className="font-display font-bold">{selected.label}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {faculty ? `${faculty.name} · ${faculty.subject}` : selected.interior ? "Explore rooms, faculty, and active lessons." : "Campus grounds, paths, and gathering spaces."}
+                    {faculty
+                      ? `${faculty.name} · ${faculty.subject}`
+                      : selected.interior
+                        ? "Explore rooms, faculty, and active lessons."
+                        : "Campus grounds, paths, and gathering spaces."}
                   </p>
-                  {faculty && <span className="mt-1 inline-block rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-bold">{faculty.standard}</span>}
+                  {faculty && (
+                    <span className="mt-1 inline-block rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-bold">
+                      {faculty.standard}
+                    </span>
+                  )}
                 </div>
               </div>
-              <Button size="sm" onClick={() => goTo(selected.id, selected.label)}><Navigation className="size-3.5" /> Travel here</Button>
+              <Button size="sm" onClick={() => goTo(selected.id, selected.label)}>
+                <Navigation className="size-3.5" /> Travel here
+              </Button>
             </aside>
           );
         })()}
@@ -466,7 +501,11 @@ export function CampusMapOverlay() {
                 >
                   {known ? label : "Undiscovered"}
                   <span className="block text-[11px] text-muted-foreground">
-                    {known ? (id === current ? "You are here" : "Fast travel") : "Explore to reveal"}
+                    {known
+                      ? id === current
+                        ? "You are here"
+                        : "Fast travel"
+                      : "Explore to reveal"}
                   </span>
                 </button>
               );

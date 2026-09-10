@@ -85,8 +85,14 @@ function WorkspaceHome() {
                       >
                         <p className="text-sm font-medium">{lesson.title}</p>
                         <div className="mt-1 flex flex-wrap gap-1.5">
-                          {lesson.standard_code && <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-bold">{lesson.standard_code}</span>}
-                          <span className="text-[10px] text-muted-foreground">{lesson.curriculum_source ?? "UNIFY authored"}</span>
+                          {lesson.standard_code && (
+                            <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-bold">
+                              {lesson.standard_code}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground">
+                            {lesson.curriculum_source ?? "UNIFY authored"}
+                          </span>
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                           {p?.status === "completed"

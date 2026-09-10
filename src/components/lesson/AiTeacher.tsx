@@ -2,9 +2,19 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Sparkles, ShieldCheck } from "lucide-react";
 import { askTutor } from "@/lib/tutor.functions";
-import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
-import { PromptInput, PromptInputBody, PromptInputFooter, PromptInputSubmit, PromptInputTextarea } from "@/components/ai-elements/prompt-input";
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+} from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import alleyPortrait from "@/assets/faculty-alley.png";
 
@@ -49,7 +59,14 @@ export function AiTeacher({ lessonId, lessonTitle }: { lessonId: string; lessonT
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-[0_12px_40px_rgba(0,0,0,.2)]">
       <div className="flex items-center gap-3 border-b border-border bg-[#211b17] px-4 py-3 text-[#eedcc5]">
-        <img src={alleyPortrait} alt="Alley the Owl" width={768} height={768} loading="lazy" className="size-11 rounded-lg border border-[#84a98c]/60 object-cover [image-rendering:pixelated]" />
+        <img
+          src={alleyPortrait}
+          alt="Alley the Owl"
+          width={768}
+          height={768}
+          loading="lazy"
+          className="size-11 rounded-lg border border-[#84a98c]/60 object-cover [image-rendering:pixelated]"
+        />
         <div>
           <h3 className="font-display text-sm font-semibold">Ask Alley</h3>
           <p className="text-[10px] text-[#eedcc5]/65">Your lesson-side guide</p>
@@ -62,7 +79,13 @@ export function AiTeacher({ lessonId, lessonTitle }: { lessonId: string; lessonT
         <ConversationContent className="gap-4">
           {messages.map((m, i) => (
             <Message key={`${m.role}-${i}`} from={m.role}>
-              <MessageContent className={m.role === "assistant" ? "rounded-lg border border-border/60 bg-muted/60 px-3 py-2" : undefined}>
+              <MessageContent
+                className={
+                  m.role === "assistant"
+                    ? "rounded-lg border border-border/60 bg-muted/60 px-3 py-2"
+                    : undefined
+                }
+              >
                 <MessageResponse>{m.content}</MessageResponse>
               </MessageContent>
             </Message>
@@ -74,11 +97,21 @@ export function AiTeacher({ lessonId, lessonTitle }: { lessonId: string; lessonT
       <div className="border-t border-border bg-background/50 p-3">
         <PromptInput onSubmit={({ text }) => send(text)}>
           <PromptInputBody>
-            <PromptInputTextarea value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask Alley to explain this step…" aria-label="Ask Alley about this lesson" />
+            <PromptInputTextarea
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="Ask Alley to explain this step…"
+              aria-label="Ask Alley about this lesson"
+            />
           </PromptInputBody>
           <PromptInputFooter>
-            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"><Sparkles className="size-3" /> Hints, not answer keys</span>
-            <PromptInputSubmit status={busy ? "submitted" : "ready"} disabled={busy || !input.trim()} />
+            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Sparkles className="size-3" /> Hints, not answer keys
+            </span>
+            <PromptInputSubmit
+              status={busy ? "submitted" : "ready"}
+              disabled={busy || !input.trim()}
+            />
           </PromptInputFooter>
         </PromptInput>
       </div>

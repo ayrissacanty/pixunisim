@@ -132,7 +132,6 @@ function building(g: Grid, x: number, y: number, w: number, h: number, doorX: nu
   g.set(doorX, y + h + 1, "path");
 }
 
-
 /* --------------------------------- outdoor -------------------------------- */
 
 function welcomePlaza(): ZoneMap {
@@ -159,18 +158,22 @@ function welcomePlaza(): ZoneMap {
     g.set(x, y, rnd() > 0.45 ? "tree" : "flower");
   }
   // benches + lamps around plaza
-  ([
-    [12, 10],
-    [12, 15],
-    [21, 10],
-    [21, 15],
-  ] as const).forEach(([x, y]) => g.set(x, y, "bench"));
-  ([
-    [11, 8],
-    [22, 8],
-    [11, 17],
-    [22, 17],
-  ] as const).forEach(([x, y]) => g.set(x, y, "lamp"));
+  (
+    [
+      [12, 10],
+      [12, 15],
+      [21, 10],
+      [21, 15],
+    ] as const
+  ).forEach(([x, y]) => g.set(x, y, "bench"));
+  (
+    [
+      [11, 8],
+      [22, 8],
+      [11, 17],
+      [22, 17],
+    ] as const
+  ).forEach(([x, y]) => g.set(x, y, "lamp"));
   // signs
   g.set(14, 20, "sign");
   g.set(19, 20, "board");
@@ -319,20 +322,24 @@ function centralQuad(): ZoneMap {
     const r = rnd();
     g.set(x, y, r > 0.62 ? "tree" : r > 0.42 ? "flower" : "grassAlt");
   }
-  ([
-    [15, 12],
-    [15, 17],
-    [23, 12],
-    [23, 17],
-    [12, 16],
-    [27, 16],
-  ] as const).forEach(([x, y]) => g.set(x, y, "bench"));
-  ([
-    [14, 10],
-    [24, 10],
-    [14, 19],
-    [24, 19],
-  ] as const).forEach(([x, y]) => g.set(x, y, "lamp"));
+  (
+    [
+      [15, 12],
+      [15, 17],
+      [23, 12],
+      [23, 17],
+      [12, 16],
+      [27, 16],
+    ] as const
+  ).forEach(([x, y]) => g.set(x, y, "bench"));
+  (
+    [
+      [14, 10],
+      [24, 10],
+      [14, 19],
+      [24, 19],
+    ] as const
+  ).forEach(([x, y]) => g.set(x, y, "lamp"));
   g.set(11, 12, "table");
   g.set(11, 13, "chair");
   g.set(28, 12, "table");
@@ -509,12 +516,14 @@ function studentCommons(): ZoneMap {
     if (g.get(x, y) !== "grass") continue;
     g.set(x, y, rnd() > 0.5 ? "tree" : "flower");
   }
-  ([
-    [5, 14],
-    [10, 14],
-    [16, 14],
-    [22, 14],
-  ] as const).forEach(([x, y]) => {
+  (
+    [
+      [5, 14],
+      [10, 14],
+      [16, 14],
+      [22, 14],
+    ] as const
+  ).forEach(([x, y]) => {
     g.set(x, y, "table");
     g.set(x, y + 1, "chair");
     g.set(x + 1, y, "chair");
@@ -601,12 +610,14 @@ function studyGardens(): ZoneMap {
     const r = rnd();
     g.set(x, y, r > 0.7 ? "tree" : r > 0.35 ? "flower" : "hedge");
   }
-  ([
-    [6, 8],
-    [20, 8],
-    [12, 15],
-    [18, 15],
-  ] as const).forEach(([x, y]) => g.set(x, y, "bench"));
+  (
+    [
+      [6, 8],
+      [20, 8],
+      [12, 15],
+      [18, 15],
+    ] as const
+  ).forEach(([x, y]) => g.set(x, y, "bench"));
   g.set(4, 14, "lamp");
   g.set(22, 4, "lamp");
 
@@ -657,7 +668,6 @@ function studyGardens(): ZoneMap {
         action: { kind: "study" },
       },
     ],
-
   };
 }
 
@@ -771,7 +781,6 @@ function academicHall(opts: {
         roomName: spec.name,
         ...(spec.lessonId ? { lessonId: spec.lessonId } : {}),
         ...(spec.courseId ? { courseId: spec.courseId } : {}),
-
       });
     }
     if (spec.teacher && spec.lessonId && spec.courseId) {
@@ -1059,11 +1068,13 @@ function studentCenterZone(): ZoneMap {
   const g = new Grid(28, 18, "floor");
   g.border(0, 0, 28, 18, "wall");
   g.rect(2, 2, 10, 6, "rug");
-  ([
-    [3, 3],
-    [6, 3],
-    [9, 3],
-  ] as const).forEach(([x, y]) => {
+  (
+    [
+      [3, 3],
+      [6, 3],
+      [9, 3],
+    ] as const
+  ).forEach(([x, y]) => {
     g.set(x, y, "chair");
     g.set(x, y + 2, "table");
   });
@@ -1114,7 +1125,9 @@ function studentCenterZone(): ZoneMap {
         name: "Lila Fontaine",
         role: "Student",
         behavior: "idle",
-        lines: ["The club board is by the door. Chess, robotics, choir, and a family study circle."],
+        lines: [
+          "The club board is by the door. Chess, robotics, choir, and a family study circle.",
+        ],
       },
       {
         id: "barista-noor",
@@ -1305,7 +1318,9 @@ function administrationZone(): ZoneMap {
         name: "Priya Raman",
         role: "Admissions",
         behavior: "idle",
-        lines: ["Welcome to UNIFY. Your enrolment is active and your courses are already assigned."],
+        lines: [
+          "Welcome to UNIFY. Your enrolment is active and your courses are already assigned.",
+        ],
       },
       {
         id: "registrar-owen",
