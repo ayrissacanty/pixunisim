@@ -1589,7 +1589,7 @@ const builders: Record<string, () => ZoneMap> = {
           lessonId: "algebra-lesson-2",
           teacher: {
             id: "prof-maya",
-            name: "Professor Maya Ellison",
+            name: "Alley the Owl",
             lines: [
               "Welcome back. Are you ready for today's lesson?",
               "Order of operations. Everyone thinks they know it until the exponents show up.",
@@ -1629,7 +1629,7 @@ const builders: Record<string, () => ZoneMap> = {
           lessonId: "science-lesson-1",
           teacher: {
             id: "prof-hale",
-            name: "Professor Sam Hale",
+            name: "Dr. Kaelen",
             lines: [
               "Here is a hard question to start with: what makes something alive?",
               "Take a seat and we will build the list together.",
@@ -1698,7 +1698,7 @@ const builders: Record<string, () => ZoneMap> = {
           lessonId: "history-lesson-2",
           teacher: {
             id: "prof-ines",
-            name: "Professor Ines Barros",
+            name: "Professor Vance",
             lines: [
               "Four rivers, four beginnings. Shall we compare them?",
               "Bring your chart; we will fill it as we read.",

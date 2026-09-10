@@ -5,6 +5,7 @@ import { useCampusStore } from "@/lib/campus/store";
 import { ZONE_LABELS, getZone } from "@/lib/campus/world";
 import { buildWalkthrough } from "@/lib/campus/walkthrough";
 import { Button } from "@/components/ui/button";
+import { FACULTY } from "@/lib/campus/faculty";
 
 const OVERVIEW = [
   "welcome-plaza",
@@ -63,6 +64,7 @@ export function CampusMapOverlay() {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [hover, setHover] = useState<string | null>(null);
   const [routeId, setRouteId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string>(current);
   const view = useRef({ zoom: 1, offset: { x: 0, y: 0 } });
   view.current = { zoom, offset };
 
@@ -116,8 +118,9 @@ export function CampusMapOverlay() {
       setZoom(1);
       setOffset({ x: 0, y: 0 });
       setRouteId(null);
+      setSelectedId(current);
     }
-  }, [open]);
+  }, [open, current]);
 
   const zoomAt = useCallback((factor: number, px: number, py: number) => {
     const { zoom: z, offset: o } = view.current;
@@ -314,7 +317,7 @@ export function CampusMapOverlay() {
                     onMouseEnter={() => setHover(n.id)}
                     onMouseLeave={() => setHover((h) => (h === n.id ? null : h))}
                     onClick={() => {
-                      if (!drag.current?.moved && known) goTo(n.id, n.label);
+                      if (!drag.current?.moved && known) setSelectedId(n.id);
                     }}
                   >
                     {(isCurrent || onRoute || isObjective) && (
@@ -420,6 +423,27 @@ export function CampusMapOverlay() {
           </p>
         </div>
 
+        {(() => {
+          const selected = nodeById.get(selectedId);
+          const faculty = FACULTY.find((member) => member.zoneId === selectedId);
+          if (!selected || !discovered.includes(selectedId)) return null;
+          return (
+            <aside data-testid="map-inspector" className="grid gap-3 border-t-[3px] border-border bg-card px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+              <div className="flex min-w-0 items-center gap-3">
+                {faculty && <img src={faculty.portrait} alt="" width={768} height={768} loading="lazy" className="size-14 rounded-lg border-2 border-accent object-cover [image-rendering:pixelated]" />}
+                <div className="min-w-0">
+                  <p className="font-display font-bold">{selected.label}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {faculty ? `${faculty.name} · ${faculty.subject}` : selected.interior ? "Explore rooms, faculty, and active lessons." : "Campus grounds, paths, and gathering spaces."}
+                  </p>
+                  {faculty && <span className="mt-1 inline-block rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-bold">{faculty.standard}</span>}
+                </div>
+              </div>
+              <Button size="sm" onClick={() => goTo(selected.id, selected.label)}><Navigation className="size-3.5" /> Travel here</Button>
+            </aside>
+          );
+        })()}
+
         {/* Destination list keeps keyboard and screen-reader travel available */}
         <div className="max-h-40 overflow-y-auto border-t-[3px] border-border p-3">
           <div className="grid gap-2 sm:grid-cols-2">
@@ -430,7 +454,7 @@ export function CampusMapOverlay() {
                 <button
                   key={id}
                   disabled={!known}
-                  onClick={() => goTo(id, label)}
+                  onClick={() => setSelectedId(id)}
                   className={[
                     "block-btn px-3 py-2 text-left text-sm",
                     id === current
