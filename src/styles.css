@@ -173,6 +173,37 @@
   --linen: oklch(0.36 0.04 45);
 }
 
+/*
+ * Manor palette — dark, warm sage/forest-green academic mood used by the
+ * public landing surface. Scoped so it never bleeds into the campus world.
+ * Hex references from the Unify visual redesign:
+ *   #1F1A17 bg · #2C2421 card · #3A4D39 primary · #465E44 secondary
+ *   #526E50 border · #84A98C accent · #FDFBF7 ink · #A8A29E muted ink
+ */
+.manor {
+  --background: oklch(0.17 0.008 60);
+  --foreground: oklch(0.99 0.006 90);
+  --card: oklch(0.22 0.01 50);
+  --card-foreground: oklch(0.99 0.006 90);
+  --popover: oklch(0.22 0.01 50);
+  --popover-foreground: oklch(0.99 0.006 90);
+  --primary: oklch(0.33 0.045 145);
+  --primary-foreground: oklch(0.99 0.006 90);
+  --secondary: oklch(0.40 0.055 145);
+  --secondary-foreground: oklch(0.99 0.006 90);
+  --muted: oklch(0.25 0.01 50);
+  --muted-foreground: oklch(0.70 0.005 70);
+  --accent: oklch(0.67 0.06 145);
+  --accent-foreground: oklch(0.17 0.008 60);
+  --destructive: oklch(0.58 0.19 28);
+  --destructive-foreground: oklch(0.99 0.006 90);
+  --border: oklch(0.47 0.06 145);
+  --input: oklch(0.30 0.02 50);
+  --ring: oklch(0.67 0.06 145);
+  --block-edge: oklch(0.12 0.01 50 / 0.7);
+  --block-edge-strong: oklch(0.08 0.01 50 / 0.85);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
