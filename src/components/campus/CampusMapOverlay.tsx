@@ -442,7 +442,7 @@ export function CampusMapOverlay() {
           const faculty = FACULTY.find((member) => member.zoneId === selectedId);
           const guide = zoneGuide(selectedId);
           if (!selected || !discovered.includes(selectedId)) return null;
-          const standards = guide?.standards.length
+          const standards: string[] = guide?.standards.length
             ? guide.standards
             : faculty
               ? [faculty.standard]
