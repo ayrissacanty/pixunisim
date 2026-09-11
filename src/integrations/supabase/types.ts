@@ -487,6 +487,42 @@ export type Database = {
         }
         Relationships: []
       }
+      student_inventory: {
+        Row: {
+          acquired_at: string
+          created_at: string
+          id: string
+          item_id: string
+          quantity: number
+          source: string
+          updated_at: string
+          used_count: number
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string
+          created_at?: string
+          id?: string
+          item_id: string
+          quantity?: number
+          source?: string
+          updated_at?: string
+          used_count?: number
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          quantity?: number
+          source?: string
+          updated_at?: string
+          used_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       student_progress: {
         Row: {
           completed_at: string | null
@@ -524,6 +560,42 @@ export type Database = {
           sections_read?: number
           status?: string
           time_spent_seconds?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      student_quests: {
+        Row: {
+          accepted_at: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          quest_id: string
+          status: string
+          steps: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          quest_id: string
+          status?: string
+          steps?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          quest_id?: string
+          status?: string
+          steps?: Json
           updated_at?: string
           user_id?: string
         }

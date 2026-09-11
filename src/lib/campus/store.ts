@@ -60,10 +60,17 @@ interface CampusState {
   perfOpen: boolean;
   /** In-app asset inspector (debug builds) listing loaded Phaser textures. */
   assetsOpen: boolean;
+  /** Quest log, module hub and backpack overlays. */
+  questsOpen: boolean;
+  modulesOpen: boolean;
+  backpackOpen: boolean;
   logEvent: (kind: TrackerEvent["kind"], text: string) => void;
   setLastDoor: (label?: string | undefined) => void;
   setPerfOpen: (open: boolean) => void;
   setAssetsOpen: (open: boolean) => void;
+  setQuestsOpen: (open: boolean) => void;
+  setModulesOpen: (open: boolean) => void;
+  setBackpackOpen: (open: boolean) => void;
   layer: CampusLayer;
   transition?: TransitionState | undefined;
   classroom?: ClassroomState | undefined;
@@ -125,6 +132,9 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   events: [],
   perfOpen: false,
   assetsOpen: false,
+  questsOpen: false,
+  modulesOpen: false,
+  backpackOpen: false,
 
   logEvent: (kind, text) =>
     set((s) => {
@@ -136,6 +146,9 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   setLastDoor: (label) => set({ lastDoor: label }),
   setPerfOpen: (open) => set({ perfOpen: open }),
   setAssetsOpen: (open) => set({ assetsOpen: open }),
+  setQuestsOpen: (open) => set({ questsOpen: open }),
+  setModulesOpen: (open) => set({ modulesOpen: open }),
+  setBackpackOpen: (open) => set({ backpackOpen: open }),
 
 
   setLayer: (layer) => set({ layer }),
