@@ -55,7 +55,7 @@ export function buildLedger(
   profiles: ProfileRow[],
   progress: ProgressRow[],
   lessons: LessonRow[],
-  range?: { from?: string; to?: string },
+  range?: { from?: string | undefined; to?: string | undefined },
 ): LedgerChild[] {
   const lessonById = new Map(lessons.map((lesson) => [lesson.id, lesson]));
   return profiles.map((profile) => {
@@ -111,7 +111,7 @@ export function buildLedger(
  * Family-scoped ledger read. RLS restricts every row to the caller's family,
  * so no extra filters are needed here.
  */
-export function useFamilyLedger(range?: { from?: string; to?: string }) {
+export function useFamilyLedger(range?: { from?: string | undefined; to?: string | undefined }) {
   return useQuery({
     queryKey: ["family-ledger", range?.from ?? "", range?.to ?? ""],
     staleTime: 30_000,

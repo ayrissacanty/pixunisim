@@ -16,6 +16,7 @@ import { Route as CampusPreviewRouteImport } from './routes/campus-preview'
 import { Route as CreditsRouteImport } from './routes/credits'
 import { Route as AuthenticatedCampusRouteImport } from './routes/_authenticated/campus'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
+import { Route as AuthenticatedLedgerRouteImport } from './routes/_authenticated/ledger'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedWorkspaceIndexRouteImport } from './routes/_authenticated/workspace.index'
 import { Route as AuthenticatedWorkspaceAchievementsRouteImport } from './routes/_authenticated/workspace.achievements'
@@ -55,6 +56,11 @@ const AuthenticatedCampusRoute = AuthenticatedCampusRouteImport.update({
 const AuthenticatedFamilyRoute = AuthenticatedFamilyRouteImport.update({
   id: '/family',
   path: '/family',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLedgerRoute = AuthenticatedLedgerRouteImport.update({
+  id: '/ledger',
+  path: '/ledger',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/credits': typeof CreditsRoute
   '/campus': typeof AuthenticatedCampusRoute
   '/family': typeof AuthenticatedFamilyRoute
+  '/ledger': typeof AuthenticatedLedgerRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/credits': typeof CreditsRoute
   '/campus': typeof AuthenticatedCampusRoute
   '/family': typeof AuthenticatedFamilyRoute
+  '/ledger': typeof AuthenticatedLedgerRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/credits': typeof CreditsRoute
   '/_authenticated/campus': typeof AuthenticatedCampusRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
+  '/_authenticated/ledger': typeof AuthenticatedLedgerRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/_authenticated/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/credits'
     | '/campus'
     | '/family'
+    | '/ledger'
     | '/onboarding'
     | '/workspace/achievements'
     | '/workspace/avatar'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/credits'
     | '/campus'
     | '/family'
+    | '/ledger'
     | '/onboarding'
     | '/workspace/achievements'
     | '/workspace/avatar'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/credits'
     | '/_authenticated/campus'
     | '/_authenticated/family'
+    | '/_authenticated/ledger'
     | '/_authenticated/onboarding'
     | '/_authenticated/workspace/achievements'
     | '/_authenticated/workspace/avatar'
@@ -242,6 +254,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFamilyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ledger': {
+      id: '/_authenticated/ledger'
+      path: '/ledger'
+      fullPath: '/ledger'
+      preLoaderRoute: typeof AuthenticatedLedgerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/onboarding': {
       id: '/_authenticated/onboarding'
       path: '/onboarding'
@@ -290,6 +309,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCampusRoute: typeof AuthenticatedCampusRoute
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
+  AuthenticatedLedgerRoute: typeof AuthenticatedLedgerRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedWorkspaceAchievementsRoute: typeof AuthenticatedWorkspaceAchievementsRoute
   AuthenticatedWorkspaceAvatarRoute: typeof AuthenticatedWorkspaceAvatarRoute
@@ -301,6 +321,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCampusRoute: AuthenticatedCampusRoute,
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
+  AuthenticatedLedgerRoute: AuthenticatedLedgerRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedWorkspaceAchievementsRoute:
     AuthenticatedWorkspaceAchievementsRoute,
