@@ -76,7 +76,7 @@ export function CharacterCreator() {
             className={`size-7 rounded-md border-2 ${
               appearance[key] === index ? "border-accent" : "border-border"
             }`}
-            style={{ background: color }}
+            style={{ background: `#${color.toString(16).padStart(6, "0")}` }}
           />
         ))}
       </div>
