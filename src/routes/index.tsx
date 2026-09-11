@@ -132,9 +132,9 @@ function Landing() {
             <a href="#curriculum" className="transition-colors hover:text-accent">
               Curriculum
             </a>
-            <a href="#parents" className="transition-colors hover:text-accent">
+            <Link to="/ledger" className="transition-colors hover:text-accent">
               Parent Ledger
-            </a>
+            </Link>
           </nav>
 
           <div className="flex items-center gap-4">
