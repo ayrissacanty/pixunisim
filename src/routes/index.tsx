@@ -478,6 +478,16 @@ function Landing() {
               </Button>
             </div>
           )}
+          {!loading && user && (
+            <div className="mt-7 flex flex-wrap justify-center gap-3">
+              <Button asChild size="lg" className="text-base">
+                <Link to="/ledger">Open the parent ledger</Link>
+              </Button>
+              <Button asChild size="lg" variant="secondary" className="text-base">
+                <Link to="/onboarding">Create a student</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
