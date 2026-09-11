@@ -132,9 +132,9 @@ function Landing() {
             <a href="#curriculum" className="transition-colors hover:text-accent">
               Curriculum
             </a>
-            <a href="#parents" className="transition-colors hover:text-accent">
+            <Link to="/ledger" className="transition-colors hover:text-accent">
               Parent Ledger
-            </a>
+            </Link>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -475,6 +475,16 @@ function Landing() {
                 <Link to="/auth" search={{ intent: "join" }}>
                   Join a Family
                 </Link>
+              </Button>
+            </div>
+          )}
+          {!loading && user && (
+            <div className="mt-7 flex flex-wrap justify-center gap-3">
+              <Button asChild size="lg" className="text-base">
+                <Link to="/ledger">Open the parent ledger</Link>
+              </Button>
+              <Button asChild size="lg" variant="secondary" className="text-base">
+                <Link to="/onboarding">Create a student</Link>
               </Button>
             </div>
           )}

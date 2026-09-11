@@ -6,6 +6,7 @@ import { ZONE_LABELS, getZone } from "@/lib/campus/world";
 import { buildWalkthrough } from "@/lib/campus/walkthrough";
 import { Button } from "@/components/ui/button";
 import { FACULTY } from "@/lib/campus/faculty";
+import { zoneGuide } from "@/lib/campus/zone-guide";
 
 const OVERVIEW = [
   "welcome-plaza",
@@ -439,35 +440,66 @@ export function CampusMapOverlay() {
         {(() => {
           const selected = nodeById.get(selectedId);
           const faculty = FACULTY.find((member) => member.zoneId === selectedId);
+          const guide = zoneGuide(selectedId);
           if (!selected || !discovered.includes(selectedId)) return null;
+          const standards: string[] = guide?.standards.length
+            ? guide.standards
+            : faculty
+              ? [faculty.standard]
+              : [];
           return (
             <aside
               data-testid="map-inspector"
               className="grid gap-3 border-t-[3px] border-border bg-card px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-center"
             >
               <div className="flex min-w-0 items-center gap-3">
-                {faculty && (
+                {guide ? (
                   <img
-                    src={faculty.portrait}
-                    alt=""
+                    src={guide.image}
+                    alt={`${selected.label} illustration`}
                     width={768}
-                    height={768}
+                    height={512}
                     loading="lazy"
-                    className="size-14 rounded-lg border-2 border-accent object-cover [image-rendering:pixelated]"
+                    className="h-14 w-20 shrink-0 rounded-lg border-2 border-accent object-cover [image-rendering:pixelated]"
                   />
+                ) : (
+                  faculty && (
+                    <img
+                      src={faculty.portrait}
+                      alt=""
+                      width={768}
+                      height={768}
+                      loading="lazy"
+                      className="size-14 rounded-lg border-2 border-accent object-cover [image-rendering:pixelated]"
+                    />
+                  )
                 )}
                 <div className="min-w-0">
                   <p className="font-display font-bold">{selected.label}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {faculty
-                      ? `${faculty.name} · ${faculty.subject}`
-                      : selected.interior
-                        ? "Explore rooms, faculty, and active lessons."
-                        : "Campus grounds, paths, and gathering spaces."}
+                    {guide
+                      ? `${guide.steward} · ${guide.stewardRole} — ${guide.tagline}`
+                      : faculty
+                        ? `${faculty.name} · ${faculty.subject}`
+                        : selected.interior
+                          ? "Explore rooms, faculty, and active lessons."
+                          : "Campus grounds, paths, and gathering spaces."}
                   </p>
-                  {faculty && (
-                    <span className="mt-1 inline-block rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-bold">
-                      {faculty.standard}
+                  {guide && (
+                    <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
+                      {guide.backstory}
+                    </p>
+                  )}
+                  {standards.length > 0 && (
+                    <span className="mt-1 inline-flex flex-wrap gap-1">
+                      {standards.map((code) => (
+                        <span
+                          key={code}
+                          className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-bold"
+                        >
+                          {code}
+                        </span>
+                      ))}
                     </span>
                   )}
                 </div>

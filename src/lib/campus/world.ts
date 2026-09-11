@@ -1625,8 +1625,36 @@ const builders: Record<string, () => ZoneMap> = {
             ],
           },
         },
-        { id: "computer-lab", name: "Computer Lab", furniture: "computers" },
-        { id: "math-study-room", name: "Study Room", furniture: "soft" },
+        {
+          id: "computer-lab",
+          name: "Computer Lab",
+          furniture: "computers",
+          courseId: "computing-foundations",
+          lessonId: "computing-lesson-1",
+          teacher: {
+            id: "prof-rhee",
+            name: "Professor Sun-Hee Rhee",
+            lines: [
+              "A computer will follow a bad instruction perfectly. That is the whole problem.",
+              "Today: algorithms, and why step order decides the answer.",
+            ],
+          },
+        },
+        {
+          id: "math-study-room",
+          name: "Study Room",
+          furniture: "soft",
+          courseId: "study-skills",
+          lessonId: "study-lesson-1",
+          teacher: {
+            id: "tutor-bell",
+            name: "Ms. Corrine Bell",
+            lines: [
+              "Twenty honest minutes beat two distracted hours.",
+              "Let's plan a session you can actually finish.",
+            ],
+          },
+        },
       ],
     }),
   "science-hall": () =>
@@ -1745,9 +1773,51 @@ const builders: Record<string, () => ZoneMap> = {
       parentSpawn: { x: 31, y: 28 },
       mapPos: { x: 0.72, y: 0.78 },
       rooms: [
-        { id: "art-studio", name: "Art Studio", furniture: "soft" },
-        { id: "music-room", name: "Music Room", furniture: "soft" },
-        { id: "recital-hall", name: "Recital Hall", furniture: "desks" },
+        {
+          id: "art-studio",
+          name: "Art Studio",
+          furniture: "soft",
+          courseId: "creative-arts",
+          lessonId: "arts-lesson-1",
+          teacher: {
+            id: "studio-wren",
+            name: "Wren Alonso",
+            lines: [
+              "Rough version first. You cannot revise a blank page.",
+              "Four thumbnails, then we choose one to develop.",
+            ],
+          },
+        },
+        {
+          id: "music-room",
+          name: "Music Room",
+          furniture: "soft",
+          courseId: "creative-arts",
+          lessonId: "arts-lesson-2",
+          teacher: {
+            id: "maestro-orsini",
+            name: "Maestro Elia Orsini",
+            lines: [
+              "Count out loud. Always out loud.",
+              "Rhythm today — two bars at a time, perfectly.",
+            ],
+          },
+        },
+        {
+          id: "recital-hall",
+          name: "Recital Hall",
+          furniture: "desks",
+          courseId: "creative-arts",
+          lessonId: "arts-lesson-3",
+          teacher: {
+            id: "director-hale",
+            name: "Director Josephine Hale",
+            lines: [
+              "Nerves are just energy in the wrong coat.",
+              "We rehearse the recovery, then we perform.",
+            ],
+          },
+        },
       ],
       extraNpc: {
         id: "arts-wren",

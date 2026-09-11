@@ -38,6 +38,9 @@ function FamilyDashboard() {
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline">
+            <Link to="/ledger">Parent ledger</Link>
+          </Button>
+          <Button asChild variant="outline">
             <Link to="/workspace">Workspace</Link>
           </Button>
           <Button asChild>

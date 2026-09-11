@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Sparkles, ShieldCheck } from "lucide-react";
 import { askTutor } from "@/lib/tutor.functions";
+import { useProfile } from "@/lib/profile";
 import {
   Conversation,
   ConversationContent,
@@ -25,6 +26,7 @@ interface Msg {
 
 export function AiTeacher({ lessonId, lessonTitle }: { lessonId: string; lessonTitle: string }) {
   const ask = useServerFn(askTutor);
+  const { data: profile } = useProfile();
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
@@ -43,7 +45,13 @@ export function AiTeacher({ lessonId, lessonTitle }: { lessonId: string; lessonT
     setBusy(true);
     try {
       const res = await ask({
-        data: { lessonId, question, history: next.slice(-6, -1) },
+        data: {
+            lessonId,
+            question,
+            history: next.slice(-6, -1),
+            ...(profile?.learning_style ? { learningStyle: profile.learning_style } : {}),
+            ...(profile?.grade_band ? { gradeBand: profile.grade_band } : {}),
+          },
       });
       setMessages([...next, { role: "assistant", content: res.reply }]);
     } catch {

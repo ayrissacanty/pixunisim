@@ -1,5 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CampusView } from "@/components/campus/CampusView";
+import { useProfile } from "@/lib/profile";
 
 export const Route = createFileRoute("/_authenticated/campus")({
   validateSearch: (search: Record<string, unknown>): { tour?: string } =>
@@ -25,5 +27,15 @@ export const Route = createFileRoute("/_authenticated/campus")({
 
 function CampusRoute() {
   const { tour } = Route.useSearch();
+  const navigate = useNavigate();
+  const { data: profile, isSuccess } = useProfile();
+
+  // First visit: send families through the character creator once.
+  useEffect(() => {
+    if (isSuccess && profile && !profile.setup_complete) {
+      void navigate({ to: "/onboarding" });
+    }
+  }, [isSuccess, profile, navigate]);
+
   return <CampusView initialZone="welcome-plaza" tour={tour} />;
 }
