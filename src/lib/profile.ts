@@ -49,7 +49,9 @@ export function useProfile() {
       if (!uid) return null;
       const { data } = await supabase
         .from("profiles")
-        .select("id, display_name, avatar, portrait, mascot_color, mascot_accessory, character_look")
+        .select(
+          "id, display_name, avatar, portrait, mascot_color, mascot_accessory, character_look, age, grade_band, interests, learning_style, setup_complete",
+        )
         .eq("id", uid)
         .maybeSingle();
       if (!data) return null;
