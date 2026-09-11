@@ -132,7 +132,7 @@ export function ClassroomBeat() {
               className="size-28 rounded-xl border-[3px] border-accent object-cover shadow-lg [image-rendering:pixelated]"
             />
           ) : (
-            <CharacterAvatar character={teacher} size={112} />
+            <CharacterAvatar character={teacher.id} size={112} />
           )}
           <span className="block-chip mt-1 border-warm-brown bg-ochre px-2 py-0.5 font-display text-[11px] font-bold text-[var(--warm-brown)]">
             {teacherName}

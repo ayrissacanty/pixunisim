@@ -89,8 +89,10 @@ export function createAmbience(
   if (options.motion > 0) {
     if (outdoor) {
       leaves = scene.add.particles(0, 0, LEAF_KEY, {
-        x: { min: -cam.width / 2, max: cam.width / 2 },
-        y: -cam.height / 2 - 20,
+        // Two viewport widths keep emission edge-to-edge at the 0.5 minimum
+        // camera zoom without scaling the leaf artwork itself.
+        x: { min: -cam.width, max: cam.width },
+        y: -cam.height - 20,
         lifespan: 9000,
         speedY: { min: 16, max: 34 },
         speedX: { min: -26, max: 10 },
@@ -132,7 +134,7 @@ export function createAmbience(
       .setPosition(camera.width / 2, camera.height / 2)
       .setSize(camera.width, camera.height)
       .setScale(inverseZoom);
-    leaves?.setPosition(camera.width / 2, camera.height / 2).setScale(inverseZoom);
+    leaves?.setPosition(camera.width / 2, camera.height / 2);
     leaves?.setEmitterAngle?.(0);
   };
   scene.scale.on("resize", resize);
@@ -164,9 +166,7 @@ export function applyAmbient(
     .setPosition(camera.width / 2, camera.height / 2)
     .setSize(camera.width, camera.height)
     .setScale(1 / camera.zoom);
-  ambience.leaves
-    ?.setPosition(camera.width / 2, camera.height / 2)
-    .setScale(1 / camera.zoom);
+  ambience.leaves?.setPosition(camera.width / 2, camera.height / 2);
   ambience.overlay.setFillStyle(tint.color, 1);
   ambience.overlay.setAlpha(outdoor ? tint.alpha : tint.alpha * 0.45);
   return tint;
