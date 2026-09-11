@@ -69,8 +69,44 @@ export function useProfile() {
         portrait: normalizePortrait(data.portrait),
         mascot,
         appearance,
+        age: (data as { age?: number | null }).age ?? null,
+        grade_band: (data as { grade_band?: string | null }).grade_band ?? null,
+        interests: (data as { interests?: string[] | null }).interests ?? [],
+        learning_style: (data as { learning_style?: string | null }).learning_style ?? null,
+        setup_complete: Boolean((data as { setup_complete?: boolean }).setup_complete),
       };
     },
+  });
+}
+
+/** Persist the whole character-creator result in one update. */
+export function useSaveChildSetup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (setup: ChildSetup) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      if (!uid) throw new Error("Not signed in");
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          display_name: setup.display_name,
+          age: setup.age,
+          grade_band: setup.grade_band,
+          interests: setup.interests,
+          learning_style: setup.learning_style,
+          character_look: setup.appearance,
+          mascot_color: setup.mascot.color,
+          mascot_accessory: setup.mascot.accessory,
+          setup_complete: true,
+        } as never)
+        .eq("id", uid);
+      if (error) throw error;
+      useAppearanceStore.getState().setAppearance(setup.appearance);
+      useMascotStore.getState().setMascot(setup.mascot);
+      return setup;
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["profile"] }),
   });
 }
 
