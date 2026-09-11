@@ -62,122 +62,91 @@ export function CampusHud({
 
   return (
     <div
-      className="pointer-events-none absolute inset-0 z-20 flex flex-col"
+      className="academy pointer-events-none absolute inset-0 z-20 flex flex-col"
       style={{
         paddingTop: "max(0.75rem, env(safe-area-inset-top))",
         paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
       }}
     >
-      {/* Top bar: location + objective on the left, actions on the right.
-          Two independent columns so panels can never stack over each other. */}
-      <div className="flex items-start justify-between gap-3 px-3">
-        <div className="pointer-events-auto flex min-w-0 flex-col gap-2">
-          <div className="block-panel flex items-center gap-2 border-accent/70 bg-sidebar/95 px-3.5 py-2.5">
-            <Compass className="size-4 shrink-0 text-accent" aria-hidden="true" />
+      {/* Magical Campus top navigation pill — campus identity on the left,
+          time/status crystal on the right. Spans the viewport so it never
+          collides with the side action ring. */}
+      <div className="px-3">
+        <div className="block-round pointer-events-auto flex items-center justify-between gap-3 border-accent/50 bg-sidebar/90 px-4 py-2.5 backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-accent to-[oklch(0.75_0.16_70)] text-base font-black text-primary-foreground shadow-inner">
+              <span aria-hidden="true">🎓</span>
+            </div>
             <div className="min-w-0">
-              <p className="font-display text-sm font-black uppercase tracking-wide leading-tight text-accent">
+              <p className="font-display text-[10px] font-black uppercase tracking-[0.18em] text-accent">
+                Campus Hub
+              </p>
+              <p className="truncate text-sm font-bold tracking-wide text-foreground">
                 {ZONE_LABELS[zone] ?? zone}
               </p>
-              <p className="truncate text-[11px] font-semibold text-sidebar-foreground/80">
+              <p className="truncate text-[11px] font-semibold text-sidebar-foreground/70">
                 {roomName ?? "Unify University"}
               </p>
             </div>
           </div>
-
           <CampusClock />
-          <MemoizedObjectiveTracker />
-          {debug && (
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => setPerfOpen(!perfOpen)}
-                data-testid="perf-toggle"
-                data-perf={perfOpen ? "on" : "off"}
-                aria-pressed={perfOpen}
-                aria-label="Toggle the campus performance profiling overlay"
-                title="Show streamed prop counts and frame-time spikes"
-                className="block-btn flex items-center gap-1.5 self-start border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-bold text-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                <Gauge className="size-3.5" aria-hidden="true" />
-                Profiler {perfOpen ? "on" : "off"}
-              </button>
-              <button
-                type="button"
-                onClick={cycleMotion}
-                data-testid="motion-toggle"
-                data-motion={motion}
-                aria-label={`${MOTION_LABELS[motion]} — click to change camera and transition motion`}
-                title="Reduce camera motion and transition effects"
-                className="block-btn flex items-center gap-1.5 self-start border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-bold text-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                <Accessibility className="size-3.5" aria-hidden="true" />
-                {MOTION_LABELS[motion]}
-              </button>
-              <button
-                type="button"
-                onClick={toggleAssist}
-                data-testid="assist-toggle"
-                data-assist={assist ? "on" : "off"}
-                aria-pressed={assist}
-                aria-label={`${ASSIST_LABEL(assist)} — widens door, chair and rug tolerances to reduce accidental bumping`}
-                title="Widen interaction tolerances around doors, rugs and chair edges"
-                className="block-btn flex items-center gap-1.5 self-start border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-bold text-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                <MoveDiagonal className="size-3.5" aria-hidden="true" />
-                {ASSIST_LABEL(assist)}
-              </button>
-            </div>
-          )}
         </div>
-
-        <div className="pointer-events-auto flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-start">
-          <Button
-            size="sm"
-            variant="secondary"
-            className="block-btn h-10 border-secondary-foreground/25 px-3 font-black uppercase tracking-wide"
-            aria-label="Open the campus map"
-            data-testid="hud-map"
-            onClick={() => setMapOpen(true)}
-          >
-            <Map className="size-4" /> <span className="hidden sm:inline">Map</span>
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="block-btn h-10 px-3 font-black uppercase tracking-wide"
-            aria-label={`${STYLE_LABELS[style]} — click to change campus visual style`}
-            data-testid="style-toggle"
-            data-style={style}
-            onClick={toggleStyle}
-          >
-            <Palette className="size-4" /> <span className="hidden sm:inline">{style === "storybook" ? "Bright" : "Focus"}</span>
-          </Button>
-          <Button size="sm" variant="outline" className="block-btn h-10 px-3 font-black uppercase tracking-wide" aria-label="Open the loaded 2D asset inspector" data-testid="hud-assets" data-assets={assetsOpen ? "on" : "off"} onClick={() => setAssetsOpen(!assetsOpen)}>
-            <Boxes className="size-4" /> <span className="hidden sm:inline">Assets</span>
-          </Button>
-          <MobileA11ySettings />
-          <Button
-            asChild
-            size="sm"
-            variant="default"
-            className="block-btn h-10 border-primary-foreground/25 px-3 font-black uppercase tracking-wide"
-          >
-            <Link to="/workspace" aria-label="Go to your workspace" data-testid="hud-workspace">
-              <LayoutDashboard className="size-4" />{" "}
-              <span className="hidden sm:inline">Workspace</span>
-            </Link>
-          </Button>
-        </div>
-
       </div>
+
+      {/* Debug-only toggles sit just under the header, out of the play area. */}
+      {debug && (
+        <div className="pointer-events-auto mt-2 flex flex-col gap-2 self-start pl-3">
+          <button
+            type="button"
+            onClick={() => setPerfOpen(!perfOpen)}
+            data-testid="perf-toggle"
+            data-perf={perfOpen ? "on" : "off"}
+            aria-pressed={perfOpen}
+            aria-label="Toggle the campus performance profiling overlay"
+            title="Show streamed prop counts and frame-time spikes"
+            className="block-btn flex items-center gap-1.5 self-start border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-bold text-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <Gauge className="size-3.5" aria-hidden="true" />
+            Profiler {perfOpen ? "on" : "off"}
+          </button>
+          <button
+            type="button"
+            onClick={cycleMotion}
+            data-testid="motion-toggle"
+            data-motion={motion}
+            aria-label={`${MOTION_LABELS[motion]} — click to change camera and transition motion`}
+            title="Reduce camera motion and transition effects"
+            className="block-btn flex items-center gap-1.5 self-start border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-bold text-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <Accessibility className="size-3.5" aria-hidden="true" />
+            {MOTION_LABELS[motion]}
+          </button>
+          <button
+            type="button"
+            onClick={toggleAssist}
+            data-testid="assist-toggle"
+            data-assist={assist ? "on" : "off"}
+            aria-pressed={assist}
+            aria-label={`${ASSIST_LABEL(assist)} — widens door, chair and rug tolerances to reduce accidental bumping`}
+            title="Widen interaction tolerances around doors, rugs and chair edges"
+            className="block-btn flex items-center gap-1.5 self-start border-border bg-card/95 px-2.5 py-1.5 text-[11px] font-bold text-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <MoveDiagonal className="size-3.5" aria-hidden="true" />
+            {ASSIST_LABEL(assist)}
+          </button>
+        </div>
+      )}
 
       {/* Spacer keeps the bottom rail anchored without absolute stacking. */}
       <div className="flex-1" />
 
+      {/* Floating quest scroll (objective tracker) bottom-left, prompt + hint
+          beside it, camera cluster + minimap on the right. */}
       <div className="flex items-end justify-between gap-3 px-3">
         <div className="min-w-0 flex-1">
+          <MemoizedObjectiveTracker />
           {prompt && !busy && (
-            <div className="block-panel pointer-events-none mx-auto w-fit border-accent bg-sidebar/95 px-4 py-2.5 text-sm font-semibold text-sidebar-foreground">
+            <div className="block-panel pointer-events-none mx-auto mt-2 w-fit border-accent bg-sidebar/95 px-4 py-2.5 text-sm font-semibold text-sidebar-foreground">
               <span className="mr-2 block-chip border-accent-foreground/25 bg-accent px-2 py-0.5 text-[11px] font-black text-accent-foreground">
                 E
               </span>
@@ -211,8 +180,59 @@ export function CampusHud({
 
       </div>
 
+      {/* Magical action ring — vertical cluster of round buttons on the right
+          edge, mirroring the Adventure Academy tool ring. The gold Workspace
+          button is the primary action. */}
+      <div className="pointer-events-auto absolute right-4 top-[6.75rem] z-20 flex flex-col gap-3 rounded-[1.5rem] border-2 border-accent/40 bg-sidebar/85 p-2.5 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.4)]">
+        <Button
+          size="sm"
+          variant="secondary"
+          className="block-btn size-12 border-secondary-foreground/25 p-0"
+          aria-label="Open the campus map"
+          data-testid="hud-map"
+          title="Map"
+          onClick={() => setMapOpen(true)}
+        >
+          <Map className="size-5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="block-btn size-12 border-accent/40 p-0"
+          aria-label={`${STYLE_LABELS[style]} — click to change campus visual style`}
+          data-testid="style-toggle"
+          data-style={style}
+          title={STYLE_LABELS[style]}
+          onClick={toggleStyle}
+        >
+          <Palette className="size-5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="block-btn size-12 border-accent/40 p-0"
+          aria-label="Open the loaded 2D asset inspector"
+          data-testid="hud-assets"
+          data-assets={assetsOpen ? "on" : "off"}
+          title="Assets"
+          onClick={() => setAssetsOpen(!assetsOpen)}
+        >
+          <Boxes className="size-5" />
+        </Button>
+        <MobileA11ySettings />
+        <Button
+          asChild
+          size="sm"
+          variant="default"
+          className="block-btn size-12 border-primary-foreground/25 bg-gradient-to-tr from-accent to-[oklch(0.75_0.16_70)] p-0"
+        >
+          <Link to="/workspace" aria-label="Go to your workspace" data-testid="hud-workspace" title="Workspace">
+            <LayoutDashboard className="size-5" />
+          </Link>
+        </Button>
+      </div>
+
       {!busy && <MemoizedTouchControls onMove={onMove} onAction={onAction} />}
     </div>
   );
 }
-
