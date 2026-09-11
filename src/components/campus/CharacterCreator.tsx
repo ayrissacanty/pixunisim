@@ -64,7 +64,7 @@ export function CharacterCreator() {
   }
 
   function swatchRow(key: keyof typeof APPEARANCE_SWATCHES) {
-    const swatches = APPEARANCE_SWATCHES[key] as readonly string[];
+    const swatches = APPEARANCE_SWATCHES[key] as readonly number[];
     return (
       <div className="flex flex-wrap gap-1.5">
         {swatches.map((color, index) => (
