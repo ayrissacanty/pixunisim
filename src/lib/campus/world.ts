@@ -1625,8 +1625,36 @@ const builders: Record<string, () => ZoneMap> = {
             ],
           },
         },
-        { id: "computer-lab", name: "Computer Lab", furniture: "computers" },
-        { id: "math-study-room", name: "Study Room", furniture: "soft" },
+        {
+          id: "computer-lab",
+          name: "Computer Lab",
+          furniture: "computers",
+          courseId: "computing-foundations",
+          lessonId: "computing-lesson-1",
+          teacher: {
+            id: "prof-rhee",
+            name: "Professor Sun-Hee Rhee",
+            lines: [
+              "A computer will follow a bad instruction perfectly. That is the whole problem.",
+              "Today: algorithms, and why step order decides the answer.",
+            ],
+          },
+        },
+        {
+          id: "math-study-room",
+          name: "Study Room",
+          furniture: "soft",
+          courseId: "study-skills",
+          lessonId: "study-lesson-1",
+          teacher: {
+            id: "tutor-bell",
+            name: "Ms. Corrine Bell",
+            lines: [
+              "Twenty honest minutes beat two distracted hours.",
+              "Let's plan a session you can actually finish.",
+            ],
+          },
+        },
       ],
     }),
   "science-hall": () =>
