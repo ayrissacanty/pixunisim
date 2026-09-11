@@ -365,40 +365,55 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age: number | null
           avatar: string
           character_look: Json
           created_at: string
           display_name: string
           family_id: string | null
           family_role: string | null
+          grade_band: string | null
           id: string
+          interests: string[]
+          learning_style: string | null
           mascot_accessory: string
           mascot_color: string
           portrait: Json
+          setup_complete: boolean
         }
         Insert: {
+          age?: number | null
           avatar?: string
           character_look?: Json
           created_at?: string
           display_name?: string
           family_id?: string | null
           family_role?: string | null
+          grade_band?: string | null
           id: string
+          interests?: string[]
+          learning_style?: string | null
           mascot_accessory?: string
           mascot_color?: string
           portrait?: Json
+          setup_complete?: boolean
         }
         Update: {
+          age?: number | null
           avatar?: string
           character_look?: Json
           created_at?: string
           display_name?: string
           family_id?: string | null
           family_role?: string | null
+          grade_band?: string | null
           id?: string
+          interests?: string[]
+          learning_style?: string | null
           mascot_accessory?: string
           mascot_color?: string
           portrait?: Json
+          setup_complete?: boolean
         }
         Relationships: [
           {
@@ -482,6 +497,7 @@ export type Database = {
           score: number | null
           sections_read: number
           status: string
+          time_spent_seconds: number
           updated_at: string
           user_id: string
         }
@@ -494,6 +510,7 @@ export type Database = {
           score?: number | null
           sections_read?: number
           status?: string
+          time_spent_seconds?: number
           updated_at?: string
           user_id: string
         }
@@ -506,6 +523,7 @@ export type Database = {
           score?: number | null
           sections_read?: number
           status?: string
+          time_spent_seconds?: number
           updated_at?: string
           user_id?: string
         }
