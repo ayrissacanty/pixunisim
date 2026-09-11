@@ -16,6 +16,7 @@ import { Route as CampusPreviewRouteImport } from './routes/campus-preview'
 import { Route as CreditsRouteImport } from './routes/credits'
 import { Route as AuthenticatedCampusRouteImport } from './routes/_authenticated/campus'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedWorkspaceIndexRouteImport } from './routes/_authenticated/workspace.index'
 import { Route as AuthenticatedWorkspaceAchievementsRouteImport } from './routes/_authenticated/workspace.achievements'
 import { Route as AuthenticatedWorkspaceAvatarRouteImport } from './routes/_authenticated/workspace.avatar'
@@ -56,6 +57,11 @@ const AuthenticatedFamilyRoute = AuthenticatedFamilyRouteImport.update({
   path: '/family',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedWorkspaceIndexRoute =
   AuthenticatedWorkspaceIndexRouteImport.update({
     id: '/workspace/',
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/credits': typeof CreditsRoute
   '/campus': typeof AuthenticatedCampusRoute
   '/family': typeof AuthenticatedFamilyRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
   '/workspace/room': typeof AuthenticatedWorkspaceRoomRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/credits': typeof CreditsRoute
   '/campus': typeof AuthenticatedCampusRoute
   '/family': typeof AuthenticatedFamilyRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
   '/workspace/room': typeof AuthenticatedWorkspaceRoomRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/credits': typeof CreditsRoute
   '/_authenticated/campus': typeof AuthenticatedCampusRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/_authenticated/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
   '/_authenticated/workspace/room': typeof AuthenticatedWorkspaceRoomRoute
@@ -137,6 +146,7 @@ export interface FileRouteTypes {
     | '/credits'
     | '/campus'
     | '/family'
+    | '/onboarding'
     | '/workspace/achievements'
     | '/workspace/avatar'
     | '/workspace/room'
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/credits'
     | '/campus'
     | '/family'
+    | '/onboarding'
     | '/workspace/achievements'
     | '/workspace/avatar'
     | '/workspace/room'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/credits'
     | '/_authenticated/campus'
     | '/_authenticated/family'
+    | '/_authenticated/onboarding'
     | '/_authenticated/workspace/achievements'
     | '/_authenticated/workspace/avatar'
     | '/_authenticated/workspace/room'
@@ -230,6 +242,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFamilyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/workspace/': {
       id: '/_authenticated/workspace/'
       path: '/workspace'
@@ -271,6 +290,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCampusRoute: typeof AuthenticatedCampusRoute
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedWorkspaceAchievementsRoute: typeof AuthenticatedWorkspaceAchievementsRoute
   AuthenticatedWorkspaceAvatarRoute: typeof AuthenticatedWorkspaceAvatarRoute
   AuthenticatedWorkspaceRoomRoute: typeof AuthenticatedWorkspaceRoomRoute
@@ -281,6 +301,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCampusRoute: AuthenticatedCampusRoute,
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedWorkspaceAchievementsRoute:
     AuthenticatedWorkspaceAchievementsRoute,
   AuthenticatedWorkspaceAvatarRoute: AuthenticatedWorkspaceAvatarRoute,
