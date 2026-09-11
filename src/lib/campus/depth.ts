@@ -63,28 +63,34 @@ export function actorDepth(px: number, py: number, bias: number = DEPTH_BIAS.act
 }
 
 /**
- * Depth for a large building volume, resolved against the viewer/actor.
+ * Stable depth for a large building volume.
  *
- * A whole building is drawn as ONE graphics object, so a single footprint
- * depth anchored at its near corner makes the entire mass sort in front of a
- * player standing at its front door (the door sits far from that corner along
- * x). When the actor is past the building's near faces, the volume is pushed
- * back to its nearest edge tile so the character stays visible.
+ * A whole building is one graphics object. Its depth must not move with the
+ * player because that would also reorder it against unrelated props and NPCs.
  */
 export function buildingDepthFor(
   tileX: number,
   tileY: number,
   w: number,
   h: number,
-  actorPx: number,
-  actorPy: number,
+  _actorPx: number,
+  _actorPy: number,
 ) {
-  const base = footprintDepth(tileX, tileY, w, h);
-  const southOf = actorPy >= (tileY + h) * TILE;
-  const eastOf = actorPx >= (tileX + w) * TILE;
-  if (!southOf && !eastOf) return base;
-  const candidates: number[] = [base];
-  if (southOf) candidates.push(isoDepth(tileX * TILE, (tileY + h) * TILE));
-  if (eastOf) candidates.push(isoDepth((tileX + w) * TILE, tileY * TILE));
-  return Math.min(...candidates);
+  return footprintDepth(tileX, tileY, w, h);
+}
+
+/** Raises an actor just above any building whose south/east facade they passed. */
+export function actorDepthWithBuildings(
+  px: number,
+  py: number,
+  buildings: ReadonlyArray<{ x: number; y: number; w: number; h: number }>,
+  bias: number = DEPTH_BIAS.actor,
+) {
+  let depth = actorDepth(px, py, bias);
+  for (const fp of buildings) {
+    const southOf = py >= (fp.y + fp.h) * TILE && px >= fp.x * TILE && px <= (fp.x + fp.w) * TILE;
+    const eastOf = px >= (fp.x + fp.w) * TILE && py >= fp.y * TILE && py <= (fp.y + fp.h) * TILE;
+    if (southOf || eastOf) depth = Math.max(depth, footprintDepth(fp.x, fp.y, fp.w, fp.h) + bias);
+  }
+  return depth;
 }

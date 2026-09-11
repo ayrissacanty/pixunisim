@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actorDepth, buildingDepthFor, DEPTH_BIAS, footprintDepth, GROUND_DEPTH, isoDepth, tileDepth } from "./depth";
+import { actorDepth, actorDepthWithBuildings, buildingDepthFor, DEPTH_BIAS, footprintDepth, GROUND_DEPTH, isoDepth, tileDepth } from "./depth";
 import { isoObjectsFor, isoLayerFor } from "./isoprops";
 import { getZone } from "./world";
 import { isWalkableTile } from "./walkable";
@@ -166,7 +166,9 @@ describe("occlusion order — large building footprints vs the player", () => {
   it("a player on the door apron of a 10x6 hall draws OVER the building volume", () => {
     // Central Quad math hall: building(3, 3, 10, 6)
     const atDoor = actorDepth(8.5 * 32, 9.5 * 32);
-    expect(atDoor).toBeGreaterThan(buildingDepthFor(3, 3, 10, 6, 8.5 * 32, 9.5 * 32));
+    expect(actorDepthWithBuildings(8.5 * 32, 9.5 * 32, [{ x: 3, y: 3, w: 10, h: 6 }])).toBeGreaterThan(
+      buildingDepthFor(3, 3, 10, 6, 8.5 * 32, 9.5 * 32),
+    );
   });
 
   it("a player standing behind (north of) the hall stays hidden by it", () => {
@@ -176,6 +178,16 @@ describe("occlusion order — large building footprints vs the player", () => {
 
   it("a player east of the hall draws over it", () => {
     const east = actorDepth(13.5 * 32, 5.5 * 32);
-    expect(east).toBeGreaterThan(buildingDepthFor(3, 3, 10, 6, 13.5 * 32, 5.5 * 32));
+    expect(actorDepthWithBuildings(13.5 * 32, 5.5 * 32, [{ x: 3, y: 3, w: 10, h: 6 }])).toBeGreaterThan(
+      buildingDepthFor(3, 3, 10, 6, 13.5 * 32, 5.5 * 32),
+    );
+  });
+
+  it("keeps the building at one stable depth as the player crosses its facade", () => {
+    const behind = buildingDepthFor(3, 3, 10, 6, 8.5 * 32, 2.5 * 32);
+    const atDoor = buildingDepthFor(3, 3, 10, 6, 8.5 * 32, 9.5 * 32);
+    const east = buildingDepthFor(3, 3, 10, 6, 13.5 * 32, 5.5 * 32);
+    expect(atDoor).toBe(behind);
+    expect(east).toBe(behind);
   });
 });

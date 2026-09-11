@@ -77,8 +77,8 @@ export function createAmbience(
   const cam = scene.cameras.main;
 
   const overlay = scene.add
-    .rectangle(0, 0, cam.width, cam.height, 0x1a1510, 0)
-    .setOrigin(0, 0)
+    .rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x1a1510, 0)
+    .setOrigin(0.5)
     .setScrollFactor(0)
     .setDepth(OVERLAY_DEPTH - 20)
     .setBlendMode(Phaser.BlendModes.MULTIPLY);
@@ -89,8 +89,10 @@ export function createAmbience(
   if (options.motion > 0) {
     if (outdoor) {
       leaves = scene.add.particles(0, 0, LEAF_KEY, {
-        x: { min: 0, max: cam.width },
-        y: -20,
+        // Two viewport widths keep emission edge-to-edge at the 0.5 minimum
+        // camera zoom without scaling the leaf artwork itself.
+        x: { min: -cam.width, max: cam.width },
+        y: -cam.height - 20,
         lifespan: 9000,
         speedY: { min: 16, max: 34 },
         speedX: { min: -26, max: 10 },
@@ -101,7 +103,10 @@ export function createAmbience(
         frequency: 520,
         quantity: 1,
       });
-      leaves.setScrollFactor(0).setDepth(OVERLAY_DEPTH - 30);
+      leaves
+        .setPosition(cam.width / 2, cam.height / 2)
+        .setScrollFactor(0)
+        .setDepth(OVERLAY_DEPTH - 30);
     }
 
     for (const point of splashPoints(zone)) {
@@ -123,10 +128,17 @@ export function createAmbience(
   }
 
   const resize = () => {
-    overlay.setSize(scene.scale.width, scene.scale.height);
+    const camera = scene.cameras.main;
+    const inverseZoom = 1 / camera.zoom;
+    overlay
+      .setPosition(camera.width / 2, camera.height / 2)
+      .setSize(camera.width, camera.height)
+      .setScale(inverseZoom);
+    leaves?.setPosition(camera.width / 2, camera.height / 2);
     leaves?.setEmitterAngle?.(0);
   };
   scene.scale.on("resize", resize);
+  resize();
 
   return {
     ...(leaves ? { leaves } : {}),
@@ -149,7 +161,12 @@ export function applyAmbient(
   outdoor: boolean,
 ): AmbientTint {
   const tint = ambientAt(minutes);
-  ambience.overlay.setSize(scene.scale.width, scene.scale.height);
+  const camera = scene.cameras.main;
+  ambience.overlay
+    .setPosition(camera.width / 2, camera.height / 2)
+    .setSize(camera.width, camera.height)
+    .setScale(1 / camera.zoom);
+  ambience.leaves?.setPosition(camera.width / 2, camera.height / 2);
   ambience.overlay.setFillStyle(tint.color, 1);
   ambience.overlay.setAlpha(outdoor ? tint.alpha : tint.alpha * 0.45);
   return tint;

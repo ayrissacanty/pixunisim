@@ -12,7 +12,7 @@ import {
   propHeight,
   type BuildingFootprint,
 } from "@/lib/campus/isoprops";
-import { buildingDepthFor, footprintDepth, isoDepth, actorDepth, DEPTH_BIAS, GROUND_DEPTH, OVERLAY_DEPTH } from "@/lib/campus/depth";
+import { actorDepthWithBuildings, buildingDepthFor, footprintDepth, isoDepth, actorDepth, DEPTH_BIAS, GROUND_DEPTH, OVERLAY_DEPTH } from "@/lib/campus/depth";
 import { paintTheme, themeKey, themedColors } from "@/lib/campus/themes";
 import {
   ISO_H,
@@ -1467,7 +1467,7 @@ export class CampusScene extends Phaser.Scene {
     return { sprite, label: text, key, dir: "down", moving: false, px, py };
   }
 
-  /** Keeps building volumes sorted behind the player when they stand in front. */
+  /** Keeps building volumes at a stable depth relative to scenery. */
   private sortBuildings() {
     for (const { g, fp } of this.buildingVolumes) {
       g.setDepth(buildingDepthFor(fp.x, fp.y, fp.w, fp.h, this.player.px, this.player.py));
@@ -1480,9 +1480,16 @@ export class CampusScene extends Phaser.Scene {
     actor.py = py;
     const at = this.iso(px, py);
     actor.sprite.setPosition(at.x, at.y);
-    actor.sprite.setDepth(actorDepth(px, py));
+    const isPlayer = actor === this.player;
+    actor.sprite.setDepth(
+      isPlayer ? actorDepthWithBuildings(px, py, this.buildingVolumes.map(({ fp }) => fp)) : actorDepth(px, py),
+    );
     actor.label.setPosition(at.x, at.y - 38);
-    actor.label.setDepth(actorDepth(px, py, DEPTH_BIAS.label));
+    actor.label.setDepth(
+      isPlayer
+        ? actorDepthWithBuildings(px, py, this.buildingVolumes.map(({ fp }) => fp), DEPTH_BIAS.label)
+        : actorDepth(px, py, DEPTH_BIAS.label),
+    );
     actor.badge?.setPosition(at.x, at.y - 24);
     actor.badge?.setDepth(actorDepth(px, py, DEPTH_BIAS.label));
   }
