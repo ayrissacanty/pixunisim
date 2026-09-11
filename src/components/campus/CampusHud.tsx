@@ -159,7 +159,7 @@ export function CampusHud({
           </div>
         </div>
         {!busy && (
-          <div className="flex items-end gap-2">
+          <div className="pointer-events-auto hidden items-end gap-2 md:flex">
             {camera && (
               <CampusCameraControls
                 panMode={camera.panMode}
@@ -172,9 +172,7 @@ export function CampusHud({
                 showGrid={debug}
               />
             )}
-            <div className="pointer-events-auto hidden md:block">
-              <MemoizedMinimap />
-            </div>
+            <MemoizedMinimap />
           </div>
         )}
 
