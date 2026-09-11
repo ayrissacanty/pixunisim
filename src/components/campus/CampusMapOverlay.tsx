@@ -6,6 +6,7 @@ import { ZONE_LABELS, getZone } from "@/lib/campus/world";
 import { buildWalkthrough } from "@/lib/campus/walkthrough";
 import { Button } from "@/components/ui/button";
 import { FACULTY } from "@/lib/campus/faculty";
+import { zoneGuide } from "@/lib/campus/zone-guide";
 
 const OVERVIEW = [
   "welcome-plaza",
