@@ -8,6 +8,8 @@ export interface CampusLessonLocation {
   zoneId: string;
   zoneName: string;
   teacher: string;
+  /** NPC that teaches the lesson, used by quest "talk to" steps. */
+  npcId: string;
 }
 
 let index: CampusLessonLocation[] | null = null;
@@ -31,6 +33,7 @@ export function campusLessonIndex(): CampusLessonLocation[] {
         zoneId: zone.id,
         zoneName: ZONE_LABELS[zone.id] ?? zone.name,
         teacher: npc.name,
+        npcId: npc.id,
       });
     }
   }
