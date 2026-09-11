@@ -22,6 +22,22 @@ export interface Profile {
   portrait: Portrait;
   mascot: Mascot;
   appearance: Appearance;
+  age: number | null;
+  grade_band: string | null;
+  interests: string[];
+  learning_style: string | null;
+  setup_complete: boolean;
+}
+
+/** Everything the parent-run character creator writes in one go. */
+export interface ChildSetup {
+  display_name: string;
+  age: number | null;
+  grade_band: string;
+  interests: string[];
+  learning_style: string;
+  appearance: Appearance;
+  mascot: Mascot;
 }
 
 export function useProfile() {
