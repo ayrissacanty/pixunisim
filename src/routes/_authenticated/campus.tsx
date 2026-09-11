@@ -1,5 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CampusView } from "@/components/campus/CampusView";
+import { useProfile } from "@/lib/profile";
 
 export const Route = createFileRoute("/_authenticated/campus")({
   validateSearch: (search: Record<string, unknown>): { tour?: string } =>
