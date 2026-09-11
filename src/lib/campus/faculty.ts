@@ -61,6 +61,6 @@ export const FACULTY: FacultyProfile[] = [
   },
 ];
 
-export function facultyForRoom(roomId?: string): FacultyProfile {
-  return FACULTY.find((faculty) => faculty.roomId === roomId) ?? FACULTY[0]!;
+export function facultyForRoom(roomId?: string): FacultyProfile | undefined {
+  return FACULTY.find((faculty) => faculty.roomId === roomId);
 }

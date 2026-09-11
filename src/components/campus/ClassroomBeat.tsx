@@ -77,6 +77,7 @@ export function ClassroomBeat() {
   const start = () => openLesson(classroom.lessonId, classroom.courseId, classroom.roomId);
   const teacher = characterOf(TEACHER_CHARACTER);
   const faculty = facultyForRoom(classroom.roomId);
+  const teacherName = faculty?.name ?? classroom.teacher ?? teacher.name;
 
   return (
     <div
@@ -121,16 +122,20 @@ export function ClassroomBeat() {
       {/* Cast */}
       <div className="relative z-10 flex items-end justify-center gap-6 pb-2 sm:gap-12">
         <div data-testid="beat-teacher" className="flex flex-col items-center">
-          <img
-            src={faculty.portrait}
-            alt={faculty.name}
-            width={768}
-            height={768}
-            loading="lazy"
-            className="size-28 rounded-xl border-[3px] border-accent object-cover shadow-lg [image-rendering:pixelated]"
-          />
+          {faculty ? (
+            <img
+              src={faculty.portrait}
+              alt={faculty.name}
+              width={768}
+              height={768}
+              loading="lazy"
+              className="size-28 rounded-xl border-[3px] border-accent object-cover shadow-lg [image-rendering:pixelated]"
+            />
+          ) : (
+            <CharacterAvatar character={teacher} size={112} />
+          )}
           <span className="block-chip mt-1 border-warm-brown bg-ochre px-2 py-0.5 font-display text-[11px] font-bold text-[var(--warm-brown)]">
-            {faculty.name ?? classroom.teacher ?? teacher.name}
+            {teacherName}
           </span>
         </div>
         <div className="hidden flex-col items-center sm:flex">
@@ -152,10 +157,10 @@ export function ClassroomBeat() {
           {classroom.roomName}
         </p>
         <p data-testid="beat-line" className="mt-1 font-display text-sm">
-          <span className="font-bold">{faculty.name}:</span> {line}
+          <span className="font-bold">{teacherName}:</span> {line}
         </p>
 
-        {phase === "arrive" && (
+        {phase === "arrive" && faculty && (
           <div className="mt-3 grid gap-3 border-t border-sidebar-foreground/15 pt-3 sm:grid-cols-[1.25fr_1fr]">
             <div>
               <p className="text-xs font-semibold text-accent">
