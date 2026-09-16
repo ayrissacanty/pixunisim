@@ -154,6 +154,7 @@ export function QuestTracker() {
             <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-primary">
               {done} / {quest.steps.length} steps
             </p>
+            <HandIn quest={current.quest} record={current.record} />
           </>
         ) : (
           <button
@@ -217,6 +218,7 @@ export function QuestLog() {
               <article key={quest.id} data-quest-row={quest.id} className="block-panel bg-background/60 p-3">
                 <Header quest={quest} />
                 <StepRow quest={quest} record={record} />
+                <HandIn quest={quest} record={record} />
                 <button
                   type="button"
                   onClick={() => abandon.mutate(quest.id)}
