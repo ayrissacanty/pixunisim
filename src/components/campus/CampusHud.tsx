@@ -156,7 +156,7 @@ export function CampusHud({
           beside it, camera cluster + minimap on the right. */}
       <div className="flex items-end justify-between gap-3 px-3">
         <div className="min-w-0 flex-1">
-          <MemoizedObjectiveTracker />
+          <MemoizedTracker />
           {prompt && !busy && (
             <div className="block-panel pointer-events-none mx-auto mt-2 w-fit border-accent bg-sidebar/95 px-4 py-2.5 text-sm font-semibold text-sidebar-foreground">
               <span className="mr-2 block-chip border-accent-foreground/25 bg-accent px-2 py-0.5 text-[11px] font-black text-accent-foreground">
