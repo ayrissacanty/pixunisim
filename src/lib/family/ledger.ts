@@ -163,14 +163,19 @@ export function useFamilyLedger(range?: { from?: string | undefined; to?: string
         supabase
           .from("student_progress")
           .select("user_id, lesson_id, status, score, completed_at, time_spent_seconds"),
-        supabase.from("lessons").select("id, title, subject, standard_code, grade"),
-      ]);
+          supabase.from("lessons").select("id, title, subject, standard_code, grade"),
+          supabase
+            .from("student_inventory")
+            .select("user_id, item_id, quantity, acquired_at")
+            .eq("source", "tutor"),
+        ]);
 
       return buildLedger(
         (profiles ?? []) as ProfileRow[],
         (progress ?? []) as ProgressRow[],
         (lessons ?? []) as LessonRow[],
         range,
+        (tutor ?? []) as TutorRow[],
       );
     },
   });
