@@ -115,6 +115,23 @@ function LedgerPage() {
               )}
             </div>
 
+            <p className="mt-3 text-xs font-semibold uppercase tracking-wide">Tutoring sessions</p>
+            <ul className="mt-1 flex flex-wrap gap-1.5" data-testid="ledger-tutoring">
+              {child.tutorSessions.length === 0 ? (
+                <span className="text-xs text-muted-foreground">None recorded yet.</span>
+              ) : (
+                child.tutorSessions.map((session) => (
+                  <li
+                    key={session.lessonId}
+                    className="rounded border border-border bg-muted px-1.5 py-0.5 text-[11px]"
+                  >
+                    {session.title} · {session.sessions}×{" "}
+                    {new Date(session.lastAt).toLocaleDateString()}
+                  </li>
+                ))
+              )}
+            </ul>
+
             <table className="mt-4 w-full text-left text-sm">
               <thead>
                 <tr className="border-b-2 border-border text-xs uppercase tracking-wide">
