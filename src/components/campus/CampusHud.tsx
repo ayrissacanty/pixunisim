@@ -62,6 +62,9 @@ export function CampusHud({
   const assetsOpen = useCampusStore((s) => s.assetsOpen);
   const setAssetsOpen = useCampusStore((s) => s.setAssetsOpen);
   const setMapOpen = useCampusStore((s) => s.setMapOpen);
+  const setQuestsOpen = useCampusStore((s) => s.setQuestsOpen);
+  const setModulesOpen = useCampusStore((s) => s.setModulesOpen);
+  const setBackpackOpen = useCampusStore((s) => s.setBackpackOpen);
   const busy = useCampusStore((s) => !!(s.dialogue || s.reading || s.lessonOpen || s.mapOpen));
   const motion = useMotionStore((s) => s.setting);
   const cycleMotion = useMotionStore((s) => s.cycle);
