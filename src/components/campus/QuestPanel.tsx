@@ -4,15 +4,52 @@ import { useCampusStore } from "@/lib/campus/store";
 import {
   useAcceptQuest,
   useAbandonQuest,
+  useInventory,
+  useMarkQuestStep,
   useQuestCatalog,
   useQuestRecords,
+  useUseItem,
 } from "@/lib/quests";
 import { isUnlocked, stepsDone, type QuestDef, type QuestRecord } from "@/lib/campus/quests";
 
 interface QuestView {
   quest: QuestDef;
-  record?: QuestRecord;
+  record?: QuestRecord | undefined;
   unlocked: boolean;
+}
+
+/**
+ * Hand-in button for the final "deliver" step. It appears once the lesson and
+ * its knowledge check are done and the keepsake is actually in the backpack,
+ * so the reward has to be earned before it can be handed over.
+ */
+function HandIn({ quest, record }: { quest: QuestDef; record?: QuestRecord | undefined }) {
+  const { data: items } = useInventory();
+  const use = useUseItem();
+  const mark = useMarkQuestStep();
+
+  if (!record || record.status === "completed") return null;
+  if (record.steps["deliver"]) return null;
+  if (!record.steps["lesson"] || !record.steps["check"]) return null;
+
+  const row = items?.find((i) => i.item_id === quest.reward.itemId);
+  const available = row ? row.quantity - row.used_count : 0;
+  if (available < 1) return null;
+
+  return (
+    <button
+      type="button"
+      data-testid="quest-hand-in"
+      data-quest={quest.id}
+      onClick={() => {
+        use.mutate(quest.reward.itemId);
+        mark.mutate({ questId: quest.id, stepId: "deliver" });
+      }}
+      className="block-btn mt-2 w-full border-primary/40 bg-primary px-2 py-1.5 text-[11px] font-black uppercase tracking-wider text-primary-foreground"
+    >
+      Hand {quest.reward.icon} {quest.reward.name} to {quest.giver}
+    </button>
+  );
 }
 
 /** Splits the catalog into active / available / locked / done buckets. */
@@ -35,7 +72,7 @@ function useQuestBoard() {
   }, [catalog, records]);
 }
 
-function StepRow({ quest, record }: { quest: QuestDef; record?: QuestRecord }) {
+function StepRow({ quest, record }: { quest: QuestDef; record?: QuestRecord | undefined }) {
   return (
     <ul className="mt-1.5 space-y-1">
       {quest.steps.map((step) => {
