@@ -88,7 +88,7 @@ function LedgerPage() {
               </p>
             </header>
 
-            <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
               <Stat label="Lessons completed" value={String(child.completedCount)} />
               <Stat label="In progress" value={String(child.inProgressCount)} />
               <Stat
@@ -96,6 +96,7 @@ function LedgerPage() {
                 value={child.averageScore == null ? "—" : `${child.averageScore}%`}
               />
               <Stat label="Time studied" value={`${child.totalMinutes} min`} />
+              <Stat label="Tutoring sessions" value={String(child.tutorSessionCount)} />
             </dl>
 
             <p className="mt-3 text-xs font-semibold uppercase tracking-wide">Standards met</p>
