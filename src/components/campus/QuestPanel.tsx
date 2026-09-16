@@ -72,7 +72,7 @@ function useQuestBoard() {
   }, [catalog, records]);
 }
 
-function StepRow({ quest, record }: { quest: QuestDef; record?: QuestRecord }) {
+function StepRow({ quest, record }: { quest: QuestDef; record?: QuestRecord | undefined }) {
   return (
     <ul className="mt-1.5 space-y-1">
       {quest.steps.map((step) => {
