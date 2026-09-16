@@ -72,6 +72,7 @@ export function buildLedger(
   progress: ProgressRow[],
   lessons: LessonRow[],
   range?: { from?: string | undefined; to?: string | undefined },
+  tutorRows: TutorRow[] = [],
 ): LedgerChild[] {
   const lessonById = new Map(lessons.map((lesson) => [lesson.id, lesson]));
   return profiles.map((profile) => {
