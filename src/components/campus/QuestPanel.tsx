@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Check, MapPin, ScrollText, Sparkles, X } from "lucide-react";
+import { ObjectiveTracker } from "@/components/campus/ObjectiveTracker";
 import { useCampusStore } from "@/lib/campus/store";
 import {
   useAcceptQuest,
@@ -317,4 +318,14 @@ function Section({
       ) : null}
     </section>
   );
+}
+
+/**
+ * The bottom-left panel the campus HUD shows: the live quest scroll when there
+ * is a quest to work, otherwise the plain objective box.
+ */
+export function CampusTracker() {
+  const { active, available } = useQuestBoard();
+  if (!active[0] && !available[0]) return <ObjectiveTracker />;
+  return <QuestTracker />;
 }
