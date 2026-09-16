@@ -139,6 +139,8 @@ export function buildLedger(
       standardsMet: Array.from(
         new Set(completed.map((entry) => entry.standard).filter((s): s is string => !!s)),
       ).sort(),
+      tutorSessions,
+      tutorSessionCount: tutorSessions.reduce((sum, s) => sum + s.sessions, 0),
     };
   });
 }
