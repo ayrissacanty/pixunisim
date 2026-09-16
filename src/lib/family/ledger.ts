@@ -154,7 +154,8 @@ export function useFamilyLedger(range?: { from?: string | undefined; to?: string
     queryKey: ["family-ledger", range?.from ?? "", range?.to ?? ""],
     staleTime: 30_000,
     queryFn: async (): Promise<LedgerChild[]> => {
-      const [{ data: profiles }, { data: progress }, { data: lessons }] = await Promise.all([
+      const [{ data: profiles }, { data: progress }, { data: lessons }, { data: tutor }] =
+        await Promise.all([
         supabase
           .from("profiles")
           .select("id, display_name, grade_band, learning_style")
