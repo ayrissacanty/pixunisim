@@ -105,6 +105,25 @@ export function buildLedger(
     const completed = entries.filter((entry) => entry.status === "completed");
     const scores = completed.map((entry) => entry.score).filter((s): s is number => s != null);
 
+    // Tutoring sessions are stored as "insight-<lesson id>" keepsakes.
+    const tutorSessions: LedgerTutorSession[] = tutorRows
+      .filter((row) => row.user_id === profile.id && row.item_id.startsWith("insight-"))
+      .filter((row) => {
+        if (range?.from && row.acquired_at < range.from) return false;
+        if (range?.to && row.acquired_at > `${range.to}T23:59:59Z`) return false;
+        return true;
+      })
+      .map((row) => {
+        const lessonId = row.item_id.replace(/^insight-/, "");
+        return {
+          lessonId,
+          title: lessonById.get(lessonId)?.title ?? lessonId,
+          sessions: row.quantity,
+          lastAt: row.acquired_at,
+        };
+      })
+      .sort((a, b) => b.lastAt.localeCompare(a.lastAt));
+
     return {
       id: profile.id,
       name: profile.display_name,
