@@ -36,6 +36,10 @@ export function AiTeacher({ lessonId, lessonTitle }: { lessonId: string; lessonT
   ]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  // One tutoring session is recorded per lesson visit, the first time Alley
+  // actually answers — it shows in the module hub and the parent ledger.
+  const recordSession = useRecordTutorSession();
+  const recorded = useRef(false);
 
   const send = async (value = input) => {
     const question = value.trim();
@@ -55,6 +59,10 @@ export function AiTeacher({ lessonId, lessonTitle }: { lessonId: string; lessonT
           },
       });
       setMessages([...next, { role: "assistant", content: res.reply }]);
+      if (!recorded.current) {
+        recorded.current = true;
+        recordSession(lessonId);
+      }
     } catch {
       setMessages([
         ...next,

@@ -13,6 +13,13 @@ export interface LedgerLesson {
   minutes: number;
 }
 
+export interface LedgerTutorSession {
+  lessonId: string;
+  title: string;
+  sessions: number;
+  lastAt: string;
+}
+
 export interface LedgerChild {
   id: string;
   name: string;
@@ -24,6 +31,15 @@ export interface LedgerChild {
   averageScore: number | null;
   totalMinutes: number;
   standardsMet: string[];
+  tutorSessions: LedgerTutorSession[];
+  tutorSessionCount: number;
+}
+
+export interface TutorRow {
+  user_id: string;
+  item_id: string;
+  quantity: number;
+  acquired_at: string;
 }
 
 interface ProgressRow {
