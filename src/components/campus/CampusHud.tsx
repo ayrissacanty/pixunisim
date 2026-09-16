@@ -212,6 +212,39 @@ export function CampusHud({
           size="sm"
           variant="outline"
           className="block-btn size-12 border-accent/40 p-0"
+          aria-label="Open the quest log"
+          data-testid="hud-quests"
+          title="Quests"
+          onClick={() => setQuestsOpen(true)}
+        >
+          <ScrollText className="size-5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="block-btn size-12 border-accent/40 p-0"
+          aria-label="Open the module hub"
+          data-testid="hud-modules"
+          title="Modules"
+          onClick={() => setModulesOpen(true)}
+        >
+          <BookOpen className="size-5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="block-btn size-12 border-accent/40 p-0"
+          aria-label="Open your backpack"
+          data-testid="hud-backpack"
+          title="Backpack"
+          onClick={() => setBackpackOpen(true)}
+        >
+          <Backpack className="size-5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="block-btn size-12 border-accent/40 p-0"
           aria-label={`${STYLE_LABELS[style]} — click to change campus visual style`}
           data-testid="style-toggle"
           data-style={style}
