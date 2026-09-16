@@ -30,7 +30,7 @@ import { CampusClock } from "@/components/campus/CampusClock";
 
 
 const MemoizedMinimap = memo(Minimap);
-const MemoizedObjectiveTracker = memo(ObjectiveTracker);
+const MemoizedTracker = memo(CampusTracker);
 const MemoizedTouchControls = memo(TouchControls);
 
 export interface CampusCameraApi {
