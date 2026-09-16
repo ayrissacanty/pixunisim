@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Sparkles, ShieldCheck } from "lucide-react";
 import { askTutor } from "@/lib/tutor.functions";
 import { useProfile } from "@/lib/profile";
+import { useRecordTutorSession } from "@/lib/quests";
 import {
   Conversation,
   ConversationContent,
