@@ -1,11 +1,23 @@
 import { memo } from "react";
 import { Link } from "@tanstack/react-router";
-import { Accessibility, Boxes, Compass, Gauge, LayoutDashboard, Map, MoveDiagonal, Palette } from "lucide-react";
+import {
+  Accessibility,
+  Backpack,
+  BookOpen,
+  Boxes,
+  Compass,
+  Gauge,
+  LayoutDashboard,
+  Map,
+  MoveDiagonal,
+  Palette,
+  ScrollText,
+} from "lucide-react";
 import { useCampusStore } from "@/lib/campus/store";
 import { ZONE_LABELS } from "@/lib/campus/world";
 import { Button } from "@/components/ui/button";
 import { Minimap } from "@/components/campus/Minimap";
-import { ObjectiveTracker } from "@/components/campus/ObjectiveTracker";
+import { CampusTracker } from "@/components/campus/QuestPanel";
 import { MOTION_LABELS, useMotionStore } from "@/lib/a11y/motion";
 import { ASSIST_LABEL, useAssistStore } from "@/lib/a11y/assist";
 import { useDebugMode } from "@/lib/debug";
