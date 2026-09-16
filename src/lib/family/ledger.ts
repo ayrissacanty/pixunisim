@@ -13,6 +13,13 @@ export interface LedgerLesson {
   minutes: number;
 }
 
+export interface LedgerTutorSession {
+  lessonId: string;
+  title: string;
+  sessions: number;
+  lastAt: string;
+}
+
 export interface LedgerChild {
   id: string;
   name: string;
@@ -24,6 +31,15 @@ export interface LedgerChild {
   averageScore: number | null;
   totalMinutes: number;
   standardsMet: string[];
+  tutorSessions: LedgerTutorSession[];
+  tutorSessionCount: number;
+}
+
+export interface TutorRow {
+  user_id: string;
+  item_id: string;
+  quantity: number;
+  acquired_at: string;
 }
 
 interface ProgressRow {
@@ -56,6 +72,7 @@ export function buildLedger(
   progress: ProgressRow[],
   lessons: LessonRow[],
   range?: { from?: string | undefined; to?: string | undefined },
+  tutorRows: TutorRow[] = [],
 ): LedgerChild[] {
   const lessonById = new Map(lessons.map((lesson) => [lesson.id, lesson]));
   return profiles.map((profile) => {
@@ -88,6 +105,25 @@ export function buildLedger(
     const completed = entries.filter((entry) => entry.status === "completed");
     const scores = completed.map((entry) => entry.score).filter((s): s is number => s != null);
 
+    // Tutoring sessions are stored as "insight-<lesson id>" keepsakes.
+    const tutorSessions: LedgerTutorSession[] = tutorRows
+      .filter((row) => row.user_id === profile.id && row.item_id.startsWith("insight-"))
+      .filter((row) => {
+        if (range?.from && row.acquired_at < range.from) return false;
+        if (range?.to && row.acquired_at > `${range.to}T23:59:59Z`) return false;
+        return true;
+      })
+      .map((row) => {
+        const lessonId = row.item_id.replace(/^insight-/, "");
+        return {
+          lessonId,
+          title: lessonById.get(lessonId)?.title ?? lessonId,
+          sessions: row.quantity,
+          lastAt: row.acquired_at,
+        };
+      })
+      .sort((a, b) => b.lastAt.localeCompare(a.lastAt));
+
     return {
       id: profile.id,
       name: profile.display_name,
@@ -103,6 +139,8 @@ export function buildLedger(
       standardsMet: Array.from(
         new Set(completed.map((entry) => entry.standard).filter((s): s is string => !!s)),
       ).sort(),
+      tutorSessions,
+      tutorSessionCount: tutorSessions.reduce((sum, s) => sum + s.sessions, 0),
     };
   });
 }
@@ -116,7 +154,8 @@ export function useFamilyLedger(range?: { from?: string | undefined; to?: string
     queryKey: ["family-ledger", range?.from ?? "", range?.to ?? ""],
     staleTime: 30_000,
     queryFn: async (): Promise<LedgerChild[]> => {
-      const [{ data: profiles }, { data: progress }, { data: lessons }] = await Promise.all([
+      const [{ data: profiles }, { data: progress }, { data: lessons }, { data: tutor }] =
+        await Promise.all([
         supabase
           .from("profiles")
           .select("id, display_name, grade_band, learning_style")
@@ -124,14 +163,19 @@ export function useFamilyLedger(range?: { from?: string | undefined; to?: string
         supabase
           .from("student_progress")
           .select("user_id, lesson_id, status, score, completed_at, time_spent_seconds"),
-        supabase.from("lessons").select("id, title, subject, standard_code, grade"),
-      ]);
+          supabase.from("lessons").select("id, title, subject, standard_code, grade"),
+          supabase
+            .from("student_inventory")
+            .select("user_id, item_id, quantity, acquired_at")
+            .eq("source", "tutor"),
+        ]);
 
       return buildLedger(
         (profiles ?? []) as ProfileRow[],
         (progress ?? []) as ProgressRow[],
         (lessons ?? []) as LessonRow[],
         range,
+        (tutor ?? []) as TutorRow[],
       );
     },
   });

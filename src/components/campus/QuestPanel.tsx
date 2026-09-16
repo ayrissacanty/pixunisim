@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Check, MapPin, ScrollText, Sparkles, X } from "lucide-react";
+import { ObjectiveTracker } from "@/components/campus/ObjectiveTracker";
 import { useCampusStore } from "@/lib/campus/store";
 import {
   useAcceptQuest,
@@ -154,6 +155,7 @@ export function QuestTracker() {
             <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-primary">
               {done} / {quest.steps.length} steps
             </p>
+            <HandIn quest={current.quest} record={current.record} />
           </>
         ) : (
           <button
@@ -217,6 +219,7 @@ export function QuestLog() {
               <article key={quest.id} data-quest-row={quest.id} className="block-panel bg-background/60 p-3">
                 <Header quest={quest} />
                 <StepRow quest={quest} record={record} />
+                <HandIn quest={quest} record={record} />
                 <button
                   type="button"
                   onClick={() => abandon.mutate(quest.id)}
@@ -315,4 +318,14 @@ function Section({
       ) : null}
     </section>
   );
+}
+
+/**
+ * The bottom-left panel the campus HUD shows: the live quest scroll when there
+ * is a quest to work, otherwise the plain objective box.
+ */
+export function CampusTracker() {
+  const { active, available } = useQuestBoard();
+  if (!active[0] && !available[0]) return <ObjectiveTracker />;
+  return <QuestTracker />;
 }

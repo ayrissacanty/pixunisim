@@ -1,11 +1,23 @@
 import { memo } from "react";
 import { Link } from "@tanstack/react-router";
-import { Accessibility, Boxes, Compass, Gauge, LayoutDashboard, Map, MoveDiagonal, Palette } from "lucide-react";
+import {
+  Accessibility,
+  Backpack,
+  BookOpen,
+  Boxes,
+  Compass,
+  Gauge,
+  LayoutDashboard,
+  Map,
+  MoveDiagonal,
+  Palette,
+  ScrollText,
+} from "lucide-react";
 import { useCampusStore } from "@/lib/campus/store";
 import { ZONE_LABELS } from "@/lib/campus/world";
 import { Button } from "@/components/ui/button";
 import { Minimap } from "@/components/campus/Minimap";
-import { ObjectiveTracker } from "@/components/campus/ObjectiveTracker";
+import { CampusTracker } from "@/components/campus/QuestPanel";
 import { MOTION_LABELS, useMotionStore } from "@/lib/a11y/motion";
 import { ASSIST_LABEL, useAssistStore } from "@/lib/a11y/assist";
 import { useDebugMode } from "@/lib/debug";
@@ -18,7 +30,7 @@ import { CampusClock } from "@/components/campus/CampusClock";
 
 
 const MemoizedMinimap = memo(Minimap);
-const MemoizedObjectiveTracker = memo(ObjectiveTracker);
+const MemoizedTracker = memo(CampusTracker);
 const MemoizedTouchControls = memo(TouchControls);
 
 export interface CampusCameraApi {
@@ -50,6 +62,9 @@ export function CampusHud({
   const assetsOpen = useCampusStore((s) => s.assetsOpen);
   const setAssetsOpen = useCampusStore((s) => s.setAssetsOpen);
   const setMapOpen = useCampusStore((s) => s.setMapOpen);
+  const setQuestsOpen = useCampusStore((s) => s.setQuestsOpen);
+  const setModulesOpen = useCampusStore((s) => s.setModulesOpen);
+  const setBackpackOpen = useCampusStore((s) => s.setBackpackOpen);
   const busy = useCampusStore((s) => !!(s.dialogue || s.reading || s.lessonOpen || s.mapOpen));
   const motion = useMotionStore((s) => s.setting);
   const cycleMotion = useMotionStore((s) => s.cycle);
@@ -144,7 +159,7 @@ export function CampusHud({
           beside it, camera cluster + minimap on the right. */}
       <div className="flex items-end justify-between gap-3 px-3">
         <div className="min-w-0 flex-1">
-          <MemoizedObjectiveTracker />
+          <MemoizedTracker />
           {prompt && !busy && (
             <div className="block-panel pointer-events-none mx-auto mt-2 w-fit border-accent bg-sidebar/95 px-4 py-2.5 text-sm font-semibold text-sidebar-foreground">
               <span className="mr-2 block-chip border-accent-foreground/25 bg-accent px-2 py-0.5 text-[11px] font-black text-accent-foreground">
@@ -192,6 +207,39 @@ export function CampusHud({
           onClick={() => setMapOpen(true)}
         >
           <Map className="size-5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="block-btn size-12 border-accent/40 p-0"
+          aria-label="Open the quest log"
+          data-testid="hud-quests"
+          title="Quests"
+          onClick={() => setQuestsOpen(true)}
+        >
+          <ScrollText className="size-5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="block-btn size-12 border-accent/40 p-0"
+          aria-label="Open the module hub"
+          data-testid="hud-modules"
+          title="Modules"
+          onClick={() => setModulesOpen(true)}
+        >
+          <BookOpen className="size-5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="block-btn size-12 border-accent/40 p-0"
+          aria-label="Open your backpack"
+          data-testid="hud-backpack"
+          title="Backpack"
+          onClick={() => setBackpackOpen(true)}
+        >
+          <Backpack className="size-5" />
         </Button>
         <Button
           size="sm"

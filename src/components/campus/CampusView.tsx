@@ -18,6 +18,9 @@ import { LayerTransition } from "@/components/campus/LayerTransition";
 import { PerfOverlay, type CampusPerfStats } from "@/components/campus/PerfOverlay";
 import { AssetDebugPanel } from "@/components/campus/AssetDebugPanel";
 import { IsoDebugOverlay, type IsoDebugSnapshot } from "@/components/campus/IsoDebugOverlay";
+import { QuestLog } from "@/components/campus/QuestPanel";
+import { ModulesHub } from "@/components/campus/ModulesHub";
+import { BackpackPanel } from "@/components/campus/BackpackPanel";
 
 
 export function CampusView({
@@ -496,6 +499,9 @@ export function CampusView({
       <ClassroomBeat />
       <LessonOverlay />
       <LayerTransition />
+      <QuestLog />
+      <ModulesHub />
+      <BackpackPanel />
       <PerfOverlay
         getStats={getPerfStats}
         onReset={resetPerfStats}
