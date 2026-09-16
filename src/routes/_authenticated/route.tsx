@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { hydrateCampus, startCampusPersistence } from "@/lib/campus/store";
 import { useCampusObjectives } from "@/lib/campus/objectives";
 import { useOfflineSync } from "@/lib/data";
+import { useQuestSync } from "@/lib/quests";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -28,5 +29,6 @@ function AuthenticatedShell() {
   }, []);
   useCampusObjectives();
   useOfflineSync();
+  useQuestSync();
   return <Outlet />;
 }
