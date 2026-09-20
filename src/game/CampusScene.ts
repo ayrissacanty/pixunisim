@@ -246,7 +246,11 @@ export class CampusScene extends Phaser.Scene {
         sctx.setTransform(1, 0, 0, 1, 0, 0);
         sctx.clearRect(0, 0, TILE, TILE);
         const flat = isFlatObject(kind);
-        const originalKey = flat ? undefined : originalGroundKey(kind);
+        // Interiors are drawn entirely with the crisp 32px schoolhouse tiles:
+        // plaster walls, plank floors and framed chalkboards read far cleaner
+        // than recoloured outdoor ground paintings.
+        const originalKey =
+          flat || zone.kind === "interior" ? undefined : originalGroundKey(kind);
         const source = originalKey ? this.textures.get(originalKey)?.source[0]?.image : undefined;
         if (source) {
           const sourceWidth = source.width || TILE;
