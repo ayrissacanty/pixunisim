@@ -122,6 +122,7 @@ export function useMarkQuestStep() {
       const { data: row } = await supabase
         .from("student_quests")
         .select("quest_id, status, steps")
+        .eq("user_id", userId)
         .eq("quest_id", questId)
         .maybeSingle();
       if (!row) return null; // not accepted yet — nothing to track
@@ -161,6 +162,7 @@ async function grantItem(userId: string, itemId: string, source: string) {
   const { data: existing } = await supabase
     .from("student_inventory")
     .select("quantity")
+    .eq("user_id", userId)
     .eq("item_id", itemId)
     .maybeSingle();
   if (existing) {
@@ -199,6 +201,7 @@ export function useUseItem() {
       const { data: row } = await supabase
         .from("student_inventory")
         .select("used_count")
+        .eq("user_id", userId)
         .eq("item_id", itemId)
         .maybeSingle();
       if (!row) return;
