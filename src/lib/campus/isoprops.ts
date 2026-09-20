@@ -55,8 +55,12 @@ export function isoLayerFor(kind: TileKind): IsoLayer {
   return "ground";
 }
 
-/** Extrusion height (in tiles) for a block kind. */
-export function blockHeight(kind: TileKind): number {
+/**
+ * Extrusion height (in tiles) for a block kind. Interior rooms use low
+ * wainscoted walls so a classroom reads as a room, not a canyon of towers.
+ */
+export function blockHeight(kind: TileKind, zoneKind?: ZoneMap["kind"]): number {
+  if (zoneKind === "interior") return kind === "buildingRoof" ? 1 : 0.85;
   return BLOCKS[kind] ?? 1;
 }
 
@@ -134,6 +138,9 @@ export interface BuildingFootprint {
  * a grid of separate cubes.
  */
 export function buildingFootprints(zone: ZoneMap): BuildingFootprint[] {
+  // Indoors there are no buildings: window tiles are glazing in a room wall,
+  // never a structure to extrude.
+  if (zone.kind === "interior") return [];
   const seen = new Set<string>();
   const out: BuildingFootprint[] = [];
   const at = (x: number, y: number) => zone.tiles[y]?.[x];
