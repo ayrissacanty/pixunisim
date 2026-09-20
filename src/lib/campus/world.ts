@@ -753,7 +753,7 @@ function academicHall(opts: {
     g.rect(x + 2, y + 1, Math.max(1, w - 4), 1, "board");
     g.set(x + 1, y + 1, "shelf");
     g.set(x + w - 2, y + 1, "plant");
-    g.set(x + 1, y + 2, "desk");
+    g.set(x + 1, y + 3, "desk");
     g.set(x, y + 3, "window");
     g.set(x + w - 1, y + 3, "window");
     for (let dy = y + 4; dy <= y + 6; dy += 2) {
