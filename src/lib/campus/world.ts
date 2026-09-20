@@ -754,8 +754,8 @@ function academicHall(opts: {
     g.set(x + 1, y + 1, "shelf");
     g.set(x + w - 2, y + 1, "plant");
     g.set(x + 2, y + 2, "desk");
-    g.set(x + 1, y + 3, "window");
-    g.set(x + w - 2, y + 3, "window");
+    g.set(x, y + 3, "window");
+    g.set(x + w - 1, y + 3, "window");
     for (let dy = y + 4; dy <= y + 6; dy += 2) {
       for (let dx = x + 2; dx < x + w - 1; dx += 3) {
         if (dx === doorX) continue;
