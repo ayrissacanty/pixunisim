@@ -216,7 +216,7 @@ export class CampusScene extends Phaser.Scene {
 
   /** Bakes the whole zone into one isometric canvas texture. */
   private bakeZone(zone: ZoneMap, style = visualStyle()): string | null {
-    const theme = paintTheme(zone.id, style);
+    const theme = paintTheme(zone.kind === "interior" ? "interior-room" : zone.id, style);
     const key = `zone-iso-${zone.id}-${themeKey(theme)}-${this.artReady ? "art" : "plain"}`;
     if (this.textures.exists(key)) return key;
     const size = isoCanvasSize(zone.width, zone.height);
@@ -246,7 +246,11 @@ export class CampusScene extends Phaser.Scene {
         sctx.setTransform(1, 0, 0, 1, 0, 0);
         sctx.clearRect(0, 0, TILE, TILE);
         const flat = isFlatObject(kind);
-        const originalKey = flat ? undefined : originalGroundKey(kind);
+        // Interiors are drawn entirely with the crisp 32px schoolhouse tiles:
+        // plaster walls, plank floors and framed chalkboards read far cleaner
+        // than recoloured outdoor ground paintings.
+        const originalKey =
+          flat || zone.kind === "interior" ? undefined : originalGroundKey(kind);
         const source = originalKey ? this.textures.get(originalKey)?.source[0]?.image : undefined;
         if (source) {
           const sourceWidth = source.width || TILE;
@@ -303,9 +307,13 @@ export class CampusScene extends Phaser.Scene {
    * a diamond top face plus the two visible side faces, so walls, windows and
    * roofs read as real geometry instead of a flat painted square.
    */
-  private blockTexture(kind: TileKind, theme: ReturnType<typeof paintTheme>): string | null {
-    const rise = Math.round(blockHeight(kind) * ISO_H);
-    const key = `iso-block-${kind}-${themeKey(theme)}`;
+  private blockTexture(
+    kind: TileKind,
+    theme: ReturnType<typeof paintTheme>,
+    zoneKind?: "interior" | "outdoor",
+  ): string | null {
+    const rise = Math.round(blockHeight(kind, zoneKind) * ISO_H);
+    const key = `iso-block-${kind}-${themeKey(theme)}-${zoneKind ?? "outdoor"}`;
     if (this.textures.exists(key)) return key;
     const height = rise + ISO_H;
     const tex = this.textures.createCanvas(key, ISO_W, height);
@@ -320,7 +328,9 @@ export class CampusScene extends Phaser.Scene {
     const bottomY = height;
     const midY = height - ISO_H / 2;
     const topApex = bottomY - ISO_H - rise;
-    const isBuilding = kind === "buildingWall" || kind === "window" || kind === "buildingRoof";
+    const indoors = zoneKind === "interior";
+    const isBuilding =
+      !indoors && (kind === "buildingWall" || kind === "window" || kind === "buildingRoof");
 
     /** Point on the left facade: t across (0..1), h up from the ground vertex. */
     const lp = (t: number, h: number) => ({ x: (ISO_W / 2) * t, y: midY + (ISO_H / 2) * t - h });
@@ -392,6 +402,29 @@ export class CampusScene extends Phaser.Scene {
       );
       quad([lp(0, 0), lp(1, 0), lp(1, 5), lp(0, 5)], shadeColor(colors.base, -0.34), 0.75);
       quad([rp(0, 0), rp(1, 0), rp(1, 5), rp(0, 5)], shadeColor(colors.base, -0.5), 0.75);
+    } else if (indoors) {
+      // Schoolhouse wall: chair rail, wainscot panelling and, where the tile is
+      // glazed, a framed window pane on each visible facade.
+      const railH = rise * 0.42;
+      quad([lp(0, 0), lp(1, 0), lp(1, railH), lp(0, railH)], shadeColor(colors.base, -0.18));
+      quad([rp(0, 0), rp(1, 0), rp(1, railH), rp(0, railH)], shadeColor(colors.base, -0.36));
+      quad(
+        [lp(0, railH), lp(1, railH), lp(1, railH + 3), lp(0, railH + 3)],
+        shadeColor(colors.base, -0.28),
+      );
+      quad(
+        [rp(0, railH), rp(1, railH), rp(1, railH + 3), rp(0, railH + 3)],
+        shadeColor(colors.base, -0.44),
+      );
+      if (kind === "window") {
+        const glass = colors.detail !== undefined ? hex(colors.detail) : "#cfe6f2";
+        const wBot = rise * 0.5;
+        const wTop = rise * 0.86;
+        quad([lp(0.2, wBot), lp(0.8, wBot), lp(0.8, wTop), lp(0.2, wTop)], shadeColor(colors.base, -0.45));
+        quad([rp(0.2, wBot), rp(0.8, wBot), rp(0.8, wTop), rp(0.2, wTop)], shadeColor(colors.base, -0.55));
+        quad([lp(0.26, wBot + 2), lp(0.74, wBot + 2), lp(0.74, wTop - 2), lp(0.26, wTop - 2)], glass, 0.95);
+        quad([rp(0.26, wBot + 2), rp(0.74, wBot + 2), rp(0.74, wTop - 2), rp(0.26, wTop - 2)], shadeColor(colors.detail ?? colors.base, -0.18), 0.95);
+      }
     } else if (colors.detail !== undefined) {
       quad(
         [lp(0, rise * 0.55), lp(1, rise * 0.55), lp(1, rise * 0.8), lp(0, rise * 0.8)],
@@ -642,7 +675,7 @@ export class CampusScene extends Phaser.Scene {
     this.buildingShapes.forEach((g) => g.destroy());
     this.buildingShapes = [];
     this.buildingVolumes = [];
-    const theme = paintTheme(zone.id, style);
+    const theme = paintTheme(zone.kind === "interior" ? "interior-room" : zone.id, style);
 
     // Whole buildings are extruded as one solid volume per structure.
     for (const fp of buildingFootprints(zone)) {
@@ -653,7 +686,7 @@ export class CampusScene extends Phaser.Scene {
       const anchor = isoFromTile(object.x + 0.5, object.y + 0.5, zone.height);
       if (object.layer === "block") {
         if (isBuildingKind(object.kind)) continue; // drawn as part of its building
-        const key = this.blockTexture(object.kind, theme);
+        const key = this.blockTexture(object.kind, theme, zone.kind);
         if (!key) continue;
         // Anchored at the bottom vertex of the tile diamond.
         const bottom = isoFromTile(object.x + 1, object.y + 1, zone.height);

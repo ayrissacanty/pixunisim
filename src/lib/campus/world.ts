@@ -743,28 +743,24 @@ function academicHall(opts: {
     g.rect(x + 1, y + 1, w - 2, h - 1, "floor");
     const doorX = x + Math.floor(w / 2);
     g.set(doorX, y + h, "door");
-    g.set(x + 1, y + 1, "board");
-    // furniture
-    if (spec.furniture === "computers") {
-      for (let cx = x + 2; cx < x + w - 1; cx += 2) {
-        g.set(cx, y + 3, "computer");
-        g.set(cx, y + 4, "chair");
-      }
-    } else if (spec.furniture === "lab") {
-      g.rect(x + 2, y + 3, w - 4, 1, "counter");
-      g.set(x + 2, y + 5, "chair");
-      g.set(x + 4, y + 5, "chair");
-      g.set(x + 6, y + 5, "plant");
-    } else if (spec.furniture === "soft") {
-      g.set(x + 2, y + 3, "shelf");
-      g.set(x + 4, y + 4, "table");
-      g.set(x + 4, y + 5, "chair");
-    } else {
-      for (let dy = y + 4; dy <= y + 6; dy += 2) {
-        for (let dx = x + 2; dx < x + w - 1; dx += 3) {
-          g.set(dx, dy, "desk");
-          g.set(dx, dy + 1, "chair");
-        }
+    /*
+     * One reusable pixel classroom unit for every teaching room: framed
+     * chalkboard across the front wall, teacher's desk beside it, bookshelf and
+     * potted plant in the front corners, twin windows in the side wall and two
+     * tidy rows of student desks with chairs. The door column stays clear so a
+     * student can always walk straight in.
+     */
+    g.rect(x + 2, y + 1, Math.max(1, w - 4), 1, "board");
+    g.set(x + 1, y + 1, "shelf");
+    g.set(x + w - 2, y + 1, "plant");
+    g.set(x + 1, y + 3, "desk");
+    g.set(x, y + 3, "window");
+    g.set(x + w - 1, y + 3, "window");
+    for (let dy = y + 4; dy <= y + 6; dy += 2) {
+      for (let dx = x + 2; dx < x + w - 1; dx += 3) {
+        if (dx === doorX) continue;
+        g.set(dx, dy, "desk");
+        g.set(dx, dy + 1, "chair");
       }
     }
     rooms.push({ id: spec.id, name: spec.name, x, y, w, h: h + 1 });

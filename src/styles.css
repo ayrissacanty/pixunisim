@@ -83,39 +83,39 @@
 
 :root {
   --radius: 0.75rem;
-  /* Warm storybook base — bright, saturated, high contrast. */
-  --background: oklch(0.96 0.035 90);
-  --foreground: oklch(0.3 0.05 45);
-  --card: oklch(0.99 0.018 95);
-  --card-foreground: oklch(0.3 0.05 45);
-  --popover: oklch(0.99 0.018 95);
-  --popover-foreground: oklch(0.3 0.05 45);
-  --primary: oklch(0.68 0.18 32);
-  --primary-foreground: oklch(0.99 0.015 95);
-  --secondary: oklch(0.72 0.17 145);
-  --secondary-foreground: oklch(0.24 0.07 150);
-  --muted: oklch(0.93 0.035 92);
-  --muted-foreground: oklch(0.48 0.05 60);
-  --accent: oklch(0.84 0.16 88);
-  --accent-foreground: oklch(0.3 0.07 55);
-  --destructive: oklch(0.58 0.19 28);
-  --destructive-foreground: oklch(0.99 0.015 95);
-  --border: oklch(0.79 0.06 70);
-  --input: oklch(0.86 0.045 78);
-  --ring: oklch(0.68 0.18 32);
-  --chart-1: oklch(0.68 0.18 32);
-  --chart-2: oklch(0.84 0.16 88);
-  --chart-3: oklch(0.72 0.17 145);
-  --chart-4: oklch(0.72 0.13 235);
-  --chart-5: oklch(0.53 0.12 38);
-  --sidebar: oklch(0.4 0.09 28);
-  --sidebar-foreground: oklch(0.97 0.025 92);
-  --sidebar-primary: oklch(0.84 0.16 88);
-  --sidebar-primary-foreground: oklch(0.28 0.06 40);
-  --sidebar-accent: oklch(0.48 0.1 30);
-  --sidebar-accent-foreground: oklch(0.97 0.025 92);
-  --sidebar-border: oklch(0.48 0.09 30);
-  --sidebar-ring: oklch(0.84 0.16 88);
+  /* Pixel schoolhouse base — parchment paper, walnut trim, chalkboard green. */
+  --background: oklch(0.94 0.026 84);
+  --foreground: oklch(0.29 0.032 48);
+  --card: oklch(0.97 0.018 86);
+  --card-foreground: oklch(0.29 0.032 48);
+  --popover: oklch(0.97 0.018 86);
+  --popover-foreground: oklch(0.29 0.032 48);
+  --primary: oklch(0.43 0.05 158);
+  --primary-foreground: oklch(0.96 0.018 86);
+  --secondary: oklch(0.49 0.075 58);
+  --secondary-foreground: oklch(0.96 0.018 86);
+  --muted: oklch(0.89 0.028 84);
+  --muted-foreground: oklch(0.46 0.035 52);
+  --accent: oklch(0.75 0.115 76);
+  --accent-foreground: oklch(0.27 0.03 50);
+  --destructive: oklch(0.55 0.17 28);
+  --destructive-foreground: oklch(0.97 0.015 86);
+  --border: oklch(0.74 0.045 70);
+  --input: oklch(0.84 0.035 78);
+  --ring: oklch(0.49 0.075 58);
+  --chart-1: oklch(0.49 0.075 58);
+  --chart-2: oklch(0.75 0.115 76);
+  --chart-3: oklch(0.43 0.05 158);
+  --chart-4: oklch(0.6 0.07 240);
+  --chart-5: oklch(0.53 0.1 38);
+  --sidebar: oklch(0.26 0.03 50);
+  --sidebar-foreground: oklch(0.93 0.026 82);
+  --sidebar-primary: oklch(0.75 0.115 76);
+  --sidebar-primary-foreground: oklch(0.24 0.03 50);
+  --sidebar-accent: oklch(0.43 0.05 158);
+  --sidebar-accent-foreground: oklch(0.95 0.02 85);
+  --sidebar-border: oklch(0.40 0.05 48);
+  --sidebar-ring: oklch(0.75 0.115 76);
   /* Bright storybook palette */
   --coral: oklch(0.68 0.18 32);
   --sunflower: oklch(0.84 0.16 88);
@@ -205,46 +205,46 @@
 }
 
 /*
- * Academy palette — Adventure Academy-style magical MMORPG chrome used by the
- * campus HUD overlay. Deep magical blues with warm gold accents, scoped so the
- * warm storybook world keeps its own identity underneath.
- *   #0F172A bg · #13182B panel · #1E2542 sidebar · #EAB308 gold · #F59E0B amber
- *   #3B82F6 royal blue · #93C5FD light blue · #F3F4F6 ink
+ * Academy palette — pixel schoolhouse chrome used by the campus HUD overlay
+ * and its panels. Cream chalkboard-classroom tones: parchment panels, dark
+ * walnut framing, chalk-green headers and brass accents.
+ *   #1E1710 wood dark · #EFE3CE parchment · #3A5C4A chalkboard
+ *   #8B5A2E walnut · #D9A441 brass · #2F241B ink
  */
 .academy {
-  --background: oklch(0.14 0.03 262);
-  --foreground: oklch(0.96 0.005 90);
-  --card: oklch(0.18 0.035 265);
-  --card-foreground: oklch(0.96 0.005 90);
-  --popover: oklch(0.18 0.035 265);
-  --popover-foreground: oklch(0.96 0.005 90);
-  --primary: oklch(0.82 0.17 88);
-  --primary-foreground: oklch(0.14 0.03 262);
-  --secondary: oklch(0.62 0.18 260);
-  --secondary-foreground: oklch(0.96 0.005 90);
-  --muted: oklch(0.23 0.03 265);
-  --muted-foreground: oklch(0.80 0.08 250);
-  --accent: oklch(0.82 0.17 88);
-  --accent-foreground: oklch(0.14 0.03 262);
-  --destructive: oklch(0.58 0.19 28);
-  --destructive-foreground: oklch(0.96 0.005 90);
-  --border: oklch(0.82 0.17 88 / 0.45);
-  --input: oklch(0.23 0.03 265);
-  --ring: oklch(0.82 0.17 88);
-  --sidebar: oklch(0.16 0.035 265);
-  --sidebar-foreground: oklch(0.96 0.005 90);
-  --sidebar-primary: oklch(0.82 0.17 88);
-  --sidebar-primary-foreground: oklch(0.14 0.03 262);
-  --sidebar-accent: oklch(0.62 0.18 260);
-  --sidebar-accent-foreground: oklch(0.96 0.005 90);
-  --sidebar-border: oklch(0.82 0.17 88 / 0.45);
-  --sidebar-ring: oklch(0.82 0.17 88);
-  /* Magical accents consumed by the clock and world chrome. */
-  --ink-night: oklch(0.14 0.03 262);
-  --amber: oklch(0.82 0.17 88);
-  --parchment-warm: oklch(0.96 0.005 90);
-  --block-edge: oklch(0.09 0.02 262 / 0.8);
-  --block-edge-strong: oklch(0.05 0.015 262 / 0.92);
+  --background: oklch(0.21 0.018 55);
+  --foreground: oklch(0.93 0.026 82);
+  --card: oklch(0.27 0.028 50);
+  --card-foreground: oklch(0.93 0.026 82);
+  --popover: oklch(0.27 0.028 50);
+  --popover-foreground: oklch(0.93 0.026 82);
+  --primary: oklch(0.46 0.055 158);
+  --primary-foreground: oklch(0.95 0.02 85);
+  --secondary: oklch(0.49 0.075 58);
+  --secondary-foreground: oklch(0.95 0.02 85);
+  --muted: oklch(0.33 0.03 50);
+  --muted-foreground: oklch(0.79 0.045 80);
+  --accent: oklch(0.75 0.115 76);
+  --accent-foreground: oklch(0.24 0.03 50);
+  --destructive: oklch(0.55 0.17 28);
+  --destructive-foreground: oklch(0.96 0.015 85);
+  --border: oklch(0.55 0.075 62);
+  --input: oklch(0.33 0.03 50);
+  --ring: oklch(0.75 0.115 76);
+  --sidebar: oklch(0.26 0.03 50);
+  --sidebar-foreground: oklch(0.93 0.026 82);
+  --sidebar-primary: oklch(0.75 0.115 76);
+  --sidebar-primary-foreground: oklch(0.24 0.03 50);
+  --sidebar-accent: oklch(0.43 0.05 158);
+  --sidebar-accent-foreground: oklch(0.95 0.02 85);
+  --sidebar-border: oklch(0.40 0.05 48);
+  --sidebar-ring: oklch(0.75 0.115 76);
+  /* Schoolhouse accents consumed by the clock and world chrome. */
+  --ink-night: oklch(0.21 0.018 55);
+  --amber: oklch(0.75 0.115 76);
+  --parchment-warm: oklch(0.91 0.028 82);
+  --block-edge: oklch(0.16 0.015 50 / 0.8);
+  --block-edge-strong: oklch(0.11 0.012 50 / 0.92);
 }
 
 @layer base {
