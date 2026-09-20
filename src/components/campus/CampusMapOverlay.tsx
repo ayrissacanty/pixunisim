@@ -331,7 +331,7 @@ export function CampusMapOverlay() {
                     onMouseEnter={() => setHover(n.id)}
                     onMouseLeave={() => setHover((h) => (h === n.id ? null : h))}
                     onClick={() => {
-                      if (!drag.current?.moved && known) goTo(n.id, n.label);
+                      if (!drag.current?.moved && known) setSelectedId(n.id);
                     }}
                   >
                     {(isCurrent || onRoute || isObjective) && (

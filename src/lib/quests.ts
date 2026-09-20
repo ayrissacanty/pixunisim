@@ -43,7 +43,8 @@ export function useQuestRecords() {
       if (!userId) return [];
       const { data, error } = await supabase
         .from("student_quests")
-        .select("quest_id, status, steps");
+        .select("quest_id, status, steps")
+        .eq("user_id", userId);
       if (error || !data) return [];
       return data.map((r) => ({
         quest_id: r.quest_id as string,
@@ -63,6 +64,7 @@ export function useInventory() {
       const { data, error } = await supabase
         .from("student_inventory")
         .select("item_id, quantity, used_count, source, acquired_at")
+        .eq("user_id", userId)
         .order("acquired_at", { ascending: false });
       if (error || !data) return [];
       return data as InventoryItem[];
@@ -120,6 +122,7 @@ export function useMarkQuestStep() {
       const { data: row } = await supabase
         .from("student_quests")
         .select("quest_id, status, steps")
+        .eq("user_id", userId)
         .eq("quest_id", questId)
         .maybeSingle();
       if (!row) return null; // not accepted yet — nothing to track
@@ -159,6 +162,7 @@ async function grantItem(userId: string, itemId: string, source: string) {
   const { data: existing } = await supabase
     .from("student_inventory")
     .select("quantity")
+    .eq("user_id", userId)
     .eq("item_id", itemId)
     .maybeSingle();
   if (existing) {
@@ -197,6 +201,7 @@ export function useUseItem() {
       const { data: row } = await supabase
         .from("student_inventory")
         .select("used_count")
+        .eq("user_id", userId)
         .eq("item_id", itemId)
         .maybeSingle();
       if (!row) return;
