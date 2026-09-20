@@ -410,15 +410,28 @@ function paintObject(
       break;
     }
     case "wall": {
+      // Schoolhouse plaster: cream upper wall, walnut chair rail and skirting.
       ctx.fillStyle = base;
       ctx.fillRect(px, py, TILE, TILE);
-      ctx.fillStyle = detail;
-      for (let r = 0; r < 3; r++) {
-        const sy = py + r * 11 + 2;
-        const offset = (y + r) % 2 === 0 ? 0 : 8;
-        for (let i = -1; i < 3; i++) ctx.fillRect(px + offset + i * 16 + 1, sy, 14, 8);
+      ctx.fillStyle = shade(c.base, 0.12);
+      ctx.fillRect(px, py, TILE, 3);
+      // Faint plaster mottling, deterministic per tile.
+      ctx.fillStyle = "rgba(120,88,54,0.08)";
+      for (let i = 0; i < 3; i++) {
+        const sx = px + ((y * 7 + i * 11) % 24) + 3;
+        const sy = py + ((y * 5 + i * 9) % 14) + 4;
+        ctx.fillRect(sx, sy, 3, 2);
       }
-      ctx.fillStyle = "rgba(42,29,22,0.3)";
+      // Chair rail.
+      ctx.fillStyle = detail;
+      ctx.fillRect(px, py + 18, TILE, 3);
+      // Wainscot boards below the rail.
+      ctx.fillStyle = shade(c.detail ?? c.base, -0.12);
+      ctx.fillRect(px, py + 21, TILE, TILE - 21);
+      ctx.fillStyle = shade(c.detail ?? c.base, -0.3);
+      ctx.fillRect(px + 10, py + 21, 1, TILE - 21);
+      ctx.fillRect(px + 22, py + 21, 1, TILE - 21);
+      ctx.fillStyle = "rgba(42,29,22,0.35)";
       ctx.fillRect(px, py + TILE - 2, TILE, 2);
       break;
     }
