@@ -43,7 +43,8 @@ export function useQuestRecords() {
       if (!userId) return [];
       const { data, error } = await supabase
         .from("student_quests")
-        .select("quest_id, status, steps");
+        .select("quest_id, status, steps")
+        .eq("user_id", userId);
       if (error || !data) return [];
       return data.map((r) => ({
         quest_id: r.quest_id as string,
