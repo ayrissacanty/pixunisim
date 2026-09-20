@@ -216,7 +216,7 @@ export class CampusScene extends Phaser.Scene {
 
   /** Bakes the whole zone into one isometric canvas texture. */
   private bakeZone(zone: ZoneMap, style = visualStyle()): string | null {
-    const theme = paintTheme(zone.id, style);
+    const theme = paintTheme(zone.kind === "interior" ? "interior-room" : zone.id, style);
     const key = `zone-iso-${zone.id}-${themeKey(theme)}-${this.artReady ? "art" : "plain"}`;
     if (this.textures.exists(key)) return key;
     const size = isoCanvasSize(zone.width, zone.height);
@@ -646,7 +646,7 @@ export class CampusScene extends Phaser.Scene {
     this.buildingShapes.forEach((g) => g.destroy());
     this.buildingShapes = [];
     this.buildingVolumes = [];
-    const theme = paintTheme(zone.id, style);
+    const theme = paintTheme(zone.kind === "interior" ? "interior-room" : zone.id, style);
 
     // Whole buildings are extruded as one solid volume per structure.
     for (const fp of buildingFootprints(zone)) {

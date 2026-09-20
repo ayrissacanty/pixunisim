@@ -43,6 +43,8 @@ export const DEFAULT_THEME: ZoneTheme = {
 
 /** Hand-tuned per-zone looks; anything unlisted falls back to a stable hash. */
 export const ZONE_THEMES: Record<string, Partial<ZoneTheme>> = {
+  // Shared pixel classroom unit: no hue drift, so every room reads the same.
+  "interior-room": { path: "herringbone", roof: "shingle", foliage: "round", hue: 0, sat: 1, light: 0 },
   "welcome-plaza": { path: "flagstone", roof: "tile", foliage: "blossom", hue: 4, sat: 1.05 },
   "central-quad": { path: "cobble", roof: "shingle", foliage: "round", hue: 0, sat: 1 },
   "study-gardens": { path: "boardwalk", roof: "thatch", foliage: "broadleaf", hue: 14, sat: 0.98 },
