@@ -64,6 +64,7 @@ export function useInventory() {
       const { data, error } = await supabase
         .from("student_inventory")
         .select("item_id, quantity, used_count, source, acquired_at")
+        .eq("user_id", userId)
         .order("acquired_at", { ascending: false });
       if (error || !data) return [];
       return data as InventoryItem[];
