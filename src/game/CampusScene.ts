@@ -405,13 +405,17 @@ export class CampusScene extends Phaser.Scene {
     } else if (indoors) {
       // Schoolhouse wall: chair rail, wainscot panelling and, where the tile is
       // glazed, a framed window pane on each visible facade.
-      const rail = shadeColor(colors.base, -0.22);
-      const panel = shadeColor(colors.base, -0.12);
       const railH = rise * 0.42;
-      quad([lp(0, 0), lp(1, 0), lp(1, railH), lp(0, railH)], shadeColor(panel, -0.06));
-      quad([rp(0, 0), rp(1, 0), rp(1, railH), rp(0, railH)], shadeColor(panel, -0.24));
-      quad([lp(0, railH), lp(1, railH), lp(1, railH + 3), lp(0, railH + 3)], rail);
-      quad([rp(0, railH), rp(1, railH), rp(1, railH + 3), rp(0, railH + 3)], shadeColor(rail, -0.2));
+      quad([lp(0, 0), lp(1, 0), lp(1, railH), lp(0, railH)], shadeColor(colors.base, -0.18));
+      quad([rp(0, 0), rp(1, 0), rp(1, railH), rp(0, railH)], shadeColor(colors.base, -0.36));
+      quad(
+        [lp(0, railH), lp(1, railH), lp(1, railH + 3), lp(0, railH + 3)],
+        shadeColor(colors.base, -0.28),
+      );
+      quad(
+        [rp(0, railH), rp(1, railH), rp(1, railH + 3), rp(0, railH + 3)],
+        shadeColor(colors.base, -0.44),
+      );
       if (kind === "window") {
         const glass = colors.detail !== undefined ? hex(colors.detail) : "#cfe6f2";
         const wBot = rise * 0.5;
