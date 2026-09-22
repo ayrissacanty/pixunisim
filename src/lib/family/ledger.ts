@@ -33,6 +33,17 @@ export interface LedgerChild {
   standardsMet: string[];
   tutorSessions: LedgerTutorSession[];
   tutorSessionCount: number;
+  /** Game progression, kept separate from school grade. */
+  xp: number;
+  level: number;
+  coins: number;
+}
+
+export interface ProgressionRow {
+  user_id: string;
+  xp: number;
+  level: number;
+  coins: number;
 }
 
 export interface TutorRow {
