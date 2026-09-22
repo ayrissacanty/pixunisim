@@ -12,6 +12,22 @@ import {
   useUseItem,
 } from "@/lib/quests";
 import { isUnlocked, stepsDone, type QuestDef, type QuestRecord } from "@/lib/campus/quests";
+import { QuestDetail } from "@/components/campus/QuestDetail";
+
+/** Opens a quest's own page inside the log. */
+function DetailsLink({ questId, onOpen }: { questId: string; onOpen: (id: string) => void }) {
+  return (
+    <button
+      type="button"
+      data-testid="quest-details-open"
+      data-quest={questId}
+      onClick={() => onOpen(questId)}
+      className="text-[11px] font-black uppercase tracking-wider text-primary underline-offset-2 hover:underline"
+    >
+      Details
+    </button>
+  );
+}
 
 interface QuestView {
   quest: QuestDef;
