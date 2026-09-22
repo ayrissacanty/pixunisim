@@ -219,67 +219,85 @@ export function QuestLog() {
         </div>
 
         <div className="space-y-4 overflow-y-auto p-4 text-sm">
-          <Section title="In progress" empty="No quest accepted yet.">
-            {board.active.map(({ quest, record }) => (
-              <article key={quest.id} data-quest-row={quest.id} className="block-panel bg-background/60 p-3">
-                <Header quest={quest} />
-                <StepRow quest={quest} record={record} />
-                <HandIn quest={quest} record={record} />
-                <button
-                  type="button"
-                  onClick={() => abandon.mutate(quest.id)}
-                  className="mt-2 text-[11px] font-semibold text-muted-foreground underline hover:text-destructive"
-                >
-                  Abandon
-                </button>
-              </article>
-            ))}
-          </Section>
+          {selected ? (
+            <QuestDetail
+              quest={selected.quest}
+              record={selected.record}
+              onBack={() => setDetail(undefined)}
+            />
+          ) : (
+            <>
+              <Section title="In progress" empty="No quest accepted yet.">
+                {board.active.map(({ quest, record }) => (
+                  <article key={quest.id} data-quest-row={quest.id} className="block-panel bg-background/60 p-3">
+                    <Header quest={quest} />
+                    <StepRow quest={quest} record={record} />
+                    <HandIn quest={quest} record={record} />
+                    <div className="mt-2 flex items-center gap-3">
+                      <DetailsLink questId={quest.id} onOpen={setDetail} />
+                      <button
+                        type="button"
+                        onClick={() => abandon.mutate(quest.id)}
+                        className="text-[11px] font-semibold text-muted-foreground underline hover:text-destructive"
+                      >
+                        Abandon
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </Section>
 
-          <Section title="Available" empty="Finish an active quest to unlock more.">
-            {board.available.map(({ quest }) => (
-              <article key={quest.id} data-quest-row={quest.id} className="block-panel bg-background/60 p-3">
-                <Header quest={quest} />
-                <button
-                  type="button"
-                  onClick={() => accept.mutate(quest.id)}
-                  className="block-btn mt-2 border-primary/40 bg-primary px-3 py-1 text-[11px] font-black uppercase tracking-wider text-primary-foreground"
-                >
-                  Accept
-                </button>
-              </article>
-            ))}
-          </Section>
+              <Section title="Available" empty="Finish an active quest to unlock more.">
+                {board.available.map(({ quest }) => (
+                  <article key={quest.id} data-quest-row={quest.id} className="block-panel bg-background/60 p-3">
+                    <Header quest={quest} />
+                    <div className="mt-2 flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => accept.mutate(quest.id)}
+                        className="block-btn border-primary/40 bg-primary px-3 py-1 text-[11px] font-black uppercase tracking-wider text-primary-foreground"
+                      >
+                        Accept
+                      </button>
+                      <DetailsLink questId={quest.id} onOpen={setDetail} />
+                    </div>
+                  </article>
+                ))}
+              </Section>
 
-          <Section title="Completed" empty="Nothing finished yet.">
-            {board.completed.map(({ quest }) => (
-              <article
-                key={quest.id}
-                data-quest-row={quest.id}
-                className="block-panel flex items-center gap-2 bg-background/40 p-3 opacity-80"
-              >
-                <Sparkles className="size-4 text-primary" aria-hidden="true" />
-                <span className="font-semibold">{quest.title}</span>
-                <span className="ml-auto text-[11px] text-muted-foreground">
-                  {quest.reward.icon} {quest.reward.name}
-                </span>
-              </article>
-            ))}
-          </Section>
+              <Section title="Completed" empty="Nothing finished yet.">
+                {board.completed.map(({ quest }) => (
+                  <article
+                    key={quest.id}
+                    data-quest-row={quest.id}
+                    className="block-panel flex items-center gap-2 bg-background/40 p-3 opacity-80"
+                  >
+                    <Sparkles className="size-4 text-primary" aria-hidden="true" />
+                    <span className="font-semibold">{quest.title}</span>
+                    <DetailsLink questId={quest.id} onOpen={setDetail} />
+                    <span className="ml-auto text-[11px] text-muted-foreground">
+                      {quest.reward.icon} {quest.reward.name}
+                    </span>
+                  </article>
+                ))}
+              </Section>
 
-          {board.locked.length > 0 && (
-            <Section title="Locked" empty="">
-              {board.locked.map(({ quest }) => (
-                <article
-                  key={quest.id}
-                  data-quest-row={quest.id}
-                  className="block-panel bg-background/30 p-3 text-muted-foreground"
-                >
-                  <p className="font-semibold">{quest.title}</p>
-                  <p className="text-[11px]">Unlocks after the previous {quest.subject} class.</p>
-                </article>
-              ))}
-            </Section>
+              {board.locked.length > 0 && (
+                <Section title="Locked" empty="">
+                  {board.locked.map(({ quest }) => (
+                    <article
+                      key={quest.id}
+                      data-quest-row={quest.id}
+                      className="block-panel bg-background/30 p-3 text-muted-foreground"
+                    >
+                      <p className="font-semibold">{quest.title}</p>
+                      <p className="text-[11px]">Unlocks after the previous {quest.subject} class.</p>
+                      <DetailsLink questId={quest.id} onOpen={setDetail} />
+                    </article>
+                  ))}
+                </Section>
+              )}
+            </>
           )}
         </div>
       </div>
