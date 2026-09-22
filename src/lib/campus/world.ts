@@ -17,6 +17,15 @@ export type InteractAction =
       lessonId: string;
       courseId: string;
       teacher: string;
+    }
+  | {
+      /** The chalkboard: shows the live assigned lesson before starting it. */
+      kind: "board";
+      roomId: string;
+      roomName: string;
+      lessonId: string;
+      courseId: string;
+      teacher: string;
     };
 
 export interface Interactable {
@@ -839,9 +848,9 @@ function academicHall(opts: {
         {
           suffix: "board",
           kinds: ["board"],
-          verb: "START",
+          verb: "READ",
           label: `${spec.name} board`,
-          action: classroom,
+          action: { ...classroom, kind: "board" },
         },
         {
           suffix: "desk",
