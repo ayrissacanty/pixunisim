@@ -104,6 +104,12 @@ export function ModulesHub() {
         </div>
 
         <div className="space-y-5 overflow-y-auto p-4">
+          <SkillTrees
+            onOpen={(lessonId, courseId) => {
+              setOpen(false);
+              openLesson(lessonId, courseId);
+            }}
+          />
           {tracks.length === 0 && (
             <p className="text-sm text-muted-foreground">Loading your course tracks…</p>
           )}
