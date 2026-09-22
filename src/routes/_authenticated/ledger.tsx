@@ -88,7 +88,11 @@ function LedgerPage() {
               </p>
             </header>
 
-            <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+            <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-6">
+              <Stat
+                label="Adventure level"
+                value={`${child.level} · ${child.xp} XP`}
+              />
               <Stat label="Lessons completed" value={String(child.completedCount)} />
               <Stat label="In progress" value={String(child.inProgressCount)} />
               <Stat
