@@ -765,10 +765,14 @@ function academicHall(opts: {
     g.set(x + 1, y + 3, "desk");
     g.set(x, y + 3, "window");
     g.set(x + w - 1, y + 3, "window");
-    for (let dy = y + 4; dy <= y + 6; dy += 2) {
+    // The subject decides the work surface: lab tables for science, computers
+    // for the tech rooms, art tables for the studios, desks everywhere else.
+    const config = classroomConfig({ roomId: spec.id, roomName: spec.name });
+    const lastRow = y + 4 + (config.furniture.rows - 1) * 2;
+    for (let dy = y + 4; dy <= lastRow; dy += 2) {
       for (let dx = x + 2; dx < x + w - 1; dx += 3) {
         if (dx === doorX) continue;
-        g.set(dx, dy, "desk");
+        g.set(dx, dy, config.furniture.deskKind);
         g.set(dx, dy + 1, "chair");
       }
     }
