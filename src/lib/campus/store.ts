@@ -149,6 +149,9 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   questsOpen: false,
   modulesOpen: false,
   backpackOpen: false,
+  dailyOpen: false,
+  setDailyOpen: (open) => set({ dailyOpen: open }),
+  setBoard: (board) => set({ board }),
 
   logEvent: (kind, text) =>
     set((s) => {
