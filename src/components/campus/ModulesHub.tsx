@@ -5,6 +5,7 @@ import { useCourses, useLessons, useProgress } from "@/lib/data";
 import { useInventory } from "@/lib/quests";
 import { locationForLesson } from "@/lib/campus/lesson-index";
 import { tutorItemId } from "@/lib/campus/quests";
+import { SkillTrees } from "@/components/campus/SkillTrees";
 
 type NodeStatus = "completed" | "in_progress" | "open" | "locked";
 
