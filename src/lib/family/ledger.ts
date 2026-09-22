@@ -153,6 +153,9 @@ export function buildLedger(
       ).sort(),
       tutorSessions,
       tutorSessionCount: tutorSessions.reduce((sum, s) => sum + s.sessions, 0),
+      xp: progressionRows.find((p) => p.user_id === profile.id)?.xp ?? 0,
+      level: progressionRows.find((p) => p.user_id === profile.id)?.level ?? 1,
+      coins: progressionRows.find((p) => p.user_id === profile.id)?.coins ?? 0,
     };
   });
 }
