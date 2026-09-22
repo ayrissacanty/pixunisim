@@ -1,5 +1,6 @@
 import { FARM_STRUCTURES, WINDMILL_TOWER } from "@/lib/campus/farm";
 import { TileKind, isSolid } from "./tiles";
+import { classroomConfig } from "./classroom-config";
 
 export type InteractAction =
   | { kind: "travel"; zone: string; spawnX: number; spawnY: number }
