@@ -76,6 +76,9 @@ interface CampusState {
         teacher: string;
       }
     | undefined;
+  /** Quest currently opened on its own details page inside the quest log. */
+  questDetail?: string | undefined;
+  setQuestDetail: (questId?: string | undefined) => void;
   setDailyOpen: (open: boolean) => void;
   setBoard: (board: CampusState["board"]) => void;
   logEvent: (kind: TrackerEvent["kind"], text: string) => void;
@@ -151,6 +154,7 @@ export const useCampusStore = create<CampusState>((set, get) => ({
   backpackOpen: false,
   dailyOpen: false,
   setDailyOpen: (open) => set({ dailyOpen: open }),
+  setQuestDetail: (questId) => set({ questDetail: questId }),
   setBoard: (board) => set({ board }),
 
   logEvent: (kind, text) =>

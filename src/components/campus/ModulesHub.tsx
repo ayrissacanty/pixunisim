@@ -5,6 +5,7 @@ import { useCourses, useLessons, useProgress } from "@/lib/data";
 import { useInventory } from "@/lib/quests";
 import { locationForLesson } from "@/lib/campus/lesson-index";
 import { tutorItemId } from "@/lib/campus/quests";
+import { SkillTrees } from "@/components/campus/SkillTrees";
 
 type NodeStatus = "completed" | "in_progress" | "open" | "locked";
 
@@ -104,6 +105,12 @@ export function ModulesHub() {
         </div>
 
         <div className="space-y-5 overflow-y-auto p-4">
+          <SkillTrees
+            onOpen={(lessonId, courseId) => {
+              setOpen(false);
+              openLesson(lessonId, courseId);
+            }}
+          />
           {tracks.length === 0 && (
             <p className="text-sm text-muted-foreground">Loading your course tracks…</p>
           )}
