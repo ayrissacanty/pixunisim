@@ -78,14 +78,15 @@ const SUBJECT_PACKS: Record<
   },
 };
 
+// Order matters: a "computer lab" is a computing room, not a science one.
 const KEYWORDS: Array<[RegExp, SubjectKey]> = [
+  [/comput|robot|code|coding|tech|digital/i, "computing"],
   [/algebra|math|geometry|number/i, "mathematics"],
+  [/music|choir|recital|band/i, "music"],
+  [/art|studio|gallery|design/i, "art"],
   [/science|lab|biology|chem|physics|agri/i, "science"],
   [/lit|english|writing|seminar|reading/i, "literature"],
   [/history|humanities|civic|social/i, "history"],
-  [/art|studio|gallery|design/i, "art"],
-  [/music|choir|recital|band/i, "music"],
-  [/comput|robot|code|tech|digital/i, "computing"],
   [/study|skills|advis|career/i, "study"],
 ];
 
