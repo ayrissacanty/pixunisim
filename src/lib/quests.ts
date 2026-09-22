@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCampusStore } from "@/lib/campus/store";
+import { useAward } from "@/lib/progression";
 import { useLessons, useProgress } from "@/lib/data";
 import {
   allStepsDone,
@@ -114,6 +115,8 @@ export function useMarkQuestStep() {
   const qc = useQueryClient();
   const catalog = useQuestCatalog();
   const logEvent = useCampusStore((s) => s.logEvent);
+  const award = useAward();
+  const awardMutate = award.mutate;
 
   return useMutation({
     mutationFn: async ({ questId, stepId }: { questId: string; stepId: string }) => {
@@ -151,7 +154,10 @@ export function useMarkQuestStep() {
       }
       return { questId, finished };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result?.finished) {
+        awardMutate({ kind: "quest", sourceId: result.questId, label: "Quest complete" });
+      }
       void qc.invalidateQueries({ queryKey: ["quests"] });
       void qc.invalidateQueries({ queryKey: ["inventory"] });
     },
