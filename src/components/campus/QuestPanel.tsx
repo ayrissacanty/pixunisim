@@ -186,11 +186,16 @@ export function QuestTracker() {
 export function QuestLog() {
   const open = useCampusStore((s) => s.questsOpen);
   const setOpen = useCampusStore((s) => s.setQuestsOpen);
+  const detailId = useCampusStore((s) => s.questDetail);
+  const setDetail = useCampusStore((s) => s.setQuestDetail);
   const board = useQuestBoard();
   const accept = useAcceptQuest();
   const abandon = useAbandonQuest();
 
   if (!open) return null;
+
+  const everyQuest = [...board.active, ...board.available, ...board.completed, ...board.locked];
+  const selected = detailId ? everyQuest.find((e) => e.quest.id === detailId) : undefined;
 
   return (
     <div
