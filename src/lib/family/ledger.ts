@@ -188,6 +188,7 @@ export function useFamilyLedger(range?: { from?: string | undefined; to?: string
             .from("student_inventory")
             .select("user_id, item_id, quantity, acquired_at")
             .eq("source", "tutor"),
+          supabase.from("student_progression").select("user_id, xp, level, coins"),
         ]);
 
       return buildLedger(
@@ -196,6 +197,7 @@ export function useFamilyLedger(range?: { from?: string | undefined; to?: string
         (lessons ?? []) as LessonRow[],
         range,
         (tutor ?? []) as TutorRow[],
+        (progression ?? []) as ProgressionRow[],
       );
     },
   });
