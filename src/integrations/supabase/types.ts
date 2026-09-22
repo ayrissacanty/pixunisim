@@ -466,6 +466,39 @@ export type Database = {
           },
         ]
       }
+      student_awards: {
+        Row: {
+          coins: number
+          created_at: string
+          id: string
+          kind: string
+          label: string
+          source_id: string | null
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          coins?: number
+          created_at?: string
+          id?: string
+          kind: string
+          label: string
+          source_id?: string | null
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string
+          source_id?: string | null
+          user_id?: string
+          xp?: number
+        }
+        Relationships: []
+      }
       student_campus_discoveries: {
         Row: {
           discovered_at: string
@@ -562,6 +595,33 @@ export type Database = {
           time_spent_seconds?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      student_progression: {
+        Row: {
+          coins: number
+          created_at: string
+          level: number
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          coins?: number
+          created_at?: string
+          level?: number
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          level?: number
+          updated_at?: string
+          user_id?: string
+          xp?: number
         }
         Relationships: []
       }

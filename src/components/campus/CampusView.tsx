@@ -21,6 +21,8 @@ import { IsoDebugOverlay, type IsoDebugSnapshot } from "@/components/campus/IsoD
 import { QuestLog } from "@/components/campus/QuestPanel";
 import { ModulesHub } from "@/components/campus/ModulesHub";
 import { BackpackPanel } from "@/components/campus/BackpackPanel";
+import { DailyStory } from "@/components/campus/DailyStory";
+import { BoardPanel } from "@/components/campus/BoardPanel";
 
 
 export function CampusView({
@@ -158,6 +160,15 @@ export function CampusView({
             break;
           case "classroom":
             enterClassroom({
+              roomId: action.roomId,
+              roomName: action.roomName,
+              lessonId: action.lessonId,
+              courseId: action.courseId,
+              teacher: action.teacher,
+            });
+            break;
+          case "board":
+            store.setBoard({
               roomId: action.roomId,
               roomName: action.roomName,
               lessonId: action.lessonId,
@@ -502,6 +513,8 @@ export function CampusView({
       <QuestLog />
       <ModulesHub />
       <BackpackPanel />
+      <DailyStory />
+      <BoardPanel />
       <PerfOverlay
         getStats={getPerfStats}
         onReset={resetPerfStats}

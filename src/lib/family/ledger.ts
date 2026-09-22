@@ -33,6 +33,17 @@ export interface LedgerChild {
   standardsMet: string[];
   tutorSessions: LedgerTutorSession[];
   tutorSessionCount: number;
+  /** Game progression, kept separate from school grade. */
+  xp: number;
+  level: number;
+  coins: number;
+}
+
+export interface ProgressionRow {
+  user_id: string;
+  xp: number;
+  level: number;
+  coins: number;
 }
 
 export interface TutorRow {
@@ -73,6 +84,7 @@ export function buildLedger(
   lessons: LessonRow[],
   range?: { from?: string | undefined; to?: string | undefined },
   tutorRows: TutorRow[] = [],
+  progressionRows: ProgressionRow[] = [],
 ): LedgerChild[] {
   const lessonById = new Map(lessons.map((lesson) => [lesson.id, lesson]));
   return profiles.map((profile) => {
@@ -141,6 +153,9 @@ export function buildLedger(
       ).sort(),
       tutorSessions,
       tutorSessionCount: tutorSessions.reduce((sum, s) => sum + s.sessions, 0),
+      xp: progressionRows.find((p) => p.user_id === profile.id)?.xp ?? 0,
+      level: progressionRows.find((p) => p.user_id === profile.id)?.level ?? 1,
+      coins: progressionRows.find((p) => p.user_id === profile.id)?.coins ?? 0,
     };
   });
 }
@@ -154,8 +169,13 @@ export function useFamilyLedger(range?: { from?: string | undefined; to?: string
     queryKey: ["family-ledger", range?.from ?? "", range?.to ?? ""],
     staleTime: 30_000,
     queryFn: async (): Promise<LedgerChild[]> => {
-      const [{ data: profiles }, { data: progress }, { data: lessons }, { data: tutor }] =
-        await Promise.all([
+      const [
+        { data: profiles },
+        { data: progress },
+        { data: lessons },
+        { data: tutor },
+        { data: progression },
+      ] = await Promise.all([
         supabase
           .from("profiles")
           .select("id, display_name, grade_band, learning_style")
@@ -168,6 +188,7 @@ export function useFamilyLedger(range?: { from?: string | undefined; to?: string
             .from("student_inventory")
             .select("user_id, item_id, quantity, acquired_at")
             .eq("source", "tutor"),
+          supabase.from("student_progression").select("user_id, xp, level, coins"),
         ]);
 
       return buildLedger(
@@ -176,6 +197,7 @@ export function useFamilyLedger(range?: { from?: string | undefined; to?: string
         (lessons ?? []) as LessonRow[],
         range,
         (tutor ?? []) as TutorRow[],
+        (progression ?? []) as ProgressionRow[],
       );
     },
   });
