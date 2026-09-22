@@ -27,6 +27,7 @@ import { TouchControls } from "@/components/campus/TouchControls";
 import { MobileA11ySettings } from "@/components/campus/MobileA11ySettings";
 import { CampusCameraControls } from "@/components/campus/CampusCameraControls";
 import { CampusClock } from "@/components/campus/CampusClock";
+import { LevelBadge } from "@/components/campus/LevelBadge";
 
 
 const MemoizedMinimap = memo(Minimap);
@@ -104,7 +105,10 @@ export function CampusHud({
               </p>
             </div>
           </div>
-          <CampusClock />
+          <div className="flex items-center gap-3">
+            <LevelBadge />
+            <CampusClock />
+          </div>
         </div>
       </div>
 
