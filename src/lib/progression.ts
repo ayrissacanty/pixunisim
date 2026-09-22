@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCampusStore } from "@/lib/campus/store";
+import { useProgress } from "@/lib/data";
 
 /* ------------------------------ level curve ------------------------------- */
 
@@ -173,6 +174,20 @@ export function useAward() {
 export function useProgressionSync() {
   const award = useAward();
   const mutate = award.mutate;
+  const { data: progress } = useProgress();
+
+  // Finished lessons and passed mastery checks pay out once each.
+  useEffect(() => {
+    for (const row of progress ?? []) {
+      if (row.status === "completed") {
+        mutate({ kind: "lesson", sourceId: row.lesson_id, label: "Lesson complete" });
+      }
+      if ((row.score ?? 0) >= 70) {
+        mutate({ kind: "mastery", sourceId: row.lesson_id, label: "Mastery check passed" });
+      }
+    }
+  }, [progress, mutate]);
+
   useEffect(() => {
     return useCampusStore.subscribe((state, prev) => {
       if (state.discovered.length <= prev.discovered.length) return;

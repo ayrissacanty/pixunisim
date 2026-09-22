@@ -5,6 +5,7 @@ import { hydrateCampus, startCampusPersistence } from "@/lib/campus/store";
 import { useCampusObjectives } from "@/lib/campus/objectives";
 import { useOfflineSync } from "@/lib/data";
 import { useQuestSync } from "@/lib/quests";
+import { useProgressionSync } from "@/lib/progression";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -30,5 +31,6 @@ function AuthenticatedShell() {
   useCampusObjectives();
   useOfflineSync();
   useQuestSync();
+  useProgressionSync();
   return <Outlet />;
 }
