@@ -64,6 +64,20 @@ interface CampusState {
   questsOpen: boolean;
   modulesOpen: boolean;
   backpackOpen: boolean;
+  /** Today's Story panel — the day's real assignments and quest steps. */
+  dailyOpen: boolean;
+  /** Chalkboard panel for the room the student is standing in. */
+  board?:
+    | {
+        roomId: string;
+        roomName: string;
+        lessonId: string;
+        courseId: string;
+        teacher: string;
+      }
+    | undefined;
+  setDailyOpen: (open: boolean) => void;
+  setBoard: (board: CampusState["board"]) => void;
   logEvent: (kind: TrackerEvent["kind"], text: string) => void;
   setLastDoor: (label?: string | undefined) => void;
   setPerfOpen: (open: boolean) => void;
