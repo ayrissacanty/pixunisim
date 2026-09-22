@@ -12,6 +12,7 @@ import {
   MoveDiagonal,
   Palette,
   ScrollText,
+  Sunrise,
 } from "lucide-react";
 import { useCampusStore } from "@/lib/campus/store";
 import { ZONE_LABELS } from "@/lib/campus/world";
@@ -66,6 +67,7 @@ export function CampusHud({
   const setQuestsOpen = useCampusStore((s) => s.setQuestsOpen);
   const setModulesOpen = useCampusStore((s) => s.setModulesOpen);
   const setBackpackOpen = useCampusStore((s) => s.setBackpackOpen);
+  const setDailyOpen = useCampusStore((s) => s.setDailyOpen);
   const busy = useCampusStore((s) => !!(s.dialogue || s.reading || s.lessonOpen || s.mapOpen));
   const motion = useMotionStore((s) => s.setting);
   const cycleMotion = useMotionStore((s) => s.cycle);
@@ -211,6 +213,17 @@ export function CampusHud({
           onClick={() => setMapOpen(true)}
         >
           <Map className="size-5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="block-btn size-12 border-accent/40 p-0"
+          aria-label="Open today's story"
+          data-testid="hud-daily"
+          title="Today's story"
+          onClick={() => setDailyOpen(true)}
+        >
+          <Sunrise className="size-5" />
         </Button>
         <Button
           size="sm"
