@@ -86,24 +86,24 @@ export function ClassroomBeat() {
       data-room={classroom.roomId}
       data-line-index={step}
       data-line-total={script.length}
-      className="absolute inset-0 z-40 flex flex-col justify-end overflow-hidden bg-[var(--sky)]"
+      className="academy pixel-classroom absolute inset-0 z-40 flex flex-col justify-end overflow-hidden bg-background"
     >
       {/* Illustrated classroom backdrop */}
       <div className="absolute inset-0">
-        <div className="absolute inset-x-0 top-0 h-[62%] bg-[var(--linen)]" />
+        <div className="absolute inset-x-0 top-0 h-[58%] border-b-4 border-secondary bg-parchment-warm" />
         {/* windows */}
         <div className="absolute left-[6%] top-[12%] flex gap-3">
           {[0, 1].map((i) => (
             <div
               key={i}
-              className="block-panel size-16 border-warm-brown bg-[var(--sky)] sm:size-20"
+              className="size-16 border-4 border-secondary bg-sky shadow-[4px_4px_0_0_var(--block-edge-strong)] sm:size-20"
               aria-hidden
             />
           ))}
         </div>
         {/* chalkboard */}
         <div
-          className="block-panel-lg absolute left-1/2 top-[9%] w-[46%] max-w-md -translate-x-1/2 border-warm-brown bg-deep-green p-3 text-center"
+          className="absolute left-1/2 top-[8%] w-[48%] max-w-md -translate-x-1/2 border-4 border-secondary bg-primary p-3 text-center shadow-[6px_6px_0_0_var(--block-edge-strong)]"
           aria-hidden
         >
           <p className="font-display text-sm font-bold text-linen">{classroom.roomName}</p>
@@ -112,9 +112,9 @@ export function ClassroomBeat() {
           </p>
         </div>
         {/* floor */}
-        <div className="absolute inset-x-0 bottom-0 h-[38%] bg-warm-brown" />
+        <div className="pixel-plank-floor absolute inset-x-0 bottom-0 h-[42%] bg-secondary" />
         <div
-          className="absolute inset-x-0 bottom-[38%] h-1.5 bg-[var(--block-edge-strong)]"
+          className="absolute inset-x-0 bottom-[42%] h-2 bg-[var(--block-edge-strong)]"
           aria-hidden
         />
       </div>
@@ -129,7 +129,7 @@ export function ClassroomBeat() {
               width={768}
               height={768}
               loading="lazy"
-              className="size-28 rounded-xl border-[3px] border-accent object-cover shadow-lg [image-rendering:pixelated]"
+              className="size-28 border-4 border-accent object-cover shadow-[5px_5px_0_0_var(--block-edge-strong)] [image-rendering:pixelated]"
             />
           ) : (
             <CharacterAvatar character={teacher.id} size={112} />
@@ -152,11 +152,11 @@ export function ClassroomBeat() {
         </div>
       </div>
 
-      <div className="relative z-10 m-3 block-panel-lg border-accent bg-sidebar/95 p-4 text-sidebar-foreground sm:m-6">
-        <p className="font-display text-xs uppercase tracking-wide text-accent">
+      <div className="relative z-10 m-3 border-4 border-secondary bg-sidebar/95 p-4 text-sidebar-foreground shadow-[6px_6px_0_0_var(--block-edge-strong)] sm:m-6">
+        <p className="font-display text-[9px] uppercase text-accent">
           {classroom.roomName}
         </p>
-        <p data-testid="beat-line" className="mt-1 font-display text-sm">
+        <p data-testid="beat-line" className="mt-2 font-display text-[10px] leading-5">
           <span className="font-bold">{teacherName}:</span> {line}
         </p>
 

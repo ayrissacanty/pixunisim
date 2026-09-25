@@ -86,18 +86,16 @@ export function CampusHud({
         paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
       }}
     >
-      {/* Magical Campus top navigation pill — campus identity on the left,
-          time/status crystal on the right. Spans the viewport so it never
-          collides with the side action ring. */}
-      <div className="px-3">
-        <div className="block-round pointer-events-auto flex items-center justify-between gap-3 border-accent/50 bg-sidebar/90 px-4 py-2.5 backdrop-blur-xl">
+      {/* Compact academic status bar leaves the tiled world as the focus. */}
+      <div className="px-2 sm:px-3">
+        <div className="pointer-events-auto flex min-h-14 items-center justify-between gap-3 border-4 border-sidebar-border bg-sidebar/95 px-3 py-2 shadow-[0_4px_0_0_var(--block-edge-strong)]">
           <div className="flex items-center gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-accent to-[oklch(0.75_0.16_70)] text-base font-black text-primary-foreground shadow-inner">
+            <div className="flex size-9 shrink-0 items-center justify-center border-2 border-accent bg-primary text-base font-black text-primary-foreground shadow-[2px_2px_0_0_var(--block-edge-strong)]">
               <span aria-hidden="true">🎓</span>
             </div>
             <div className="min-w-0">
-              <p className="font-display text-[10px] font-black uppercase tracking-[0.18em] text-accent">
-                Campus Hub
+              <p className="font-display text-[8px] font-black uppercase text-accent">
+                Campus
               </p>
               <p className="truncate text-sm font-bold tracking-wide text-foreground">
                 {ZONE_LABELS[zone] ?? zone}
@@ -161,9 +159,7 @@ export function CampusHud({
       {/* Spacer keeps the bottom rail anchored without absolute stacking. */}
       <div className="flex-1" />
 
-      {/* Floating quest scroll (objective tracker) bottom-left, prompt + hint
-          beside it, camera cluster + minimap on the right. */}
-      <div className="flex items-end justify-between gap-3 px-3">
+      <div className="mb-[4.75rem] flex items-end justify-between gap-3 px-3 md:mb-[5.5rem]">
         <div className="min-w-0 flex-1">
           <MemoizedTracker />
           {prompt && !busy && (
@@ -174,7 +170,7 @@ export function CampusHud({
               {prompt.verb} · {prompt.label}
             </div>
           )}
-          <div className="block-panel mx-auto mt-2 hidden w-fit items-center gap-3 border-accent/40 bg-sidebar/90 px-3.5 py-2 text-[11px] font-semibold text-sidebar-foreground/90 md:flex">
+           <div className="block-panel mx-auto mt-2 hidden w-fit items-center gap-3 border-accent/40 bg-sidebar/95 px-3.5 py-2 text-[10px] font-semibold text-sidebar-foreground/90 md:flex">
             <Compass className="size-3.5" />
             WASD / arrows or tap a tile to move · E to interact · M for map · scroll or pinch to zoom
           </div>
@@ -199,14 +195,12 @@ export function CampusHud({
 
       </div>
 
-      {/* Magical action ring — vertical cluster of round buttons on the right
-          edge, mirroring the Adventure Academy tool ring. The gold Workspace
-          button is the primary action. */}
-      <div className="pointer-events-auto absolute right-4 top-[6.75rem] z-20 flex flex-col gap-3 rounded-[1.5rem] border-2 border-accent/40 bg-sidebar/85 p-2.5 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.4)]">
+      {/* Walnut command rail, inspired by a classic 16-bit RPG inventory bar. */}
+      <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex min-h-[4.25rem] items-center justify-center gap-1.5 border-t-4 border-accent/60 bg-sidebar/95 px-2 py-2 shadow-[0_-4px_0_0_var(--block-edge-strong)] sm:gap-2">
         <Button
           size="sm"
           variant="secondary"
-          className="block-btn size-12 border-secondary-foreground/25 p-0"
+          className="block-btn size-11 border-secondary-foreground/25 p-0 sm:size-12"
           aria-label="Open the campus map"
           data-testid="hud-map"
           title="Map"
@@ -217,7 +211,7 @@ export function CampusHud({
         <Button
           size="sm"
           variant="outline"
-          className="block-btn size-12 border-accent/40 p-0"
+          className="block-btn size-11 border-accent/40 p-0 sm:size-12"
           aria-label="Open today's story"
           data-testid="hud-daily"
           title="Today's story"
@@ -228,7 +222,7 @@ export function CampusHud({
         <Button
           size="sm"
           variant="outline"
-          className="block-btn size-12 border-accent/40 p-0"
+          className="block-btn size-11 border-accent/40 p-0 sm:size-12"
           aria-label="Open the quest log"
           data-testid="hud-quests"
           title="Quests"
@@ -239,7 +233,7 @@ export function CampusHud({
         <Button
           size="sm"
           variant="outline"
-          className="block-btn size-12 border-accent/40 p-0"
+          className="block-btn size-11 border-accent/40 p-0 sm:size-12"
           aria-label="Open the module hub"
           data-testid="hud-modules"
           title="Modules"
@@ -250,7 +244,7 @@ export function CampusHud({
         <Button
           size="sm"
           variant="outline"
-          className="block-btn size-12 border-accent/40 p-0"
+          className="block-btn size-11 border-accent/40 p-0 sm:size-12"
           aria-label="Open your backpack"
           data-testid="hud-backpack"
           title="Backpack"
@@ -261,7 +255,7 @@ export function CampusHud({
         <Button
           size="sm"
           variant="outline"
-          className="block-btn size-12 border-accent/40 p-0"
+          className="block-btn hidden size-11 border-accent/40 p-0 sm:inline-flex sm:size-12"
           aria-label={`${STYLE_LABELS[style]} — click to change campus visual style`}
           data-testid="style-toggle"
           data-style={style}
@@ -273,7 +267,7 @@ export function CampusHud({
         <Button
           size="sm"
           variant="outline"
-          className="block-btn size-12 border-accent/40 p-0"
+          className="block-btn hidden size-11 border-accent/40 p-0 sm:inline-flex sm:size-12"
           aria-label="Open the loaded 2D asset inspector"
           data-testid="hud-assets"
           data-assets={assetsOpen ? "on" : "off"}
@@ -287,7 +281,7 @@ export function CampusHud({
           asChild
           size="sm"
           variant="default"
-          className="block-btn size-12 border-primary-foreground/25 bg-gradient-to-tr from-accent to-[oklch(0.75_0.16_70)] p-0"
+          className="block-btn size-11 border-primary-foreground/25 bg-accent p-0 text-accent-foreground sm:size-12"
         >
           <Link to="/workspace" aria-label="Go to your workspace" data-testid="hud-workspace" title="Workspace">
             <LayoutDashboard className="size-5" />
