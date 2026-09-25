@@ -291,10 +291,7 @@ export class CampusScene extends Phaser.Scene {
         }
 
         const top = isoFromTile(x, y, zone.height);
-        ctx.save();
-        ctx.setTransform(1, 0.5, -1, 0.5, top.x, top.y);
-        ctx.drawImage(scratch, -0.5, -0.5, TILE + 1, TILE + 1);
-        ctx.restore();
+        ctx.drawImage(scratch, top.x, top.y, TILE, TILE);
       }
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -677,22 +674,14 @@ export class CampusScene extends Phaser.Scene {
     this.buildingVolumes = [];
     const theme = paintTheme(zone.kind === "interior" ? "interior-room" : zone.id, style);
 
-    // Whole buildings are extruded as one solid volume per structure.
-    for (const fp of buildingFootprints(zone)) {
-      this.drawBuilding(zone, fp, theme);
-    }
-
     for (const object of isoObjectsFor(zone)) {
       const anchor = isoFromTile(object.x + 0.5, object.y + 0.5, zone.height);
       if (object.layer === "block") {
-        if (isBuildingKind(object.kind)) continue; // drawn as part of its building
-        const key = this.blockTexture(object.kind, theme, zone.kind);
+        const key = this.propTexture(object.kind, theme);
         if (!key) continue;
-        // Anchored at the bottom vertex of the tile diamond.
-        const bottom = isoFromTile(object.x + 1, object.y + 1, zone.height);
         const image = this.add
-          .image(bottom.x, bottom.y, key)
-          .setOrigin(0.5, 1)
+          .image(anchor.x, anchor.y, key)
+          .setOrigin(0.5)
           .setDepth(footprintDepth(object.x, object.y));
         this.propImages.push(image);
         continue;
@@ -704,7 +693,7 @@ export class CampusScene extends Phaser.Scene {
       const image = this.add
         .image(anchor.x, anchor.y + ISO_H / 2, key)
         .setOrigin(0.5, 1)
-        .setScale((ISO_W * 0.85) / TILE, (tiles * ISO_H * 1.6) / TILE)
+        .setScale(Math.max(0.9, Math.min(1.35, tiles)))
         .setDepth(footprintDepth(object.x, object.y));
       this.propImages.push(image);
     }
@@ -863,8 +852,8 @@ export class CampusScene extends Phaser.Scene {
   private diamondPoints(x: number, y: number, inset = 0) {
     const c = isoFromTile(x + 0.5, y + 0.5, this.zone.height);
     const hw = ISO_W / 2 - inset;
-    const hh = ISO_H / 2 - inset / 2;
-    return [c.x, c.y - hh, c.x + hw, c.y, c.x, c.y + hh, c.x - hw, c.y];
+    const hh = ISO_H / 2 - inset;
+    return [c.x - hw, c.y - hh, c.x + hw, c.y - hh, c.x + hw, c.y + hh, c.x - hw, c.y + hh];
   }
 
   /**
@@ -1695,8 +1684,7 @@ export class CampusScene extends Phaser.Scene {
       iy += this.joystick.y;
     }
 
-    // Screen-space input is rotated into the cartesian grid so pressing "up"
-    // walks up-screen along the isometric axes.
+    // Top-down controls map directly to the cartesian world grid.
     if (ix !== 0 || iy !== 0) {
       this.moveTarget = null;
       const dir = isoInputToWorld(ix, iy);
@@ -1758,9 +1746,8 @@ export class CampusScene extends Phaser.Scene {
     const speed = Math.hypot(this.vx, this.vy);
     const moving = speed > 6;
     if (moving) {
-      // Facing is chosen from the on-screen direction of travel.
-      const svx = (this.vx - this.vy) * (ISO_W / 2);
-      const svy = (this.vx + this.vy) * (ISO_H / 2);
+      const svx = this.vx;
+      const svy = this.vy;
       this.facing =
         Math.abs(svx) > Math.abs(svy)
           ? svx > 0
@@ -1850,9 +1837,8 @@ export class CampusScene extends Phaser.Scene {
       const walked = this.canStand(nx, ny);
       if (walked) this.setActorPosition(n, nx, ny);
       else n.brain.target = null;
-      // Facing follows the on-screen direction of travel, like the player.
-      const svx = (dx / dist - dy / dist) * (ISO_W / 2);
-      const svy = (dx / dist + dy / dist) * (ISO_H / 2);
+      const svx = dx / dist;
+      const svy = dy / dist;
       const dir =
         Math.abs(svx) > Math.abs(svy) ? (svx > 0 ? "right" : "left") : svy > 0 ? "down" : "up";
       this.animate(n, dir, walked);
