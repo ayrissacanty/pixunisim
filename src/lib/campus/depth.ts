@@ -1,19 +1,9 @@
 import { TILE } from "./tiles";
 
-/**
- * Canonical isometric depth model.
- *
- * Every drawable in the world — ground, extruded building blocks, props,
- * NPCs, the player and their labels — is sorted with the SAME function so
- * occlusion is consistent no matter which system spawned the object.
- *
- * Sorting happens in cartesian space (`px + py`), which is exactly the
- * painter's order for a 2:1 isometric projection: the further a thing sits
- * along the combined x+y axis, the closer it is to the camera.
- */
+/** Canonical top-down painter order shared by props, buildings and actors. */
 
-/** Depth added per cartesian pixel along the x+y axis. */
-export const DEPTH_SCALE = 0.5;
+/** Depth added per vertical world pixel. */
+export const DEPTH_SCALE = 1;
 
 /** Small, stable tie-breakers for things sharing one footprint. */
 export const DEPTH_BIAS = {
@@ -34,13 +24,13 @@ export const OVERLAY_DEPTH = 100000;
 
 /** Depth for a cartesian world-pixel anchor. */
 export function isoDepth(px: number, py: number, bias: number = DEPTH_BIAS.object) {
-  return (px + py) * DEPTH_SCALE + bias;
+  void px;
+  return py * DEPTH_SCALE + bias;
 }
 
 /**
- * Depth for a tile footprint. The anchor is the footprint's NEAR corner
- * (bottom-right in cartesian space), which is the point closest to the camera,
- * so anything standing in front of the footprint always draws over it.
+ * Depth for a tile footprint. The anchor is its bottom edge, so characters
+ * north of an object draw behind it and characters south of it draw in front.
  */
 export function footprintDepth(
   tileX: number,
@@ -49,7 +39,7 @@ export function footprintDepth(
   h = 1,
   bias: number = DEPTH_BIAS.object,
 ) {
-  return isoDepth((tileX + w) * TILE, (tileY + h) * TILE, bias);
+  return isoDepth((tileX + w / 2) * TILE, (tileY + h) * TILE, bias);
 }
 
 /** Depth for a single tile. */
@@ -79,7 +69,7 @@ export function buildingDepthFor(
   return footprintDepth(tileX, tileY, w, h);
 }
 
-/** Raises an actor just above any building whose south/east facade they passed. */
+/** Raises an actor just above a building after passing its south edge. */
 export function actorDepthWithBuildings(
   px: number,
   py: number,
@@ -89,8 +79,7 @@ export function actorDepthWithBuildings(
   let depth = actorDepth(px, py, bias);
   for (const fp of buildings) {
     const southOf = py >= (fp.y + fp.h) * TILE && px >= fp.x * TILE && px <= (fp.x + fp.w) * TILE;
-    const eastOf = px >= (fp.x + fp.w) * TILE && py >= fp.y * TILE && py <= (fp.y + fp.h) * TILE;
-    if (southOf || eastOf) depth = Math.max(depth, footprintDepth(fp.x, fp.y, fp.w, fp.h) + bias);
+    if (southOf) depth = Math.max(depth, footprintDepth(fp.x, fp.y, fp.w, fp.h) + bias);
   }
   return depth;
 }

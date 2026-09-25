@@ -110,9 +110,8 @@ export function isoObjectsFor(zone: ZoneMap): IsoObject[] {
       out.push({ x, y, kind, layer });
     }
   }
-  // Painter's order: far tiles first. Depth values still drive Phaser sorting,
-  // this simply keeps creation order predictable for tests and debugging.
-  out.sort((a, b) => a.x + a.y - (b.x + b.y));
+  // Top-down painter order: northern rows first, with x as a stable tie-break.
+  out.sort((a, b) => a.y - b.y || a.x - b.x);
   return out;
 }
 

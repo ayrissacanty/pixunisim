@@ -443,9 +443,11 @@ export function CampusView({
       data-testid="campus-root"
       data-layer={layer}
       data-preview={preview ? "on" : "off"}
-      className="relative h-[100dvh] w-full overflow-hidden bg-grass"
+      className="academy pixel-game relative h-[100dvh] w-full overflow-hidden bg-ink-night"
     >
       <div ref={containerRef} className="absolute inset-0" aria-label="Campus world" />
+      <div className="pixel-vignette pointer-events-none absolute inset-0 z-10" aria-hidden="true" />
+      <div className="pixel-scanlines pointer-events-none absolute inset-0 z-[60]" aria-hidden="true" />
       {!ready && (
         <div className="absolute inset-0 grid place-items-center bg-sidebar text-sidebar-foreground">
           <p className="font-display text-lg">Opening the campus gates…</p>

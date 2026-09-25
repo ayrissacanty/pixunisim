@@ -87,22 +87,23 @@ export function Minimap({ size = 132 }: { size?: number }) {
   const rafRef = useRef<number | null>(null);
   const baseRef = useRef<HTMLCanvasElement | null>(null);
 
-  // The minimap uses the same 2:1 isometric projection as the Phaser world.
-  // `unit` is half a tile's diamond width, keeping the entire zone visible.
-  const unit = Math.max(1, size / Math.max(zone.width + zone.height, 1));
-  const w = Math.ceil((zone.width + zone.height) * unit);
-  const h = Math.ceil((zone.width + zone.height) * unit / 2);
+  // The minimap mirrors the true top-down tile grid.
+  const unit = Math.max(1, size / Math.max(zone.width, zone.height, 1));
+  const w = Math.ceil(zone.width * unit);
+  const h = Math.ceil(zone.height * unit);
   const iso = (x: number, y: number) => ({
-    x: (x - y + zone.height) * unit,
-    y: (x + y) * unit / 2,
+    x: x * unit,
+    y: y * unit,
   });
   const diamond = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
     const c = iso(x + 0.5, y + 0.5);
+    const left = c.x - unit / 2;
+    const top = c.y - unit / 2;
     ctx.beginPath();
-    ctx.moveTo(c.x, c.y - unit / 2);
-    ctx.lineTo(c.x + unit, c.y);
-    ctx.lineTo(c.x, c.y + unit / 2);
-    ctx.lineTo(c.x - unit, c.y);
+    ctx.moveTo(left, top);
+    ctx.lineTo(left + unit, top);
+    ctx.lineTo(left + unit, top + unit);
+    ctx.lineTo(left, top + unit);
     ctx.closePath();
   };
 

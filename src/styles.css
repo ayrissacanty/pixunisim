@@ -245,6 +245,7 @@
   --parchment-warm: oklch(0.91 0.028 82);
   --block-edge: oklch(0.16 0.015 50 / 0.8);
   --block-edge-strong: oklch(0.11 0.012 50 / 0.92);
+  --font-display: "Press Start 2P", ui-monospace, monospace;
 }
 
 @layer base {
@@ -331,7 +332,7 @@
 
 @utility block-panel {
   border-width: 3px;
-  border-radius: 1.1rem;
+  border-radius: 0.15rem;
   box-shadow:
     0 4px 0 0 var(--block-edge),
     0 8px 16px -8px var(--block-edge-strong);
@@ -339,7 +340,7 @@
 
 @utility block-panel-lg {
   border-width: 4px;
-  border-radius: 1.5rem;
+  border-radius: 0.2rem;
   box-shadow:
     0 6px 0 0 var(--block-edge),
     0 14px 24px -10px var(--block-edge-strong);
@@ -347,7 +348,7 @@
 
 @utility block-btn {
   border-width: 3px;
-  border-radius: 1rem;
+  border-radius: 0.15rem;
   box-shadow: 0 4px 0 0 var(--block-edge);
   transition:
     transform 80ms ease-out,
@@ -362,12 +363,12 @@
 
 @utility block-chip {
   border-width: 3px;
-  border-radius: 0.85rem;
+  border-radius: 0.15rem;
   box-shadow: 0 3px 0 0 var(--block-edge);
 }
 
 @utility block-round {
-  border-radius: 999px;
+  border-radius: 0.2rem;
   box-shadow:
     0 5px 0 0 var(--block-edge),
     0 10px 18px -8px var(--block-edge-strong);
@@ -379,4 +380,39 @@
     transform: translateY(3px);
     box-shadow: 0 2px 0 0 var(--block-edge);
   }
+}
+
+/* Pixel Academia screen treatment. The world stays crisp while the faint CRT
+ * texture and edge falloff supply the selected vintage-monitor atmosphere. */
+.pixel-game canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.pixel-scanlines {
+  opacity: 0.055;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0, transparent 2px, oklch(0.08 0.01 50 / 0.45) 2px, oklch(0.08 0.01 50 / 0.45) 4px),
+    repeating-linear-gradient(to right, oklch(0.62 0.16 30 / 0.08) 0, transparent 1px, oklch(0.65 0.12 150 / 0.05) 2px, transparent 3px);
+  mix-blend-mode: multiply;
+}
+
+.pixel-vignette {
+  box-shadow: inset 0 0 9rem 1.5rem oklch(0.08 0.015 50 / 0.62);
+}
+
+.pixel-plank-floor {
+  background-image:
+    linear-gradient(to bottom, transparent 0 47%, oklch(0.19 0.025 48 / 0.35) 48% 52%, transparent 53%),
+    repeating-linear-gradient(to right, transparent 0 3rem, oklch(0.19 0.025 48 / 0.3) 3rem calc(3rem + 2px));
+  background-size: 100% 2rem, 6rem 2rem;
+}
+
+.academy .font-display {
+  letter-spacing: 0;
+  line-height: 1.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pixel-scanlines { opacity: 0.035; }
 }
