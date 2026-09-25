@@ -40,21 +40,17 @@ function stubCanvas() {
 
 const SIZE = 132;
 
-function isoUnit(zoneId: string) {
+function mapUnit(zoneId: string) {
   const zone = getZone(zoneId);
-  return Math.max(1, SIZE / Math.max(zone.width + zone.height, 1));
+  return Math.max(1, SIZE / Math.max(zone.width, zone.height, 1));
 }
 
-function isoMarker(zoneId: string, tile: { x: number; y: number }) {
+function mapMarker(zoneId: string, tile: { x: number; y: number }) {
   const zone = getZone(zoneId);
-  const unit = isoUnit(zoneId);
-  // The marker sits on the centre of the tile diamond, matching how the world
-  // scene projects the player and how POIs are drawn on the minimap.
-  const cx = tile.x + 0.5;
-  const cy = tile.y + 0.5;
+  const unit = mapUnit(zoneId);
   return {
-    x: (cx - cy + zone.height) * unit,
-    y: (cx + cy) * unit / 2,
+    x: (tile.x + 0.5) * unit,
+    y: (tile.y + 0.5) * unit,
   };
 }
 
@@ -67,12 +63,12 @@ function markerFor(ctx: ReturnType<typeof stubCanvas>) {
 /** Expected on-canvas marker position for a tile, including edge clamping. */
 function expectedFor(zoneId: string, tile: { x: number; y: number }) {
   const zone = getZone(zoneId);
-  const unit = isoUnit(zoneId);
+  const unit = mapUnit(zoneId);
   const dot = Math.max(2, unit * 0.32);
-  const point = isoMarker(zoneId, tile);
+  const point = mapMarker(zoneId, tile);
   return clampMarker(point.x, point.y, {
-    w: (zone.width + zone.height) * unit,
-    h: (zone.width + zone.height) * unit / 2,
+    w: Math.ceil(zone.width * unit),
+    h: Math.ceil(zone.height * unit),
     radius: dot + 1,
   });
 }
@@ -113,7 +109,6 @@ describe("Minimap player marker", () => {
   it("places the marker at tileCoord * cell, not divided by TILE again", () => {
     const ctx = stubCanvas();
     const zoneId = useCampusStore.getState().currentZone;
-    const unit = isoUnit(zoneId);
     useCampusStore.setState({ playerPosition: { x: 12, y: 9 } });
 
     render(<Minimap size={SIZE} />);
@@ -125,7 +120,6 @@ describe("Minimap player marker", () => {
   it("tracks the player across successive tile positions", () => {
     const ctx = stubCanvas();
     const zoneId = useCampusStore.getState().currentZone;
-    const unit = isoUnit(zoneId);
     const path = [
       { x: 0, y: 0 },
       { x: 4, y: 2 },
@@ -160,7 +154,6 @@ describe("Minimap player marker", () => {
     const ctx = stubCanvas();
     const raf = stubRaf();
     const zoneId = useCampusStore.getState().currentZone;
-    const unit = isoUnit(zoneId);
 
     useCampusStore.setState({ playerPosition: { x: 4, y: 4 } });
     const view = render(<Minimap size={SIZE} />);
@@ -196,7 +189,7 @@ describe("Minimap player marker", () => {
     const ctx = stubCanvas();
     const zoneId = useCampusStore.getState().currentZone;
     const zone = getZone(zoneId);
-    const unit = isoUnit(zoneId);
+    const unit = mapUnit(zoneId);
     const corners = [
       { x: 0, y: 0 },
       { x: zone.width - 1, y: zone.height - 1 },
@@ -210,8 +203,8 @@ describe("Minimap player marker", () => {
       const m = markerFor(ctx);
       expect(m.x).toBeGreaterThan(0);
       expect(m.y).toBeGreaterThan(0);
-      expect(m.x).toBeLessThan((zone.width + zone.height) * unit);
-      expect(m.y).toBeLessThan((zone.width + zone.height) * unit / 2);
+      expect(m.x).toBeLessThanOrEqual(Math.ceil(zone.width * unit));
+      expect(m.y).toBeLessThanOrEqual(Math.ceil(zone.height * unit));
     }
   });
 

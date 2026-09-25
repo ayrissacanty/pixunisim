@@ -4,11 +4,11 @@ import { DEPTH_BIAS, actorDepth, footprintDepth, tileDepth } from "./depth";
 import { isoLayerFor, isoObjectsFor } from "./isoprops";
 import { getZone } from "./world";
 
-describe("isometric depth model", () => {
-  it("sorts tiles further along x+y in front", () => {
-    expect(tileDepth(2, 2)).toBeGreaterThan(tileDepth(1, 2));
+describe("top-down depth model", () => {
+  it("sorts lower rows in front and keeps columns level", () => {
+    expect(tileDepth(2, 2)).toBeCloseTo(tileDepth(1, 2));
     expect(tileDepth(2, 2)).toBeGreaterThan(tileDepth(2, 1));
-    expect(tileDepth(0, 5)).toBeCloseTo(tileDepth(5, 0));
+    expect(tileDepth(0, 5)).toBeGreaterThan(tileDepth(5, 0));
   });
 
   it("draws an actor in front of the tile it stands on and behind the next row", () => {
@@ -23,7 +23,7 @@ describe("isometric depth model", () => {
     const px = 100;
     const py = 100;
     expect(actorDepth(px, py, DEPTH_BIAS.label)).toBeGreaterThan(actorDepth(px, py));
-    expect(actorDepth(px, py, DEPTH_BIAS.label)).toBeLessThan(actorDepth(px + TILE, py));
+    expect(actorDepth(px, py, DEPTH_BIAS.label)).toBeLessThan(actorDepth(px, py + TILE));
   });
 
   it("anchors multi-tile footprints on their near corner", () => {
@@ -46,7 +46,7 @@ describe("isometric depth model", () => {
     for (let i = 1; i < objects.length; i += 1) {
       const prev = objects[i - 1]!;
       const cur = objects[i]!;
-      expect(prev.x + prev.y).toBeLessThanOrEqual(cur.x + cur.y);
+      expect(prev.y).toBeLessThanOrEqual(cur.y);
       expect(footprintDepth(prev.x, prev.y)).toBeLessThanOrEqual(footprintDepth(cur.x, cur.y));
     }
   });
