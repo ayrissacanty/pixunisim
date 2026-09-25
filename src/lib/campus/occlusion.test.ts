@@ -63,11 +63,10 @@ describe("occlusion order — canonical scenarios", () => {
   });
 
   it("depth ordering is pinned to exact values (regression anchor)", () => {
-    // If the projection scale ever changes, these numbers move and every
-    // baked depth assumption must be re-audited — that is intentional.
+    // Top-down depth follows the vertical world coordinate only.
     expect(footprintDepth(0, 0)).toBe(33);
     expect(footprintDepth(10, 10, 2, 2)).toBe(385);
-    expect(actorDepth(100, 200)).toBe(152);
+    expect(actorDepth(100, 200)).toBe(202);
     expect(tileDepth(4, 4)).toBe(161);
   });
 });
@@ -80,9 +79,9 @@ describe("occlusion order — painter sequence", () => {
       ["floor", "shelf", "floor"],
     ]);
     const objects = isoObjectsFor(zone);
-    const sums = objects.map((o) => o.x + o.y);
-    const sorted = [...sums].sort((a, b) => a - b);
-    expect(sums).toEqual(sorted);
+    const rows = objects.map((o) => o.y);
+    const sorted = [...rows].sort((a, b) => a - b);
+    expect(rows).toEqual(sorted);
     // Block and prop layers are both present in this fixture.
     expect(objects.some((o) => o.layer === "block")).toBe(true);
     expect(objects.some((o) => o.layer === "prop")).toBe(true);
@@ -176,11 +175,10 @@ describe("occlusion order — large building footprints vs the player", () => {
     expect(behind).toBeLessThan(buildingDepthFor(3, 3, 10, 6, 8.5 * 32, 2.5 * 32));
   });
 
-  it("a player east of the hall draws over it", () => {
+  it("a player east of the hall stays in its own vertical painter row", () => {
     const east = actorDepth(13.5 * 32, 5.5 * 32);
-    expect(actorDepthWithBuildings(13.5 * 32, 5.5 * 32, [{ x: 3, y: 3, w: 10, h: 6 }])).toBeGreaterThan(
-      buildingDepthFor(3, 3, 10, 6, 13.5 * 32, 5.5 * 32),
-    );
+    expect(actorDepthWithBuildings(13.5 * 32, 5.5 * 32, [{ x: 3, y: 3, w: 10, h: 6 }])).toBe(east);
+    expect(east).toBeLessThan(buildingDepthFor(3, 3, 10, 6, 13.5 * 32, 5.5 * 32));
   });
 
   it("keeps the building at one stable depth as the player crosses its facade", () => {
