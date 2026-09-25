@@ -97,8 +97,13 @@ export function Minimap({ size = 132 }: { size?: number }) {
   });
   const diamond = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
     const c = iso(x + 0.5, y + 0.5);
+    const left = c.x - unit / 2;
+    const top = c.y - unit / 2;
     ctx.beginPath();
-    ctx.rect(c.x - unit / 2, c.y - unit / 2, unit, unit);
+    ctx.moveTo(left, top);
+    ctx.lineTo(left + unit, top);
+    ctx.lineTo(left + unit, top + unit);
+    ctx.lineTo(left, top + unit);
     ctx.closePath();
   };
 
