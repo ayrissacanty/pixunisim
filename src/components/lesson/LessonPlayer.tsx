@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress as ProgressBar } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { AiTeacher } from "@/components/lesson/AiTeacher";
-import { CharacterAvatar } from "@/components/campus/CharacterAvatar";
-import { TEACHER_CHARACTER } from "@/lib/characters";
-import { useAvatar } from "@/lib/profile";
+import { ImmersiveLessonWorld } from "@/components/lesson/three/ImmersiveLessonWorld";
 import { useCampusStore } from "@/lib/campus/store";
 import {
   useLesson,
@@ -87,7 +85,6 @@ export function LessonPlayer({
   const { data: questions } = useQuestions(lessonId);
   const { data: progress } = useProgress();
   const save = useSaveProgress();
-  const avatar = useAvatar();
   const [step, setStep] = useState(0);
   const [results, setResults] = useState<Record<string, boolean>>({});
   const [tutorOpen, setTutorOpen] = useState(false);
@@ -174,7 +171,7 @@ export function LessonPlayer({
   return (
     <div className={compact ? "flex flex-col gap-4" : "grid gap-6 lg:grid-cols-[1fr_340px]"}>
       <div className="min-w-0">
-        <div className="mb-4">
+        <div className="relative mb-4 border-l-4 border-coral bg-card px-4 py-3 shadow-[4px_4px_0_0_var(--block-edge)] before:absolute before:-top-2 before:left-5 before:h-4 before:w-12 before:-rotate-2 before:bg-sunflower/80 before:content-[''] after:absolute after:-bottom-2 after:right-7 after:h-4 after:w-10 after:rotate-3 after:bg-sky/70 after:content-['']">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{lesson.summary ? "Lesson" : "Lesson"}</Badge>
             {lesson.standard_code && <Badge variant="outline">{lesson.standard_code}</Badge>}
@@ -195,15 +192,11 @@ export function LessonPlayer({
           </p>
         </div>
 
-        {lesson.render_mode === "3d" && (
-          <figure className="mb-4 flex items-end gap-4 overflow-hidden rounded-md border border-border bg-sage/25 p-4">
-            <CharacterAvatar character={TEACHER_CHARACTER} size={84} />
-            <CharacterAvatar character={avatar} size={76} facing="side" />
-            <figcaption className="self-center text-xs text-muted-foreground">
-              Alley works through this one with you.
-            </figcaption>
-          </figure>
-        )}
+        <ImmersiveLessonWorld
+          subject={lesson.subject}
+          title={lesson.title}
+          sectionHeading={section?.heading}
+        />
 
         {!onQuiz && section && (
           <article className="rounded-md border border-border bg-card p-5">
