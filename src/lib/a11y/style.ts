@@ -18,7 +18,7 @@ function initialStyle(): VisualStyle {
   return window.localStorage.getItem(STORAGE_KEY) === "focus" ? "focus" : "storybook";
 }
 
-function applyToDocument(style: VisualStyle) {
+export function applyStyleToDocument(style: VisualStyle) {
   if (typeof document === "undefined") return;
   document.documentElement.dataset["campusStyle"] = style;
 }
@@ -33,7 +33,7 @@ export const useStyleStore = create<StyleState>((set, get) => ({
   style: initialStyle(),
   setStyle: (style) => {
     if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, style);
-    applyToDocument(style);
+    applyStyleToDocument(style);
     set({ style });
   },
   toggle: () => get().setStyle(get().style === "storybook" ? "focus" : "storybook"),
@@ -42,4 +42,3 @@ export const useStyleStore = create<StyleState>((set, get) => ({
 /** Read the current style outside React (Phaser scene). */
 export const visualStyle = () => useStyleStore.getState().style;
 
-if (typeof document !== "undefined") applyToDocument(initialStyle());

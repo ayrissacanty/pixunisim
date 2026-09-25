@@ -204,48 +204,49 @@
   --block-edge-strong: oklch(0.08 0.01 50 / 0.85);
 }
 
-/*
- * Academy palette — pixel schoolhouse chrome used by the campus HUD overlay
- * and its panels. Cream chalkboard-classroom tones: parchment panels, dark
- * walnut framing, chalk-green headers and brass accents.
- *   #1E1710 wood dark · #EFE3CE parchment · #3A5C4A chalkboard
- *   #8B5A2E walnut · #D9A441 brass · #2F241B ink
- */
+/* Vibrant pixel academia: ink-black chrome, coral notes, violet libraries,
+ * green quads and sunflower highlights over warm paper and wood. */
 .academy {
-  --background: oklch(0.21 0.018 55);
-  --foreground: oklch(0.93 0.026 82);
-  --card: oklch(0.27 0.028 50);
-  --card-foreground: oklch(0.93 0.026 82);
-  --popover: oklch(0.27 0.028 50);
-  --popover-foreground: oklch(0.93 0.026 82);
-  --primary: oklch(0.46 0.055 158);
-  --primary-foreground: oklch(0.95 0.02 85);
-  --secondary: oklch(0.49 0.075 58);
-  --secondary-foreground: oklch(0.95 0.02 85);
-  --muted: oklch(0.33 0.03 50);
-  --muted-foreground: oklch(0.79 0.045 80);
-  --accent: oklch(0.75 0.115 76);
-  --accent-foreground: oklch(0.24 0.03 50);
-  --destructive: oklch(0.55 0.17 28);
-  --destructive-foreground: oklch(0.96 0.015 85);
-  --border: oklch(0.55 0.075 62);
-  --input: oklch(0.33 0.03 50);
-  --ring: oklch(0.75 0.115 76);
-  --sidebar: oklch(0.26 0.03 50);
-  --sidebar-foreground: oklch(0.93 0.026 82);
-  --sidebar-primary: oklch(0.75 0.115 76);
-  --sidebar-primary-foreground: oklch(0.24 0.03 50);
-  --sidebar-accent: oklch(0.43 0.05 158);
-  --sidebar-accent-foreground: oklch(0.95 0.02 85);
-  --sidebar-border: oklch(0.40 0.05 48);
-  --sidebar-ring: oklch(0.75 0.115 76);
-  /* Schoolhouse accents consumed by the clock and world chrome. */
-  --ink-night: oklch(0.21 0.018 55);
-  --amber: oklch(0.75 0.115 76);
-  --parchment-warm: oklch(0.91 0.028 82);
-  --block-edge: oklch(0.16 0.015 50 / 0.8);
-  --block-edge-strong: oklch(0.11 0.012 50 / 0.92);
-  --font-display: "Press Start 2P", ui-monospace, monospace;
+  --background: oklch(0.95 0.04 88);
+  --foreground: oklch(0.20 0.025 285);
+  --card: oklch(0.98 0.025 91);
+  --card-foreground: oklch(0.20 0.025 285);
+  --popover: oklch(0.98 0.025 91);
+  --popover-foreground: oklch(0.20 0.025 285);
+  --primary: oklch(0.66 0.23 15);
+  --primary-foreground: oklch(0.98 0.02 95);
+  --secondary: oklch(0.52 0.22 290);
+  --secondary-foreground: oklch(0.98 0.02 95);
+  --muted: oklch(0.89 0.045 89);
+  --muted-foreground: oklch(0.42 0.045 285);
+  --accent: oklch(0.84 0.17 88);
+  --accent-foreground: oklch(0.22 0.04 60);
+  --destructive: oklch(0.62 0.22 27);
+  --destructive-foreground: oklch(0.98 0.02 95);
+  --border: oklch(0.47 0.12 55);
+  --input: oklch(0.88 0.05 88);
+  --ring: oklch(0.66 0.23 15);
+  --sidebar: oklch(0.19 0.025 285);
+  --sidebar-foreground: oklch(0.96 0.03 91);
+  --sidebar-primary: oklch(0.66 0.23 15);
+  --sidebar-primary-foreground: oklch(0.98 0.02 95);
+  --sidebar-accent: oklch(0.52 0.22 290);
+  --sidebar-accent-foreground: oklch(0.98 0.02 95);
+  --sidebar-border: oklch(0.67 0.14 54);
+  --sidebar-ring: oklch(0.84 0.17 88);
+  --coral: oklch(0.66 0.23 15);
+  --sunflower: oklch(0.84 0.17 88);
+  --grass: oklch(0.67 0.17 138);
+  --sky: oklch(0.77 0.13 230);
+  --sage: oklch(0.73 0.13 160);
+  --muted-blue: oklch(0.58 0.17 273);
+  --ink-night: oklch(0.19 0.025 285);
+  --amber: oklch(0.84 0.17 88);
+  --parchment-warm: oklch(0.95 0.04 88);
+  --block-edge: oklch(0.16 0.03 285 / 0.78);
+  --block-edge-strong: oklch(0.10 0.02 285 / 0.92);
+  --font-display: "VT323", ui-monospace, monospace;
+  --font-body: "Crimson Pro", Georgia, serif;
 }
 
 @layer base {
@@ -410,7 +411,12 @@
 
 .academy .font-display {
   letter-spacing: 0;
-  line-height: 1.45;
+  line-height: 1.2;
+}
+
+.academy .scrap-note {
+  transform: rotate(-1deg);
+  box-shadow: 5px 5px 0 var(--block-edge);
 }
 
 @media (prefers-reduced-motion: reduce) {

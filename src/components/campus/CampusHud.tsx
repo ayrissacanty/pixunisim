@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Accessibility,
@@ -22,7 +22,7 @@ import { CampusTracker } from "@/components/campus/QuestPanel";
 import { MOTION_LABELS, useMotionStore } from "@/lib/a11y/motion";
 import { ASSIST_LABEL, useAssistStore } from "@/lib/a11y/assist";
 import { useDebugMode } from "@/lib/debug";
-import { useStyleStore } from "@/lib/a11y/style";
+import { applyStyleToDocument, useStyleStore } from "@/lib/a11y/style";
 import { STYLE_LABELS } from "@/lib/campus/themes";
 import { TouchControls } from "@/components/campus/TouchControls";
 import { MobileA11ySettings } from "@/components/campus/MobileA11ySettings";
@@ -76,6 +76,8 @@ export function CampusHud({
   const style = useStyleStore((s) => s.style);
   const toggleStyle = useStyleStore((s) => s.toggle);
   const debug = useDebugMode() || forceDebug;
+
+  useEffect(() => applyStyleToDocument(style), [style]);
 
 
   return (
