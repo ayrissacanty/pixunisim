@@ -111,7 +111,7 @@ export function TouchControls({
         onPointerCancel={end}
         onPointerLeave={end}
         style={{ width: m.zone, height: m.zone, touchAction: "none" }}
-        className={`pointer-events-auto absolute bottom-6 left-4 rounded-[2rem] md:hidden ${zoneClass}`}
+        className={`pointer-events-auto absolute bottom-24 left-4 rounded-[2rem] md:hidden ${zoneClass}`}
       >
         {stick && (
           <>
@@ -140,7 +140,7 @@ export function TouchControls({
         aria-label="Interact"
         data-testid="touch-action"
         style={{ touchAction: "none", width: m.action, height: m.action, fontSize: m.font }}
-        className={`block-round pointer-events-auto absolute bottom-10 right-5 font-black tracking-wide md:hidden ${actionClass} ${
+        className={`block-round pointer-events-auto absolute bottom-28 right-5 font-black tracking-wide md:hidden ${actionClass} ${
           animated ? "" : "transition-none"
         }`}
       >
