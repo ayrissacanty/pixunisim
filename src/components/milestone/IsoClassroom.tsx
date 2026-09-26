@@ -94,7 +94,7 @@ function Human({ p, at, who, phase }: { p: Proj; at: Pt; who: Person; phase: num
 
 const STUDENTS: Person[] = [
   { skin: "#8D5A3B", hair: "#2B2320", shirt: P.coral, pants: P.deepBlue, height: 66, pose: "write", facing: 1 },
-  { skin: "#F2C9A5", hair: "#C98B4D", shirt: P.mint, pants: P.charcoal ?? P.line, height: 64, pose: "sit", facing: -1 },
+  { skin: "#F2C9A5", hair: "#C98B4D", shirt: P.mint, pants: P.line, height: 64, pose: "sit", facing: -1 },
   { skin: "#C68E63", hair: "#3B2A22", shirt: P.lav, pants: P.deepBlue, height: 66, pose: "raise", facing: 1 },
   { skin: "#E7B48A", hair: "#6B3F24", shirt: P.yellow, pants: P.line, height: 62, pose: "write", facing: -1 },
   { skin: "#5E3A26", hair: "#1E1816", shirt: P.powder, pants: P.oakSh, height: 66, pose: "sit", facing: 1 },
