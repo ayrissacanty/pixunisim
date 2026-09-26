@@ -347,3 +347,9 @@ export function startCampusPersistence(): () => void {
     if (persistRefs === 0) persistStop?.();
   };
 }
+
+/** Drops this device's saved exploration so the next family member starts fresh. */
+export function clearCampusSnapshot() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(PERSIST_KEY);
+}

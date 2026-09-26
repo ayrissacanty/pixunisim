@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { FamilyNews } from "@/components/family/FamilyNews";
 import { FamilyCode } from "@/components/family/FamilyCode";
+import { FamilyMembers } from "@/components/family/FamilyMembers";
 
 
 export const Route = createFileRoute("/_authenticated/family")({
@@ -38,6 +39,12 @@ function FamilyDashboard() {
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline">
+            <Link to="/planner">Lesson planner</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/who">Who's learning?</Link>
+          </Button>
+          <Button asChild variant="outline">
             <Link to="/ledger">Parent ledger</Link>
           </Button>
           <Button asChild variant="outline">
@@ -51,6 +58,7 @@ function FamilyDashboard() {
 
       <div className="mt-6 space-y-4">
         <FamilyCode />
+        <FamilyMembers />
         <FamilyNews />
       </div>
 
