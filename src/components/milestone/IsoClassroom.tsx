@@ -257,7 +257,7 @@ export function IsoClassroom({ lesson, view }: { lesson: LessonKind; view: View 
   drawables.push({ key: 7.2, el: <g key="center"><Box p={p} x={0.2} y={5.2} w={0.7} d={1.6} h={40} color={P.mint} top={P.sage} />{lesson === "math" ? [0, 1, 2, 3].map((b) => <Box key={b} p={p} x={0.35} y={5.3 + b * 0.35} w={0.3} d={0.25} h={8 + b * 6} z={40} color={[P.coral, P.yellow, P.blue, P.leaf][b]!} />) : <Box p={p} x={0.3} y={5.5} w={0.5} d={0.9} h={10} z={40} color={P.lav} />}</g> });
   drawables.push({ key: 15.2, el: <g key="plant"><Shadow p={p} x={8.3} y={7.1} rx={20} ry={6} /><Box p={p} x={7.95} y={6.65} w={0.7} d={0.7} h={26} color={P.coral} />{(() => { const [cx, cy] = p(8.3, 7, 60); return <g stroke={P.darkLeaf} strokeWidth={1.6}><ellipse cx={cx - 10} cy={cy + 8} rx={14} ry={20} fill={P.leaf} /><ellipse cx={cx + 10} cy={cy + 6} rx={13} ry={22} fill={P.sage} /><ellipse cx={cx} cy={cy - 6} rx={12} ry={18} fill={P.leaf} /></g>; })()}</g> });
   // lockers on hallway far wall (foreground)
-  drawables.push({ key: 30, el: <g key="lockers">{Array.from({ length: 11 }, (_, i) => <Box key={i} p={p} x={0.2 + i * 0.78} y={10.3} w={0.74} d={0.5} h={110} color={[P.blue, P.powder][i % 2]!} />)}</g> });
+  drawables.push({ key: 30, el: <g key="lockers">{Array.from({ length: 11 }, (_, i) => <Box key={i} p={p} x={0.2 + i * 0.78} y={10.3} w={0.74} d={0.5} h={58} color={[P.blue, P.powder][i % 2]!} />)}</g> });
   drawables.push({
     key: player.x + player.y + 0.35,
     el: <Human key="player" p={p} at={player} who={{ skin: "#E7B48A", hair: "#6B3F24", shirt: P.gold, pants: P.deepBlue, height: 68, pose: moving ? "walk" : "stand", facing }} phase={phase} />,
@@ -280,7 +280,7 @@ export function IsoClassroom({ lesson, view }: { lesson: LessonKind; view: View 
   const boardCorners = [p(1.8, 0.05, 150), p(5.4, 0.05, 150), p(5.4, 0.05, 70), p(1.8, 0.05, 70)];
 
   return (
-    <div className="relative h-full w-full select-none overflow-hidden" style={{ background: P.sky }}>
+    <div className="absolute inset-0 select-none overflow-hidden" style={{ background: P.sky }}>
       <svg data-testid="iso-classroom" viewBox={`${cx - vw / 2} ${cy - vh / 2} ${vw} ${vh}`} className="h-full w-full" style={{ transition: "none" }}>
         {floor}
         <polygon points={rug} fill={P.powder} stroke={P.deepBlue} strokeWidth={1.5} opacity={0.55} />

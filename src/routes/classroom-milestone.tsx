@@ -31,7 +31,7 @@ function Milestone() {
         </button>
         <span className="text-xs text-muted-foreground">Arrows/WASD to walk · E to interact</span>
       </div>
-      <div className="flex-1">
+      <div className="relative min-h-0 flex-1">
         <IsoClassroom lesson={lesson} view={view} />
       </div>
     </div>
