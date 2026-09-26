@@ -1,5 +1,8 @@
 import { useMemo } from "react";
-import { Check, MapPin, ScrollText, Sparkles, X } from "lucide-react";
+import { CalendarClock, Check, MapPin, Rotate3D, ScrollText, Sparkles, X } from "lucide-react";
+import { useProgress } from "@/lib/data";
+import { formatPlanTime, nextPlan, useMyPlans } from "@/lib/planner";
+import { lessonWorldFor } from "@/components/lesson/three/subject-world";
 import { ObjectiveTracker } from "@/components/campus/ObjectiveTracker";
 import { useCampusStore } from "@/lib/campus/store";
 import {
@@ -119,6 +122,60 @@ function StepRow({ quest, record }: { quest: QuestDef; record?: QuestRecord | un
 }
 
 /**
+ * One launcher for the 3D lesson world, shared by the quest scroll and the
+ * action ring: the parent-scheduled lesson wins, then the active quest.
+ */
+export function useLessonWorldLauncher() {
+  const { active } = useQuestBoard();
+  const { data: plans } = useMyPlans();
+  const { data: progress } = useProgress();
+  const catalog = useQuestCatalog();
+  const openLesson = useCampusStore((s) => s.openLesson);
+  const completed = useMemo(
+    () => new Set((progress ?? []).filter((p) => p.status === "completed").map((p) => p.lesson_id)),
+    [progress],
+  );
+  const plan = nextPlan(plans, completed);
+  const quest = active[0]?.quest;
+  const target = plan
+    ? { lessonId: plan.lesson_id, courseId: plan.course_id, title: catalog.find((q) => q.lessonId === plan.lesson_id)?.title }
+    : quest && !active[0]?.record?.steps["check"]
+      ? { lessonId: quest.lessonId, courseId: quest.courseId, title: quest.title }
+      : undefined;
+  if (!target) return { plan, target: undefined, world: undefined, open: () => undefined };
+  const world = lessonWorldFor(null, target.title ?? "", target.courseId);
+  return {
+    plan,
+    target,
+    world,
+    open: () => openLesson(target.lessonId, target.courseId),
+  };
+}
+
+function UpNext() {
+  const { plan, target, world, open } = useLessonWorldLauncher();
+  if (!target || !world) return null;
+  return (
+    <div className="mx-3.5 mt-2 border-t-[3px] border-dashed border-border pt-2">
+      {plan && (
+        <p data-testid="quest-up-next" className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-secondary">
+          <CalendarClock className="size-3" /> Up next · {formatPlanTime(plan.scheduled_at)}
+        </p>
+      )}
+      {plan && target.title && <p className="text-[11px] font-semibold text-foreground">{target.title}</p>}
+      <button
+        type="button"
+        data-testid="quest-enter-world"
+        onClick={open}
+        className="block-btn mt-1.5 flex w-full items-center justify-center gap-1.5 border-secondary/50 bg-secondary px-2 py-1.5 text-[11px] font-black uppercase tracking-wider text-secondary-foreground"
+      >
+        <Rotate3D className="size-3.5" /> Enter {world.label}
+      </button>
+    </div>
+  );
+}
+
+/**
  * Bottom-left quest scroll. Shows the live active quest with per-step ticks,
  * or the next quest waiting to be accepted.
  */
@@ -184,6 +241,8 @@ export function QuestTracker() {
           </button>
         )}
       </div>
+
+      <UpNext />
 
       {events.length > 0 && (
         <ul className="mx-3 mt-2 space-y-1 border-t-[3px] border-dashed border-border pt-2">
