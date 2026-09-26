@@ -18,6 +18,8 @@ import { Route as AuthenticatedCampusRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
 import { Route as AuthenticatedLedgerRouteImport } from './routes/_authenticated/ledger'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedPlannerRouteImport } from './routes/_authenticated/planner'
+import { Route as AuthenticatedWhoRouteImport } from './routes/_authenticated/who'
 import { Route as AuthenticatedWorkspaceIndexRouteImport } from './routes/_authenticated/workspace.index'
 import { Route as AuthenticatedWorkspaceAchievementsRouteImport } from './routes/_authenticated/workspace.achievements'
 import { Route as AuthenticatedWorkspaceAvatarRouteImport } from './routes/_authenticated/workspace.avatar'
@@ -68,6 +70,16 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPlannerRoute = AuthenticatedPlannerRouteImport.update({
+  id: '/planner',
+  path: '/planner',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedWhoRoute = AuthenticatedWhoRouteImport.update({
+  id: '/who',
+  path: '/who',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedWorkspaceIndexRoute =
   AuthenticatedWorkspaceIndexRouteImport.update({
     id: '/workspace/',
@@ -108,6 +120,8 @@ export interface FileRoutesByFullPath {
   '/family': typeof AuthenticatedFamilyRoute
   '/ledger': typeof AuthenticatedLedgerRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/planner': typeof AuthenticatedPlannerRoute
+  '/who': typeof AuthenticatedWhoRoute
   '/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
   '/workspace/room': typeof AuthenticatedWorkspaceRoomRoute
@@ -123,6 +137,8 @@ export interface FileRoutesByTo {
   '/family': typeof AuthenticatedFamilyRoute
   '/ledger': typeof AuthenticatedLedgerRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/planner': typeof AuthenticatedPlannerRoute
+  '/who': typeof AuthenticatedWhoRoute
   '/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
   '/workspace/room': typeof AuthenticatedWorkspaceRoomRoute
@@ -140,6 +156,8 @@ export interface FileRoutesById {
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
   '/_authenticated/ledger': typeof AuthenticatedLedgerRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/planner': typeof AuthenticatedPlannerRoute
+  '/_authenticated/who': typeof AuthenticatedWhoRoute
   '/_authenticated/workspace/achievements': typeof AuthenticatedWorkspaceAchievementsRoute
   '/_authenticated/workspace/avatar': typeof AuthenticatedWorkspaceAvatarRoute
   '/_authenticated/workspace/room': typeof AuthenticatedWorkspaceRoomRoute
@@ -157,6 +175,8 @@ export interface FileRouteTypes {
     | '/family'
     | '/ledger'
     | '/onboarding'
+    | '/planner'
+    | '/who'
     | '/workspace/achievements'
     | '/workspace/avatar'
     | '/workspace/room'
@@ -172,6 +192,8 @@ export interface FileRouteTypes {
     | '/family'
     | '/ledger'
     | '/onboarding'
+    | '/planner'
+    | '/who'
     | '/workspace/achievements'
     | '/workspace/avatar'
     | '/workspace/room'
@@ -188,6 +210,8 @@ export interface FileRouteTypes {
     | '/_authenticated/family'
     | '/_authenticated/ledger'
     | '/_authenticated/onboarding'
+    | '/_authenticated/planner'
+    | '/_authenticated/who'
     | '/_authenticated/workspace/achievements'
     | '/_authenticated/workspace/avatar'
     | '/_authenticated/workspace/room'
@@ -268,6 +292,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/planner': {
+      id: '/_authenticated/planner'
+      path: '/planner'
+      fullPath: '/planner'
+      preLoaderRoute: typeof AuthenticatedPlannerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/who': {
+      id: '/_authenticated/who'
+      path: '/who'
+      fullPath: '/who'
+      preLoaderRoute: typeof AuthenticatedWhoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/workspace/': {
       id: '/_authenticated/workspace/'
       path: '/workspace'
@@ -311,6 +349,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFamilyRoute: typeof AuthenticatedFamilyRoute
   AuthenticatedLedgerRoute: typeof AuthenticatedLedgerRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedPlannerRoute: typeof AuthenticatedPlannerRoute
+  AuthenticatedWhoRoute: typeof AuthenticatedWhoRoute
   AuthenticatedWorkspaceAchievementsRoute: typeof AuthenticatedWorkspaceAchievementsRoute
   AuthenticatedWorkspaceAvatarRoute: typeof AuthenticatedWorkspaceAvatarRoute
   AuthenticatedWorkspaceRoomRoute: typeof AuthenticatedWorkspaceRoomRoute
@@ -323,6 +363,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFamilyRoute: AuthenticatedFamilyRoute,
   AuthenticatedLedgerRoute: AuthenticatedLedgerRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedPlannerRoute: AuthenticatedPlannerRoute,
+  AuthenticatedWhoRoute: AuthenticatedWhoRoute,
   AuthenticatedWorkspaceAchievementsRoute:
     AuthenticatedWorkspaceAchievementsRoute,
   AuthenticatedWorkspaceAvatarRoute: AuthenticatedWorkspaceAvatarRoute,
