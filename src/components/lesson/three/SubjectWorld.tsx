@@ -175,7 +175,7 @@ function GeometryDecor() {
       {pts.map((p, i) => (
         <mesh key={`v${i}`} position={p}>
           <sphereGeometry args={[0.14, 12, 8]} />
-          <meshStandardMaterial color={[C.coral, C.yellow, C.sky][i]} />
+          <meshStandardMaterial color={[C.coral, C.yellow, C.sky][i] ?? C.paper} />
         </mesh>
       ))}
       <Text position={[-1.25, -0.6, 0.05]} fontSize={0.24} color={C.coral}>90°</Text>
@@ -310,7 +310,7 @@ function LiteratureDecor() {
           <mesh><boxGeometry args={[6, 0.08, 0.7]} /><meshStandardMaterial color={C.wood} /></mesh>
           {Array.from({ length: 14 }, (_, i) => (
             <RoundedBox key={i} args={[0.3, 0.55 + ((i * 7 + shelf) % 4) * 0.06, 0.5]} radius={0.03} position={[-2.7 + i * 0.41, 0.33, 0]}>
-              <meshStandardMaterial color={[C.coral, C.teal, C.yellow, C.sky, C.green][(i + shelf) % 5]} />
+              <meshStandardMaterial color={[C.coral, C.teal, C.yellow, C.sky, C.green][(i + shelf) % 5] ?? C.coral} />
             </RoundedBox>
           ))}
         </group>
