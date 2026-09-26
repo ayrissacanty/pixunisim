@@ -1,16 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { lessonWorldFor } from "./subject-world";
+import { WORLD_CONFIGS, lessonWorldFor, sectionForObject } from "./subject-world";
 
-describe("lesson subject worlds", () => {
-  it("maps the four core branches to distinct worlds", () => {
-    expect(lessonWorldFor("Mathematics").id).toBe("mathematics");
-    expect(lessonWorldFor("Science").id).toBe("science");
-    expect(lessonWorldFor("Literature").id).toBe("literature");
-    expect(lessonWorldFor("Writing").id).toBe("writing");
+describe("lessonWorldFor", () => {
+  it("routes every seeded course to its own world", () => {
+    expect(lessonWorldFor("Mathematics", "Order of Operations", "foundations-algebra").id).toBe("algebra");
+    expect(lessonWorldFor("Mathematics", "Angles and Triangles", "foundations-geometry").id).toBe("geometry");
+    expect(lessonWorldFor("Science", "Cells", "intro-life-science").id).toBe("science");
+    expect(lessonWorldFor("Language Arts", "Parts of Speech", "english-language-arts").id).toBe("english");
+    expect(lessonWorldFor("Humanities", "Ancient Egypt", "world-civilizations").id).toBe("history");
+    expect(lessonWorldFor("Government", "Three Branches", "civics-government").id).toBe("government");
+    expect(lessonWorldFor("Literature", "Story Elements", "literature-library").id).toBe("literature");
   });
 
-  it("uses lesson titles when subject metadata is sparse", () => {
-    expect(lessonWorldFor(null, "Writing a strong conclusion").id).toBe("writing");
-    expect(lessonWorldFor(null, "Algebra and equations").id).toBe("mathematics");
+  it("falls back to title and subject", () => {
+    expect(lessonWorldFor(null, "Writing a strong conclusion").id).toBe("english");
+    expect(lessonWorldFor(undefined, "Algebra and equations").id).toBe("algebra");
+    expect(lessonWorldFor("Arts", "Rhythm").id).toBe("literature");
+  });
+
+  it("gives each world four objective objects that cycle through sections", () => {
+    for (const w of Object.values(WORLD_CONFIGS)) expect(w.objects).toHaveLength(4);
+    expect(sectionForObject(5, 4)).toBe(1);
+    expect(sectionForObject(2, 0)).toBe(0);
   });
 });
