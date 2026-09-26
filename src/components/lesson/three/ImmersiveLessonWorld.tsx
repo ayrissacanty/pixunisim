@@ -1,13 +1,12 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useMotionStore } from "@/lib/a11y/motion";
+import type { SubjectWorldProps } from "./SubjectWorld";
 
 const SubjectWorld = lazy(() => import("./SubjectWorld").then((module) => ({ default: module.SubjectWorld })));
 
-interface ImmersiveLessonWorldProps {
-  subject?: string | null | undefined;
-  title: string;
-  sectionHeading?: string | undefined;
-}
+type ImmersiveLessonWorldProps = Omit<SubjectWorldProps, "reducedMotion">;
+
+const BOX = "mb-5 grid h-[20rem] place-items-center border-4 border-secondary bg-sidebar text-sidebar-foreground sm:h-[26rem]";
 
 export function ImmersiveLessonWorld(props: ImmersiveLessonWorldProps) {
   const [mounted, setMounted] = useState(false);
@@ -22,15 +21,15 @@ export function ImmersiveLessonWorld(props: ImmersiveLessonWorldProps) {
 
   if (!mounted) {
     return (
-      <div className="mb-5 grid h-[19rem] place-items-center border-4 border-secondary bg-sidebar text-sidebar-foreground sm:h-[24rem]">
-        <p className="font-display text-xs text-accent">Opening subject world…</p>
+      <div className={BOX}>
+        <p className="font-display text-sm text-accent">Opening subject world…</p>
       </div>
     );
   }
 
   if (!webgl) {
     return (
-      <div className="mb-5 grid h-[19rem] place-items-center border-4 border-secondary bg-sidebar px-6 text-center text-sidebar-foreground sm:h-[24rem]">
+      <div className={`${BOX} px-6 text-center`}>
         <div>
           <p className="font-display text-sm text-accent">Subject world unavailable</p>
           <p className="mt-2 text-sm text-sidebar-foreground/75">The lesson text and knowledge check remain ready below.</p>
@@ -42,8 +41,8 @@ export function ImmersiveLessonWorld(props: ImmersiveLessonWorldProps) {
   return (
     <Suspense
       fallback={
-        <div className="mb-5 grid h-[19rem] place-items-center border-4 border-secondary bg-sidebar text-sidebar-foreground sm:h-[24rem]">
-          <p className="font-display text-xs text-accent">Building your lesson world…</p>
+        <div className={BOX}>
+          <p className="font-display text-sm text-accent">Building your lesson world…</p>
         </div>
       }
     >
