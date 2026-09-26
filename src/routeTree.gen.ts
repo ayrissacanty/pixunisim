@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CampusPreviewRouteImport } from './routes/campus-preview'
+import { Route as ClassroomMilestoneRouteImport } from './routes/classroom-milestone'
 import { Route as CreditsRouteImport } from './routes/credits'
 import { Route as AuthenticatedCampusRouteImport } from './routes/_authenticated/campus'
 import { Route as AuthenticatedFamilyRouteImport } from './routes/_authenticated/family'
@@ -43,6 +44,11 @@ const AuthRoute = AuthRouteImport.update({
 const CampusPreviewRoute = CampusPreviewRouteImport.update({
   id: '/campus-preview',
   path: '/campus-preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClassroomMilestoneRoute = ClassroomMilestoneRouteImport.update({
+  id: '/classroom-milestone',
+  path: '/classroom-milestone',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreditsRoute = CreditsRouteImport.update({
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/campus-preview': typeof CampusPreviewRoute
+  '/classroom-milestone': typeof ClassroomMilestoneRoute
   '/credits': typeof CreditsRoute
   '/campus': typeof AuthenticatedCampusRoute
   '/family': typeof AuthenticatedFamilyRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/campus-preview': typeof CampusPreviewRoute
+  '/classroom-milestone': typeof ClassroomMilestoneRoute
   '/credits': typeof CreditsRoute
   '/campus': typeof AuthenticatedCampusRoute
   '/family': typeof AuthenticatedFamilyRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/campus-preview': typeof CampusPreviewRoute
+  '/classroom-milestone': typeof ClassroomMilestoneRoute
   '/credits': typeof CreditsRoute
   '/_authenticated/campus': typeof AuthenticatedCampusRoute
   '/_authenticated/family': typeof AuthenticatedFamilyRoute
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/campus-preview'
+    | '/classroom-milestone'
     | '/credits'
     | '/campus'
     | '/family'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/campus-preview'
+    | '/classroom-milestone'
     | '/credits'
     | '/campus'
     | '/family'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/campus-preview'
+    | '/classroom-milestone'
     | '/credits'
     | '/_authenticated/campus'
     | '/_authenticated/family'
@@ -224,6 +236,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   CampusPreviewRoute: typeof CampusPreviewRoute
+  ClassroomMilestoneRoute: typeof ClassroomMilestoneRoute
   CreditsRoute: typeof CreditsRoute
 }
 
@@ -255,6 +268,13 @@ declare module '@tanstack/react-router' {
       path: '/campus-preview'
       fullPath: '/campus-preview'
       preLoaderRoute: typeof CampusPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/classroom-milestone': {
+      id: '/classroom-milestone'
+      path: '/classroom-milestone'
+      fullPath: '/classroom-milestone'
+      preLoaderRoute: typeof ClassroomMilestoneRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/credits': {
@@ -382,6 +402,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   CampusPreviewRoute: CampusPreviewRoute,
+  ClassroomMilestoneRoute: ClassroomMilestoneRoute,
   CreditsRoute: CreditsRoute,
 }
 export const routeTree = rootRouteImport
