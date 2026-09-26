@@ -307,6 +307,57 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_plans: {
+        Row: {
+          course_id: string
+          created_at: string
+          created_by: string
+          family_id: string
+          id: string
+          lesson_id: string
+          note: string | null
+          scheduled_at: string
+          student_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          created_by?: string
+          family_id: string
+          id?: string
+          lesson_id: string
+          note?: string | null
+          scheduled_at: string
+          student_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          created_by?: string
+          family_id?: string
+          id?: string
+          lesson_id?: string
+          note?: string | null
+          scheduled_at?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_plans_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_plans_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lessons: {
         Row: {
           alley_greeting: string | null
@@ -376,6 +427,7 @@ export type Database = {
           id: string
           interests: string[]
           learning_style: string | null
+          login_email: string | null
           mascot_accessory: string
           mascot_color: string
           portrait: Json
@@ -393,6 +445,7 @@ export type Database = {
           id: string
           interests?: string[]
           learning_style?: string | null
+          login_email?: string | null
           mascot_accessory?: string
           mascot_color?: string
           portrait?: Json
@@ -410,6 +463,7 @@ export type Database = {
           id?: string
           interests?: string[]
           learning_style?: string | null
+          login_email?: string | null
           mascot_accessory?: string
           mascot_color?: string
           portrait?: Json

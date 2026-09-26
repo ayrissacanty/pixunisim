@@ -8,6 +8,13 @@
       "when": 1790041102815,
       "tag": "0000_create_student_progression",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790382437799,
+      "tag": "0001_family_members_and_lesson_planner",
+      "breakpoints": true
     }
   ]
 }
