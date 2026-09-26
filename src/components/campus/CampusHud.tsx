@@ -11,6 +11,7 @@ import {
   Map,
   MoveDiagonal,
   Palette,
+  Rotate3D,
   ScrollText,
   Sunrise,
 } from "lucide-react";
@@ -18,7 +19,7 @@ import { useCampusStore } from "@/lib/campus/store";
 import { ZONE_LABELS } from "@/lib/campus/world";
 import { Button } from "@/components/ui/button";
 import { Minimap } from "@/components/campus/Minimap";
-import { CampusTracker } from "@/components/campus/QuestPanel";
+import { CampusTracker, useLessonWorldLauncher } from "@/components/campus/QuestPanel";
 import { MOTION_LABELS, useMotionStore } from "@/lib/a11y/motion";
 import { ASSIST_LABEL, useAssistStore } from "@/lib/a11y/assist";
 import { useDebugMode } from "@/lib/debug";
@@ -76,6 +77,7 @@ export function CampusHud({
   const style = useStyleStore((s) => s.style);
   const toggleStyle = useStyleStore((s) => s.toggle);
   const debug = useDebugMode() || forceDebug;
+  const lessonWorld = useLessonWorldLauncher();
 
   useEffect(() => applyStyleToDocument(style), [style]);
 
@@ -231,6 +233,18 @@ export function CampusHud({
           onClick={() => setQuestsOpen(true)}
         >
           <ScrollText className="size-5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="block-btn size-11 border-secondary-foreground/25 p-0 sm:size-12"
+          aria-label={lessonWorld.world ? `Enter the ${lessonWorld.world.label} lesson world` : "No lesson world waiting"}
+          data-testid="hud-lesson-world"
+          title={lessonWorld.world ? lessonWorld.world.label : "Lesson world"}
+          disabled={!lessonWorld.target}
+          onClick={lessonWorld.open}
+        >
+          <Rotate3D className="size-5" />
         </Button>
         <Button
           size="sm"

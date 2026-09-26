@@ -1636,6 +1636,20 @@ const builders: Record<string, () => ZoneMap> = {
           },
         },
         {
+          id: "geometry-studio",
+          name: "Geometry Studio",
+          courseId: "foundations-geometry",
+          lessonId: "geometry-lesson-1",
+          teacher: {
+            id: "prof-euclid",
+            name: "Professor Ada Quill",
+            lines: [
+              "Every triangle keeps a secret: its angles always add to 180 degrees.",
+              "Grab a protractor. Today we prove it.",
+            ],
+          },
+        },
+        {
           id: "computer-lab",
           name: "Computer Lab",
           furniture: "computers",
@@ -1770,6 +1784,49 @@ const builders: Record<string, () => ZoneMap> = {
             lines: [
               "Egypt lasted three thousand years. Let us find out why.",
               "We will write as we go, so keep your notes close.",
+            ],
+          },
+        },
+        {
+          id: "english-classroom",
+          name: "English Classroom",
+          courseId: "english-language-arts",
+          lessonId: "english-lesson-1",
+          teacher: {
+            id: "prof-hart",
+            name: "Ms. Rosalind Hart",
+            lines: [
+              "Every word in a sentence has a job. Let's hire the right ones.",
+              "Today: parts of speech and sentences that stand on their own.",
+            ],
+          },
+        },
+        {
+          id: "literature-library",
+          name: "Literature Library",
+          furniture: "soft",
+          courseId: "literature-library",
+          lessonId: "literature-lesson-1",
+          teacher: {
+            id: "librarian-okafor",
+            name: "Librarian Theo Okafor",
+            lines: [
+              "Every book on these shelves is built from the same four pieces.",
+              "Find the character, setting, plot and theme, and any story opens up.",
+            ],
+          },
+        },
+        {
+          id: "government-chamber",
+          name: "Government Chamber",
+          courseId: "civics-government",
+          lessonId: "government-lesson-1",
+          teacher: {
+            id: "prof-marshall",
+            name: "Professor June Marshall",
+            lines: [
+              "Order in the chamber! Today we split power three ways.",
+              "Legislative, executive, judicial. Let's see how they keep each other honest.",
             ],
           },
         },

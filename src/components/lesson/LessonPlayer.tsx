@@ -195,7 +195,14 @@ export function LessonPlayer({
         <ImmersiveLessonWorld
           subject={lesson.subject}
           title={lesson.title}
+          courseId={lesson.course_id}
           sectionHeading={section?.heading}
+          sectionHeadings={sections.map((s) => s.heading)}
+          activeSection={step}
+          onJumpToSection={(target) => {
+            setStep(target);
+            void persist("in_progress", Math.min(target + 1, sections.length), target);
+          }}
         />
 
         {!onQuiz && section && (
