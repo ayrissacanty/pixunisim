@@ -1,0 +1,203 @@
+import { HallScene, GOTO } from "../src/hall3d/HallScene";
+import { HallSocial } from "../src/hall3d/hallsocial";
+import { AvatarCreator } from "../src/hall3d/avatarui";
+import { Social } from "../src/hall3d/social";
+import { PERIODS, clockStr } from "../src/hall3d/logic";
+import { openTimes } from "../src/game/timesui";
+import { Progress, ALL_SUBJECTS } from "../src/game/progress";
+import { runPlacement } from "../src/game/placement";
+import { openPic } from "../src/game/wallart";
+import { openNewsPanel } from "../src/game/newstv";
+import { CURRICULUM } from "../src/class3d/curriculum";
+import { Lockers, lockerNear, slot as lockerSlot } from "../src/game/lockers";
+import { openLocker } from "../src/hall3d/lockerui";
+import { ACTIONS, EMOTES, GAITS } from "../src/hall3d/actions";
+import { decay } from "../src/hall3d/relate";
+import { loadTrends } from "../src/hall3d/trends";
+import { byId } from "../src/hall3d/roster";
+import { World, themeOf, refreshWeather } from "../src/game/world";
+import { WeatherFx } from "../src/hall3d/weatherfx";
+import { Ambience } from "../src/hall3d/ambience";
+import { openHub } from "../src/hall3d/hubui";
+import { openGames } from "../src/game/minigames";
+import { Quests } from "../src/game/quests";
+import { Cosm } from "../src/game/cosmetics";
+import { Story, lastTextDay, markTextDay } from "../src/game/community";
+import { Safety } from "../src/game/safety";
+import { Events } from "../src/game/events";
+import { Gfx } from "../src/hall3d/mood";
+import { isPixar } from "../src/shared/look";
+const $ = (id: string) => document.getElementById(id)!;
+const hall = new HallScene($("game")); (window as any).__hall = hall;
+hall.onToast = (m) => { const t = $("toast"); t.textContent = m; t.classList.toggle("show", !!m); clearTimeout((hall as any)._tt); if (m) (hall as any)._tt = setTimeout(() => t.classList.remove("show"), 3500); };
+const social = new HallSocial(hall, document.body); (window as any).__social = social;
+const creator = new AvatarCreator(document.body); (window as any).__creator = creator;
+const lock = (on: boolean) => { hall.inputLocked = on; };
+const askAssess = () => { if (Progress.assessOn && !Progress.assessment()) { lock(true); void runPlacement().then(() => lock(false)); } };
+creator.onSave = (spec) => { hall.setAvatar(spec); lock(false); hall.onToast(`Looking good, ${spec.name}!`); setTimeout(askAssess, 400); };
+creator.onCancel = () => lock(false);
+{ const gb = $("bGfx"), paint = () => { gb.textContent = "Graphics: " + (Gfx.mode === "auto" ? (Gfx.low ? "Auto (lowered)" : "Auto") : Gfx.mode === "low" ? "Low (fast)" : "High"); }; gb.onclick = () => { Gfx.cycle(); paint(); }; Gfx.onChange(paint); paint(); }
+$("bAvatar").onclick = () => { lock(true); creator.show(); };
+$("bCloset").onclick = () => { lock(true); creator.show("Closet"); };
+$("bFriends").onclick = () => social.journal.toggle();
+const chip = $("talkChip"); social.onNearby = (p) => { chip.classList.toggle("show", !!p); if (p) chip.textContent = `Talk to ${p.def?.first} (T)`; };
+chip.onclick = () => { if (social.nearby) social.talkTo(social.nearby); };
+if (!Social.profile.hasAvatar) setTimeout(() => { lock(true); creator.show(); }, 600); else setTimeout(askAssess, 900);
+$("bTake").onclick = () => { lock(true); void runPlacement().then((r) => { lock(false); if (r) hall.onToast("Starting points saved. Extra lessons are in each classroom."); }); };
+const held: Record<string, boolean> = {};
+const upd = () => { hall.input.x = (held.r ? 1 : 0) - (held.l ? 1 : 0); hall.input.y = (held.d ? 1 : 0) - (held.u ? 1 : 0); };
+document.querySelectorAll<HTMLElement>("[data-k]").forEach((b) => { const k = b.dataset.k!; b.addEventListener("pointerdown", (e) => { e.preventDefault(); held[k] = true; upd(); }); ["pointerup", "pointerleave", "pointercancel"].forEach((e) => b.addEventListener(e, () => { held[k] = false; upd(); })); });
+document.querySelectorAll<HTMLElement>("[data-rot]").forEach((b) => { const k = +b.dataset.rot!; b.addEventListener("pointerdown", (e) => { e.preventDefault(); hall.rotate = k; }); ["pointerup", "pointerleave", "pointercancel"].forEach((e) => b.addEventListener(e, () => { hall.rotate = 0; })); });
+const menu = $("goMenu"), viewMenu = $("viewMenu"), meMenu = $("meMenu"), menus = [menu, viewMenu, meMenu];
+const toggle = (m: HTMLElement) => { const open = !m.classList.contains("show"); menus.forEach((x) => x.classList.remove("show")); m.classList.toggle("show", open); };
+$("bViewM").onclick = () => toggle(viewMenu); $("bMe").onclick = () => toggle(meMenu);
+const times = () => { menus.forEach((x) => x.classList.remove("show")); lock(true); openTimes({ onGo: (s) => { lock(false); hall.goTo(s); } }); };
+$("bTimes").onclick = times;
+document.addEventListener("pointerdown", (e) => { if (!(e.target as HTMLElement).closest(".menu, #goMenu, #bGo, #bViewM, #bMe")) menus.forEach((x) => x.classList.remove("show")); });
+menus.forEach((m) => m.addEventListener("click", (e) => { if ((e.target as HTMLElement).closest("button") && m !== menu) setTimeout(() => m.classList.remove("show"), 0); }));
+addEventListener("unify:times-closed", () => lock(false));
+const bchip = $("boardChip"); bchip.onclick = times;
+addEventListener("keydown", (e) => { if ((e.key === "b" || e.key === "B") && !(e.target as HTMLElement)?.closest("input,textarea")) times(); });
+setInterval(() => { const p = hall.player.pos, b = hall.boardPos; bchip.classList.toggle("show", Math.hypot(p.x - b.x, p.z - b.z) < 3.4 && p.z > b.z - 0.2); }, 250);
+GOTO.forEach((g) => { const b = document.createElement("button"); b.innerHTML = `<i style="background:${g.color}"></i>${g.label}`; b.onclick = () => { menu.classList.remove("show"); hall.goTo(g.key); }; menu.appendChild(b); });
+$("bGo").onclick = () => toggle(menu);
+$("game").addEventListener("pointerdown", () => menu.classList.remove("show"));
+$("bSpd").onclick = () => { hall.speed = hall.speed === 1 ? 4 : hall.speed === 4 ? 16 : 1; $("bSpd").textContent = `Speed x${hall.speed}`; };
+const NAMES = { close: "Close-up", overview: "Overview", first: "First person" } as const;
+$("bView").onclick = () => { const v = hall.cycleView(); $("bView").textContent = `View: ${NAMES[v]}`; };
+setInterval(() => {
+  const P = PERIODS[Math.max(0, hall.idx)]; $("clk").textContent = clockStr(hall.clock); $("per").textContent = P.name; ($("fill") as HTMLElement).style.width = `${((hall.clock - P.start) / P.len) * 100}%`;
+  const seen = hall.students.filter((x) => !x.hidden).length; $("cnt").textContent = `${seen} in the hall, ${hall.students.length - seen} in class or away`;
+  const [r, g, b, a] = hall.tint; ($("tint") as HTMLElement).style.background = `rgba(${r | 0},${g | 0},${b | 0},${a})`;
+}, 200);
+if (!isPixar()) (() => { const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d")!, d = x.createImageData(256, 256);
+  for (let i = 0; i < d.data.length; i += 4) { const v = 226 + Math.random() * 29; d.data[i] = v; d.data[i + 1] = v * 0.965; d.data[i + 2] = v * 0.9; d.data[i + 3] = 255; }
+  x.putImageData(d, 0, 0); x.lineCap = "round"; for (let i = 0; i < 260; i++) { x.strokeStyle = `rgba(255,250,240,${0.08 + Math.random() * 0.16})`; x.lineWidth = 0.6 + Math.random() * 0.5; const px = Math.random() * 256, py = Math.random() * 256, a = Math.random() * 6.28, l = 3 + Math.random() * 9; x.beginPath(); x.moveTo(px, py); x.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); x.stroke(); }
+  $("paper").style.backgroundImage = `url(${c.toDataURL()})`; })();
+
+/* ---- lockers: a chip appears at any locker (open, a classmate's, or yours); L opens it; the Me menu finds yours or an open one ---- */
+const lchip = $("lockerChip"); let nearLocker: number | null = null;
+const syncMark = () => { const sl = Lockers.mine != null ? lockerSlot(Lockers.mine) ?? null : null; hall.setMyLocker(sl, Social.profile.name || "Mine"); };
+syncMark(); Lockers.onChange(syncMark); Social.onChange(syncMark);
+const openL = (id: number) => { lock(true); openLocker(id, () => lock(false)); };
+setInterval(() => {
+  const p = hall.player.pos, s = lockerNear(p.x + 28, p.z + 22); nearLocker = s ? s.id : null; lchip.classList.toggle("show", !!s && !hall.inputLocked);
+  if (s) { const o = Lockers.owner(s.id); lchip.textContent = o?.kind === "mine" ? "Open your locker (L)" : o?.kind === "npc" ? `Peek at ${o.npc.first}'s locker (L)` : o?.kind === "kid" ? `Peek at ${o.kid.name}'s locker (L)` : `Locker ${s.id} is open: look inside (L)`; }
+}, 200);
+lchip.onclick = () => { if (nearLocker != null) openL(nearLocker); };
+addEventListener("keydown", (e) => { if ((e.key === "l" || e.key === "L") && !(e.target as HTMLElement)?.closest("input,textarea") && nearLocker != null && !hall.inputLocked) openL(nearLocker); });
+$("bLocker").onclick = () => { if (Lockers.mine == null) { hall.onToast("You don't have a locker yet. Use Find an open locker."); return; } const sl = lockerSlot(Lockers.mine); if (sl) hall.goToSlot(sl); };
+$("bOpenLocker").onclick = () => { const p = hall.player.pos, s = Lockers.nearestOpen(p.x + 28, p.z + 22); if (s) hall.goToSlot(s); };
+
+/* ---- wall pictures and the news TV are tappable ---- */
+hall.onPic = (pid, _title, subject) => { lock(true); const ls = (CURRICULUM as any)[subject] ?? [], cur = ls[Progress.index(subject as any, ls.length)]; openPic(pid, { lesson: cur?.title, onClose: () => lock(false) }); };
+hall.onTV = () => { lock(true); openNewsPanel(() => lock(false), () => parent !== window && parent.postMessage({ type: "unify:open", view: "news" }, "*")); };
+
+/* ---- the school day: ride the bus in, walk to the bulletin board, make the schedule, go inside (assembly, then first class); sit at Chat Chow when idle ---- */
+const todayKey = () => new Date().toDateString();
+const assemblyDone = () => { try { return localStorage.getItem("unify.assembly.day") === todayKey(); } catch { return false; } };
+const firstClass = () => { let best: { s: string; m: number } | null = null; for (const s of ALL_SUBJECTS) { const m = Progress.pickedFor(s, false); if (m !== null && (!best || m < best.m)) best = { s, m }; } return best?.s ?? null; };
+let afterStage: (() => void) | null = null, dayStarted = false, lastAct = Date.now();
+let flowActive = false, classGuided = false; const guided: Record<string, boolean> = {};
+const goFirst = () => { classGuided = true; const s = firstClass(); if (s) hall.goTo(s); else { hall.onToast("Pick a class time on the bulletin board by the front door."); hall.goTo("board"); } };
+const gotoNext = () => { flowActive = false; guided.news = true; if (!assemblyDone()) { afterStage = goFirst; hall.goTo("news"); } else goFirst(); };
+const inside = () => hall.walkInside(gotoNext);
+const atBoard = () => {
+  const have = ALL_SUBJECTS.some((s) => Progress.pickedFor(s, false) !== null);
+  if (have) { setTimeout(inside, 1600); return; }
+  hall.onToast("Pick your class times on the bulletin board."); lock(true);
+  const done = () => { removeEventListener("unify:times-closed", done); setTimeout(inside, 500); };
+  addEventListener("unify:times-closed", done); openTimes({ onGo: () => { /* we walk in ourselves */ } });
+};
+const skip = document.createElement("button"); skip.id = "skipArr"; skip.textContent = "Skip arrival ▸"; skip.style.cssText = "position:fixed;right:12px;bottom:96px;z-index:50;display:none;font:inherit;font-size:14px;padding:6px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.7);background:#F3E7CF;color:#4A3B3F;box-shadow:0 2px 0 #C9B28A;cursor:pointer"; document.body.appendChild(skip); skip.onclick = () => hall.skipCine();
+setInterval(() => { skip.style.display = hall.cine || (dayStarted && hall.inputLocked && !document.querySelector(".tmWrap.show, #creator.show") && hall.bus?.visible) ? "block" : "none"; }, 300);
+const startDay = () => { if (dayStarted || new URLSearchParams(location.search).has("nobus")) return; dayStarted = true; flowActive = true; setTimeout(() => hall.startArrival(atBoard), 400); };
+if (Social.profile.hasAvatar) setTimeout(startDay, 1500); else creator.onSave = ((orig) => (spec, nm) => { orig(spec, nm); setTimeout(startDay, 1400); })(creator.onSave);
+addEventListener("message", (e) => { const m = e.data; if (m && m.type === "unify:exit" && afterStage) { const f = afterStage; afterStage = null; classGuided = true; setTimeout(f, 700); } });
+/* ---- visible guide: assembly first (light pillar over the auditorium + banner + "Take me there"), then the first class ---- */
+{
+  const bar = document.createElement("div"); bar.id = "guideBar";
+  bar.style.cssText = "position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:48;display:none;align-items:center;gap:8px;max-width:94vw;padding:8px 10px 8px 14px;border-radius:16px;background:#F3E7CF;color:#4A3B3F;font:15px 'Fredoka','Trebuchet MS',system-ui,sans-serif;border:2px solid #EAB94E;box-shadow:0 3px 0 #C9B28A,0 10px 24px rgba(60,40,30,.4)";
+  const txt = document.createElement("span"), go = document.createElement("button"), x = document.createElement("button");
+  const bs = "font:inherit;border-radius:12px;border:1px solid rgba(255,255,255,.75);cursor:pointer;min-height:38px;touch-action:manipulation;";
+  go.style.cssText = bs + "padding:6px 12px;background:#EAB94E;color:#4A3B3F;font-weight:700;box-shadow:0 2px 0 #B98A24"; go.textContent = "Take me there";
+  x.style.cssText = bs + "padding:6px 10px;background:#fff8;color:#4A3B3F"; x.textContent = "✕"; x.setAttribute("aria-label", "Dismiss");
+  bar.append(txt, go, x); document.body.appendChild(bar);
+  let cur: { key: string; board?: boolean } | null = null;
+  const hide = () => { cur = null; bar.style.display = "none"; hall.setBeacon(null); };
+  const show = (key: string, msg: string, beacon: string | null, board?: boolean) => { if (cur?.key === key) return; cur = { key, board }; txt.textContent = msg; bar.style.display = "flex"; hall.setBeacon(beacon); hall.onToast(msg); };
+  go.onclick = () => { if (!cur) return; const c = cur; guided[c.key] = true; if (c.key === "news") afterStage = goFirst; else classGuided = true; hide(); if (c.key === "news") hall.goTo("news"); else if (c.board) hall.goTo("board"); else hall.goTo(c.key); if (!c.board) hall.setBeacon(c.key); };
+  x.onclick = () => { if (cur) guided[cur.key] = true; hide(); };
+  setInterval(() => {
+    const busy = hall.inputLocked || hall.cine || flowActive || !Social.profile.hasAvatar || !!document.querySelector(".tmWrap.show, #creator.show");
+    if (busy) { if (cur && (hall.inputLocked || hall.cine)) hide(); return; }
+    if (cur && (hall as any).inDoor === cur.key) { guided[cur.key] = true; hide(); return; }
+    if (hall.walking) return;
+    if (!assemblyDone()) { if (!guided.news) show("news", "Morning assembly: head to the Auditorium", "news"); else if (cur?.key === "news") hide(); return; }
+    if (cur?.key === "news") hide();
+    if (!classGuided && !afterStage) { const s = firstClass(); if (s) { if (!guided[s]) show(s, `Assembly is over. Next up: ${GOTO.find((g) => g.key === s)?.label ?? s}`, s); } else if (!guided.board) show("board", "Pick your class times on the bulletin board by the front door", null, true); }
+  }, 1000);
+  addEventListener("message", (e) => { if (e.data?.type === "unify:exit") { hide(); if (assemblyDone()) delete guided.news; } });
+}
+["pointerdown", "keydown", "touchstart"].forEach((ev) => addEventListener(ev, () => { lastAct = Date.now(); }, true));
+setInterval(() => { if (dayStarted && !hall.inputLocked && !hall.walking && !hall.cine && hall.sitting == null && Date.now() - lastAct > 25000) hall.autoSit(); }, 2500);
+
+/* ---- emotes and walking style: the player's own body language ---- */
+(() => {
+  const st = document.createElement("style"); st.textContent = `#emoBtn{position:fixed;right:12px;bottom:150px;z-index:46}#emoBtn,.emo button,.emo select{font:inherit;font-size:14px;color:#4A3B3F;background:#F3E7CF;border:1px solid rgba(255,255,255,.75);border-radius:12px;padding:6px 12px;min-height:38px;cursor:pointer;box-shadow:0 2px 0 #C9B28A,0 6px 10px rgba(80,50,40,.28);touch-action:manipulation}
+.emo{position:fixed;right:12px;bottom:196px;z-index:47;width:min(330px,94vw);background:#F3E7CF;border-radius:16px;padding:10px;box-shadow:0 3px 0 #C9B28A,0 12px 26px rgba(60,40,30,.45);border:1px solid rgba(255,255,255,.8);display:none;font-family:'Fredoka','Trebuchet MS',system-ui,sans-serif}.emo.show{display:block}
+.emo .g{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.emo .g button{padding:6px 4px;font-size:13px;min-height:44px}.emo .g button i{display:block;font-style:normal;font-size:20px;line-height:1.1}.emo .r{margin-top:8px;display:flex;gap:8px;align-items:center;font-size:13px;color:#4A3B3F}.emo select{flex:1;padding:6px}`; document.head.appendChild(st);
+  const b = document.createElement("button"); b.id = "emoBtn"; b.textContent = "😄 Emotes"; document.body.appendChild(b);
+  const panel = document.createElement("div"); panel.className = "emo"; document.body.appendChild(panel);
+  const g = document.createElement("div"); g.className = "g"; panel.appendChild(g);
+  for (const k of EMOTES) { const a = ACTIONS[k], x = document.createElement("button"); x.innerHTML = `<i>${a.icon}</i>${a.label}`; x.onclick = () => { hall.emote(k); }; g.appendChild(x); }
+  const r = document.createElement("div"); r.className = "r"; r.innerHTML = "<span>Walk style</span>"; const sel = document.createElement("select"); for (const [k, v] of Object.entries(GAITS)) { const o = document.createElement("option"); o.value = k; o.textContent = v.name; sel.appendChild(o); }
+  try { const sv = localStorage.getItem("unify.gait"); if (sv && GAITS[sv]) hall.setGait(sv); } catch { /* none */ } sel.value = hall.gait; sel.onchange = () => hall.setGait(sel.value); r.appendChild(sel); panel.appendChild(r);
+  b.onclick = () => panel.classList.toggle("show");
+  document.getElementById("game")!.addEventListener("pointerdown", () => panel.classList.remove("show"));
+  addEventListener("keydown", (e) => { if ((e.target as HTMLElement)?.closest("input,textarea")) return; const i = "1234567890".indexOf(e.key); if (i >= 0 && !hall.inputLocked) hall.emote(EMOTES[i]); });
+})();
+
+/* ---- friendships: slow growth, fading if you never visit, a contact unlocks at 20 points; trending topics come from trends.json when present ---- */
+decay(); void loadTrends();
+addEventListener("unify:contact", (e) => { const id = (e as CustomEvent).detail?.id, n = byId(Number(id)); hall.onToast(`${n?.first ?? "A classmate"} is now in your phone contacts!`); });
+
+/* ---- the living school: seasons and weather (from the family's area if they opted in), decorations, sound, quests, crew look ---- */
+new WeatherFx(document.body);
+const applyTheme = () => hall.setTheme(themeOf());
+applyTheme(); void refreshWeather().then(applyTheme); World.onChange(applyTheme); setInterval(() => void refreshWeather(), 10 * 60e3);
+["pointerdown", "keydown", "touchstart"].forEach((ev) => addEventListener(ev, () => Ambience.start(), { passive: true }));
+let lastIdx = -2; setInterval(() => {
+  const walking = hall.walking || hall.input.x !== 0 || hall.input.y !== 0, seen = hall.students.filter((x) => !x.hidden).length;
+  Ambience.update({ walking, crowd: seen, room: "hall" }, 0.25); if (hall.idx !== lastIdx) { if (lastIdx !== -2) Ambience.bell(); lastIdx = hall.idx; }
+}, 250);
+addEventListener("unify:quest-done", () => Ambience.ding());
+// Chat Chow crew look on the table you sit at
+let chowHome = +(localStorage.getItem("unify.chow.home") || 0);
+const applyCrew = () => { hall.applyChow(Math.min(chowHome, Math.max(0, hall.tableCount - 1)), Cosm.eq("cloth")?.color ?? "#E8604C", Cosm.eq("flag")?.art ?? "⭐", Cosm.crewName()); };
+setTimeout(applyCrew, 400); addEventListener("unify:cosmetics", applyCrew);
+let wasSitting = false; setInterval(() => { const sit = hall.sitting != null; if (sit && !wasSitting) { chowHome = hall.tableNear(hall.player.pos.x, hall.player.pos.z); try { localStorage.setItem("unify.chow.home", String(chowHome)); } catch { /* none */ } applyCrew(); Quests.track("chow"); } wasSitting = sit; }, 600);
+// quests from what the player does
+{ const em = hall.emote.bind(hall) as any; (hall as any).emote = (...a: any[]) => { Quests.track("emote"); return em(...a); }; const pa = hall.playAction.bind(hall) as any; (hall as any).playAction = (...a: any[]) => { if (a[0] && a[0] !== hall.player) { /* NPC reactions don't count */ } return pa(...a); }; }
+{ const tt = social.talkTo.bind(social) as any; (social as any).talkTo = (p: any) => { Quests.track("talk", String(p?.def?.id ?? "x")); return tt(p); }; }
+addEventListener("unify:progress", () => Quests.track("lesson"));
+addEventListener("storage", (e) => { if (e.key === "unify.assembly.day") Quests.track("assembly"); if (e.key === "unify.opendoor.visit") Quests.track("opendoor"); if (e.key === "unify.trip.visit") Quests.track("trip"); if (e.key === "unify.opendoor.kind") Quests.track("kind"); });
+addEventListener("unify:event-adopt", () => hall.setAvatar(Social.profile.avatar));
+// the Today panel
+const hubHooks = { applyTheme, openGames: () => { lock(true); openGames(() => lock(false)); }, openTrip: () => { if (parent !== window) parent.postMessage({ type: "unify:open", view: "trip" }, "*"); else hall.onToast("Open index.html to take a VR field trip."); }, goTo: (k: string) => hall.goTo(k) };
+$("bToday").onclick = () => { lock(true); openHub({ ...hubHooks, onClose: () => lock(false) }); };
+addEventListener("keydown", (e) => { if ((e.key === "y" || e.key === "Y") && !(e.target as HTMLElement)?.closest("input,textarea") && !hall.inputLocked) { lock(true); openHub({ ...hubHooks, onClose: () => lock(false) }); } });
+setInterval(() => Safety.tick(), 60e3); let nudged = 0; setInterval(() => { if (Safety.overLimit() && Date.now() - nudged > 15 * 60e3) { nudged = Date.now(); hall.onToast("You've reached your daily school time. Time for a stretch, a snack and some sunshine! 🌞"); } }, 30e3);
+if (Events.today().live && !World.prefs.quiet) setTimeout(() => hall.onToast(Events.banner()), 4000);
+
+// friends visiting (only people you already message, only while switched on) + friendly texts + the daily buzz
+{
+  const P = (window as any).PhoneNet; let offW: (() => void) | null = null;
+  const stop = () => { offW?.(); offW = null; hall.setVisitors([]); };
+  const start = async () => { if (!P) return; try { stop(); const m = await P.me(); if (!m.user || !P.presence.enabled()) return; offW = P.presence.watch((l: any[]) => hall.setVisitors(l)); } catch { /* offline */ } };
+  setTimeout(start, 3000); addEventListener("unify:presence-change", () => { if (P?.presence.enabled()) start(); else stop(); });
+  setInterval(() => { try { if (P && P.presence.enabled() && P.meId()) P.presence.announce({ avatar: Social.profile.avatar, ...hall.myState() }); } catch { /* ignore */ } }, 1000);
+  addEventListener("pagehide", () => { try { P?.presence.clear(); } catch { /* ignore */ } });
+}
+setTimeout(() => { if (lastTextDay() === new Date().toISOString().slice(0, 10) || parent === window) return; const t = Story.texts(); if (t.length) { markTextDay(); t.forEach((x, i) => setTimeout(() => parent.postMessage({ type: "unify:text", from: x.from, text: x.text }, "*"), 4000 + i * 5000)); } }, 25e3);
+if (!Events.today().live || World.prefs.quiet) setTimeout(() => hall.onToast("📰 " + Story.buzz()[0]), 6000);
