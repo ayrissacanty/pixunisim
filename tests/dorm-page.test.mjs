@@ -168,9 +168,9 @@ async function functional() {
   ok("style toggle -> papercut", (await page.evaluate(() => window.__dorm.style)) === "papercut");
 
   // tap -> hotspot opens panel; tap avatar waves; auto-rotate is off; reset view
-  const pt = await page.evaluate(() => { const d = window.__dorm, h = d.api.hotspots.find((x) => x.id === "wardrobe"), v = new d.THREE.Vector3().copy(h.focus.target).project(d.camera); const r = d.renderer.domElement.getBoundingClientRect(); return { x: r.left + (v.x * 0.5 + 0.5) * r.width, y: r.top + (-v.y * 0.5 + 0.5) * r.height }; });
+  const pt = await page.evaluate(() => { const d = window.__dorm, h = d.api.hotspots.find((x) => x.id === "wardrobe"), v = new d.THREE.Vector3().copy(h.focus.target).multiplyScalar(1.3).project(d.camera); const r = d.renderer.domElement.getBoundingClientRect(); return { x: r.left + (v.x * 0.5 + 0.5) * r.width, y: r.top + (-v.y * 0.5 + 0.5) * r.height }; });
   await page.evaluate(() => { window.__dorm.cam.reset(0); window.__dorm.step(5); });
-  const pt2 = await page.evaluate(() => { const d = window.__dorm, h = d.api.hotspots.find((x) => x.id === "computer"), v = new d.THREE.Vector3().copy(h.focus.target).project(d.camera); const r = d.renderer.domElement.getBoundingClientRect(); return { x: r.left + (v.x * 0.5 + 0.5) * r.width, y: r.top + (-v.y * 0.5 + 0.5) * r.height }; });
+  const pt2 = await page.evaluate(() => { const d = window.__dorm, h = d.api.hotspots.find((x) => x.id === "computer"), v = new d.THREE.Vector3().copy(h.focus.target).multiplyScalar(1.3).project(d.camera); const r = d.renderer.domElement.getBoundingClientRect(); return { x: r.left + (v.x * 0.5 + 0.5) * r.width, y: r.top + (-v.y * 0.5 + 0.5) * r.height }; });
   void pt; await page.mouse.click(pt2.x, pt2.y); await page.waitForTimeout(500);
   ok("tapping the computer on the desk opens the Computer panel", (await page.evaluate(() => window.__dorm.shell.openId)) === "computer");
   ok("computer lists apps (standalone: links to index.html)", (await page.locator('#sheet a.app[href="index.html"]').count()) >= 4);
@@ -178,7 +178,7 @@ async function functional() {
   ok("auto-rotate is off by default", await page.evaluate(() => window.__dorm.cam.autoRotating === false));
   await page.click("#dk-style"); await page.click('#sheet button:has-text("Slowly spin")'); ok("auto-rotate toggle", await page.evaluate(() => window.__dorm.cam.autoRotating === true)); await page.keyboard.press("Escape");
   await page.evaluate(() => { window.__dorm.cam.orbitBy(1.2, 0.3); }); await page.click("#dk-reset"); await settle(page, 40);
-  ok("reset view returns the camera", await page.evaluate(() => Math.abs(window.__dorm.camera.position.y - 2.75) < 0.35 && Math.abs(window.__dorm.camera.position.z - 6.3) < 0.5));
+  ok("reset view returns the camera", await page.evaluate(() => Math.abs(window.__dorm.camera.position.y - 2.75 * 1.3) < 0.45 && Math.abs(window.__dorm.camera.position.z - 6.3 * 1.3) < 0.65));
   // keys do not scroll the page behind
   const sc = await page.evaluate(() => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", cancelable: true })); return [document.scrollingElement.scrollTop, getComputedStyle(document.body).overflow]; });
   ok("page behind never scrolls", sc[0] === 0 && sc[1] === "hidden");
@@ -312,18 +312,20 @@ async function shell() {
   const stub = `navigator.mediaDevices=navigator.mediaDevices||{};navigator.mediaDevices.getDisplayMedia=async function(){if(window.__denyShot){const e=new Error('denied');e.name='NotAllowedError';throw e;}const c=document.createElement('canvas');c.width=1600;c.height=900;const g=c.getContext('2d');g.fillStyle='#4f91c7';g.fillRect(0,0,1600,900);setInterval(()=>{g.fillStyle='#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');g.fillRect(0,0,50,50);},50);return c.captureStream(20);};`;
   const ctx = await newCtx({}, stub + `try{if(!localStorage.getItem('unify.social.v1'))localStorage.setItem('unify.social.v1',JSON.stringify({v:1,mem:{},profile:{name:'Tester',hasAvatar:true}}));localStorage.setItem('unify.family.v1',JSON.stringify({mode:'guest'}));localStorage.setItem('unify.ui.always','1');}catch(e){}`); const page = await ctx.newPage(); watch(page, "shell");   // guest mode with an avatar already made: no sign-in sheet or first-run avatar screen in the way
   await page.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded", timeout: 90000 });
-  await page.waitForSelector("#tDorm", { timeout: 60000 });
+  await page.waitForSelector("#tDorm", { state: "attached", timeout: 60000 });
+  // destinations live in the slide-in side menu (auto-hides after 5 s): open it before each click on one of them
+  const menu = async (sel) => { if ((await page.getAttribute("#menuTab", "aria-expanded")) !== "true") await page.dispatchEvent("#menuTab", "click"); await page.dispatchEvent(sel, "click"); };
   ok("shell has the My Dorm and screenshot buttons", (await page.locator("#tDorm").count()) === 1 && (await page.locator("#tShot").count()) === 1);
   ok("dorm iframe is lazy (no src yet)", (await page.getAttribute("#fDorm", "src")) === null);
-  await page.click("#tDorm");
+  await menu("#tDorm");
   ok("My Dorm view opens dorm.html", (await page.getAttribute("#fDorm", "src")) === "dorm.html" && (await page.evaluate(() => document.getElementById("fDorm").classList.contains("on"))));
   const fr = page.frameLocator("#fDorm");
   await fr.locator("#dk-computer").waitFor({ timeout: 150000 });
   await fr.locator("#dk-computer").click(); await fr.locator('#sheet .app:has-text("Mail")').click();
   ok("computer Mail asks the shell to open Mail", await wait(page, () => document.getElementById("fMail").classList.contains("on"), null, 15000));
-  await page.click("#tDorm"); if ((await fr.locator('#dk-computer[aria-pressed="true"]').count()) === 0) await fr.locator("#dk-computer").click(); await fr.locator('#sheet .app:has-text("News")').click();
+  await menu("#tDorm"); if ((await fr.locator('#dk-computer[aria-pressed="true"]').count()) === 0) await fr.locator("#dk-computer").click(); await fr.locator('#sheet .app:has-text("News")').click();
   ok("computer News opens the Newsroom view", await wait(page, () => document.getElementById("fNews").classList.contains("on"), null, 15000));
-  await page.click("#tDorm"); await fr.locator("#dk-exit").click();
+  await menu("#tDorm"); await fr.locator("#dk-exit").click();
   ok("Back to school returns to the hallway", await wait(page, () => document.getElementById("fHall").classList.contains("on"), null, 15000));
   // screenshot button: refused, then allowed
   await page.evaluate(() => (window.__denyShot = true)); await page.click("#tShot");
@@ -332,7 +334,7 @@ async function shell() {
   ok("screenshot saved with the shared IndexedDB schema", await wait(page, () => /Saved to your dorm collage/.test(document.getElementById("shotToast").textContent), null, 20000));
   const rec = await page.evaluate(() => new Promise((res) => { const q = indexedDB.open("unify-dorm-photos", 1); q.onsuccess = () => { const r = q.result.transaction("photos").objectStore("photos").getAll(); r.onsuccess = () => res(r.result.map((x) => ({ kind: x.kind, type: x.blob.type, size: x.blob.size, id: typeof x.id, at: typeof x.at, cap: x.caption }))); }; }));
   ok("record is {kind:'screenshot', jpeg blob}", rec.length >= 1 && rec[0].kind === "screenshot" && rec[0].type === "image/jpeg" && rec[0].size > 500 && rec[0].id === "string" && rec[0].at === "number" && rec[0].cap === "", JSON.stringify(rec));
-  await page.click("#tDorm"); await fr.locator("#dk-collage").click();
+  await menu("#tDorm"); await fr.locator("#dk-collage").click();
   ok("the dorm collage shows the school screenshot", await wait(page, () => { const f = document.getElementById("fDorm").contentDocument; return f && f.querySelectorAll(".th img").length >= 1; }, null, 30000));
   await ctx.close();
 }

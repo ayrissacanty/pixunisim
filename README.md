@@ -85,4 +85,4 @@ The class-times bulletin board: classroom **Camera → Bulletin board**, hallway
 
 ---
 
-UNIFY Academy school app. Replaces the earlier Campus Quest app (still in git history before this commit). Pixar edition: `python3 tools/build_pixar_app.py` (docs/PIXAR_APP.md).
+UNIFY Academy school app. Replaces the earlier Campus Quest app (still in git history). Build: see netlify.toml; Pixar edition: python3 tools/build_pixar_app.py (docs/PIXAR_APP.md).
