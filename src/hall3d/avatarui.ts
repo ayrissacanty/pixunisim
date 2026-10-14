@@ -219,7 +219,7 @@ export class AvatarCreator {
     const bar = E("div", "uav-slots", b); bar.setAttribute("role", "tablist");
     for (const sl of slots) { const x = E("button", "uav-chip" + (sl.id === this.slot ? " on" : ""), bar, sl.label); x.type = "button"; x.setAttribute("role", "tab"); x.onclick = () => { this.slot = sl.id; this.render(false); }; }
     const sl = slots.find((x) => x.id === this.slot)!; if (sl.hint) E("p", "", b, sl.hint);
-    const cutOpts = sl.cuts!(a).filter((o) => !(sl.id === "top" && false) && !(o.id === "necklace" && !old));
+    const cutOpts = sl.cuts!(a).filter((o) => !(o.id === "necklace" && !old));
     if (sl.id === "onepiece" && !ID_ONE.includes(a.top)) E("p", "", b, "Not wearing a one-piece right now.");
     this.chips("Cut (scroll for more)", sl.cut!, cutOpts, undefined, true);
     const gone = (sl.id === "outer" && a.outer === "none") || (sl.id === "glasses" && a.glasses === "none") || (sl.id === "hat" && a.hat === "none") || (sl.id === "bag" && a.packStyle === "none") || (sl.id === "socks" && a.socks === "none");
