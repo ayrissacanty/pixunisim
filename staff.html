@@ -65,6 +65,7 @@ textarea{min-height:100px;resize:vertical}
 <div id="edit" class="panel hide"></div>
 <div class="tabs"><button id="tRoster" class="on">🧑‍🏫 Roster</button><button id="tGen">✨ New character</button></div>
 </div>
+<script src="hq-data.js"></script>
 <script>
 (function(){
 "use strict";
@@ -118,6 +119,16 @@ function mkChar(o){
   avatar:mkAvatar(grade,role),classroomId:role==="teacher"?"classroom-"+id:"",color:pick(COLORS)};
 }
 function seed(){
+ var D=window.UNIFY_HQ_DATA;
+ if(D&&Array.isArray(D.teachers)&&D.teachers.length){
+  return D.teachers.map(function(t){
+   return {id:t.id,role:"teacher",name:t.name,grade:"Staff",subject:t.subject,traits:[t.personality],
+    personality:[t.personality,t.quirk].filter(Boolean).join(" — ")||"",
+    voice:{pitch:1,rate:1,timbre:"warm"},
+    avatar:{age:"adult",build:"regular",skin:t.skin||"#d9a074",hair:t.hair||"#3a2a30",hairStyle:t.hairStyle||"crop"},
+    classroomId:t.room||"",seeded:true};
+  });
+ }
  return [
   {id:"seed-maple",role:"teacher",name:"Ms. Maple",grade:"k2",subject:"English",traits:["warm","patient","encouraging"],style:"storyteller",personality:"Reads every story with voices for each character and always has a spare bookmark for a friend.",voice:{pitch:1.2,rate:0.95,timbre:"warm"},avatar:{age:"adult",build:"regular",skin:"#f0c29b",hairStyle:"bun",hair:"#b5563e",top:"cardigan",shirt:"#eab94e",bottom:"skirt",pants:"#4a3b3f",shoeStyle:"loafer",hat:"none",glasses:"round"},classroomId:"classroom-seed-maple",color:"#E07A66"},
   {id:"seed-flint",role:"teacher",name:"Mr. Flint",grade:"g68",subject:"Science",traits:["curious","energetic","funny"],style:"scientist",personality:"Believes every lesson is better with one small, safe explosion and a lot of questions.",voice:{pitch:0.9,rate:1.05,timbre:"bright"},avatar:{age:"adult",build:"sturdy",skin:"#8d5a3e",hairStyle:"buzz",hair:"#2b2b33",top:"labcoat",shirt:"#4f91c7",bottom:"pants",pants:"#2b3a55",shoeStyle:"sneaker",hat:"none",glasses:"square"},classroomId:"classroom-seed-flint",color:"#4E8A64"},
@@ -143,6 +154,9 @@ function styleLabel(id){var f=STYLES.filter(function(x){return x[0]===id})[0];re
 
 function roster(){
  var g=$("roster");g.innerHTML="";
+ var nc=document.createElement("div");nc.className="card";nc.style.setProperty("--c","#8E7CC3");
+ nc.innerHTML='<h3>📋 Campus roster</h3><p>56 unique students live in the campus roster (auto-generated in-game).</p>';
+ g.appendChild(nc);
  S.forEach(function(c){
   var d=document.createElement("div");d.className="card";d.style.setProperty("--c",c.color||COLORS[0]);
   d.innerHTML='<div><span class="tag role'+(c.role==="student"?" student":"")+'">'+esc(c.role==="student"?"Student":"Teacher")+'</span><span class="tag">'+esc(bandOf(c))+'</span>'+(c.subject?'<span class="tag" style="--c:#8E7CC3">'+esc(c.subject)+'</span>':"")+'</div>'

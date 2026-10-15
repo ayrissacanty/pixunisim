@@ -87,9 +87,13 @@ th{color:var(--soft);font-weight:600;font-size:12px;text-transform:uppercase;let
 </main>
 </div>
 
+<script src="hq-data.js"></script>
 <script>
 (function(){
 'use strict';
+/* ---------- shared HQ data (degrades gracefully if hq-data.js missing) ---------- */
+var HQD=(typeof window.UNIFY_HQ_DATA==='object'&&window.UNIFY_HQ_DATA)||null;
+
 /* ---------- admin gate (exact contract) ---------- */
 const isAdmin=(()=>{try{return sessionStorage.getItem("unify.family.ci")==="parent"||localStorage.getItem("unify.opendoor.adult")==="1";}catch{return false;}})();
 var readOnly=!isAdmin;
@@ -127,15 +131,30 @@ function textbookCount(){
   return n;
 }
 function openIssues(){return issues().filter(function(i){return i.status!=='fixed';}).length;}
+function assetTotal(){
+  if(!HQD||!HQD.assets)return 0;
+  var n=0;
+  Object.keys(HQD.assets).forEach(function(k){
+    if(k==='note')return;
+    var v=HQD.assets[k];
+    if(typeof v==='number')n+=v;
+    else if(v&&typeof v==='object'&&!Array.isArray(v)){
+      Object.keys(v).forEach(function(k2){if(typeof v[k2]==='number')n+=v[k2];});
+    }
+  });
+  return n;
+}
+function studentCount(){return (HQD&&HQD.students&&HQD.students.count)||0;}
 
 /* ---------- agent cards ---------- */
 var AGENTS=[
- {icon:'📱',name:'Phone',file:'phone.html',badge:{t:'Student app — public',c:'public'},desc:'The student-facing campus phone: apps, messages, progress and cloud save.',status:function(){return '<b>'+lessonsCount()+'</b> lessons · <b>'+openIssues()+'</b> open issues';}},
+ {icon:'📱',name:'Phone',file:'phone.html',badge:{t:'Student app — public',c:'public'},desc:'The student-facing campus phone: apps, messages, progress and cloud save.',status:function(){return '<b>'+lessonsCount()+'</b> lessons · <b>'+openIssues()+'</b> open issues'+(studentCount()?' · Students: <b>'+studentCount()+'</b>':'');}},
  {icon:'🎛️',name:'Academy Control',file:'academy-control.html',desc:'Control campus room layouts, themes, decorations and file bugs for the agent team.',status:function(){return '<b>'+roomsCount()+'</b> rooms configured';}},
  {icon:'🧑‍🏫',name:'AI Staff',file:'staff.html',desc:'Manage the AI staff team that teaches and helps around campus.',status:function(){return '<b>'+staffCount()+'</b> staff members';}},
  {icon:'🎨',name:'Customize Studio',file:'customize.html',desc:'Customize the campus look: colors, characters and branding.',status:function(){return 'Studio ready';}},
  {icon:'📚',name:'Curriculum Builder',file:'curriculum-builder.html',desc:'Build and edit the lesson curriculum used across the academy.',status:function(){return '<b>'+lessonsCount()+'</b> lesson plans';}},
- {icon:'📖',name:'Textbook',file:'textbook.html',badge:{t:'Used in class',c:'class'},desc:'The interactive textbook agents use during class sessions.',status:function(){return '<b>'+textbookCount()+'</b> textbook entries';}}
+ {icon:'📖',name:'Textbook',file:'textbook.html',badge:{t:'Used in class',c:'class'},desc:'The interactive textbook agents use during class sessions.',status:function(){return '<b>'+textbookCount()+'</b> textbook entries';}},
+ {icon:'📦',name:'Assets',file:'academy-control.html',desc:'All art and environment files shipped with the main app (characters, auditorium, hall, decor, fpv, seatview, textbook).',status:function(){return '<b>'+assetTotal()+'</b> asset files';}}
 ];
 
 function renderAgents(){

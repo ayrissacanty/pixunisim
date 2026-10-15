@@ -141,14 +141,22 @@ th{color:var(--soft);font-weight:600;font-size:12px;text-transform:uppercase;let
         <h2>🗂️ Bug board</h2>
         <div id="bug-list"></div>
       </section>
+      <section class="panel">
+        <h2>📦 Asset Inventory</h2>
+        <div id="asset-inv"></div>
+      </section>
     </div>
   </div>
 </main>
 </div>
 
+<script src="hq-data.js"></script>
 <script>
 (function(){
 'use strict';
+/* ---------- shared HQ data (degrades gracefully if hq-data.js missing) ---------- */
+var HQD=(typeof window.UNIFY_HQ_DATA==='object'&&window.UNIFY_HQ_DATA)||null;
+
 /* ---------- admin gate (exact contract) ---------- */
 const isAdmin=(()=>{try{return sessionStorage.getItem("unify.family.ci")==="parent"||localStorage.getItem("unify.opendoor.adult")==="1";}catch{return false;}})();
 var readOnly=!isAdmin;
@@ -173,14 +181,15 @@ function showApp(){
 document.getElementById('preview-link').addEventListener('click',function(e){e.preventDefault();showApp();});
 
 /* ---------- constants ---------- */
-var ROOMS=[
- {id:'hallway',name:'Hallway',icon:'🚪'},
- {id:'classroom3d',name:'Classroom 3D',icon:'🏫'},
- {id:'auditorium3d',name:'Auditorium 3D',icon:'🎭'},
- {id:'dorm',name:'Dorm',icon:'🛏️'},
- {id:'news',name:'News Studio',icon:'🎥'},
- {id:'fieldtrip',name:'Field Trip',icon:'🚌'}
-];
+var ROOM_ICONS={hallway:'🚪',classroom3d:'🏫',auditorium3d:'🎭',dorm:'🛏️',news:'🎥',fieldtrip:'🚌'};
+var ROOMS=(HQD&&Array.isArray(HQD.rooms)&&HQD.rooms.length?HQD.rooms:[
+ {id:'hallway',label:'Hallway'},
+ {id:'classroom3d',label:'Classroom 3D'},
+ {id:'auditorium3d',label:'Auditorium 3D'},
+ {id:'dorm',label:'Dorm'},
+ {id:'news',label:'News Studio'},
+ {id:'fieldtrip',label:'Field Trip'}
+]).map(function(r){return {id:r.id,name:r.label||r.name||r.id,icon:ROOM_ICONS[r.id]||'🚪'};});
 var THEMES={Forest:'#4E8A64',Ocean:'#5a8fc4',Sunset:'#E07A66',Candy:'#d77fb0',Classic:'#8A7A70'};
 var WALLS=['#EADFCB','#cfe3f5','#d8f0dd','#f6dcd6','#efe3f7','#8A7A70','#4A3B3F','#F3E7CF'];
 var FLOORS=['wood','tile','carpet','checker','grass'];
@@ -364,6 +373,35 @@ function renderBugs(){
   });
 }
 
+/* ---------- asset inventory (from hq-data.js) ---------- */
+function renderAssets(){
+  var host=document.getElementById('asset-inv');
+  if(!HQD||!HQD.assets){host.innerHTML='<p class="empty">Asset catalog unavailable (hq-data.js not loaded).</p>';return;}
+  var A=HQD.assets;
+  function leaf(v){
+    if(Array.isArray(v))return v.join(', ');
+    if(v&&typeof v==='object'){
+      return Object.keys(v).map(function(k){return k+': '+v[k];}).join(' · ');
+    }
+    return String(v);
+  }
+  var html='';
+  Object.keys(A).forEach(function(cat){
+    if(cat==='note')return;
+    var v=A[cat];
+    var total='';
+    if(v&&typeof v==='object'&&!Array.isArray(v)){
+      var n=0;Object.keys(v).forEach(function(k){if(typeof v[k]==='number')n+=v[k];});
+      if(n)total=' ('+n+' files)';
+    }else if(typeof v==='number'){total=' ('+v+' files)';}
+    html+='<details style="border:2px solid var(--kraft);border-radius:12px;padding:8px 12px;margin-bottom:8px;background:var(--paper)">'+
+      '<summary style="cursor:pointer;font-weight:600;text-transform:capitalize">'+esc(cat)+total+'</summary>'+
+      '<div style="font-size:13.5px;color:var(--soft);margin-top:6px">'+esc(leaf(v))+'</div></details>';
+  });
+  html+='<div class="pv-note">'+esc(A.note||'source: public/assets/unify/')+'</div>';
+  host.innerHTML=html;
+}
+
 /* ---------- sync ---------- */
 function stamp(){var el=document.getElementById('sync-at');if(el)el.textContent=new Date().toLocaleTimeString();}
 window.addEventListener('storage',function(e){
@@ -371,7 +409,7 @@ window.addEventListener('storage',function(e){
 });
 window.addEventListener('unify-hq-update',function(){stamp();});
 
-function init(){renderRooms();loadRoom();renderBugs();stamp();}
+function init(){renderRooms();loadRoom();renderBugs();renderAssets();stamp();}
 if(isAdmin)showApp();
 })();
 </script>

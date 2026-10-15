@@ -143,6 +143,7 @@ svg.room{width:100%;height:auto;border-radius:12px;border:2px solid var(--edge);
   <div class="msg" id="allMsg" style="text-align:center"></div>
 </div>
 </div>
+<script src="hq-data.js"></script>
 <script>
 (function(){
 "use strict";
@@ -181,7 +182,16 @@ var BAND_LABEL={k2:"Grades K-2",g35:"Grades 3-5",g68:"Grades 6-8",hs:"High schoo
 
 /* ---- storage ---- */
 var S=[],ROOMS={};
-function load(){try{var v=JSON.parse(localStorage.getItem(KEY)||"null");if(Array.isArray(v))S=v}catch(e){}
+function mergeHQ(){var D=window.UNIFY_HQ_DATA;if(!D||!Array.isArray(D.teachers))return;
+ var have={};S.forEach(function(c){if(c&&c.name)have[String(c.name).toLowerCase()]=1});
+ D.teachers.forEach(function(t){if(!t||!t.name||have[String(t.name).toLowerCase()])return;
+  S.push({id:t.id,role:"teacher",name:t.name,grade:"Staff",subject:t.subject,traits:[t.personality].filter(Boolean),
+   personality:[t.personality,t.quirk].filter(Boolean).join(" — ")||"",
+   voice:{pitch:1,rate:1,timbre:"warm"},
+   avatar:{age:"adult",build:"regular",skin:t.skin||"#d9a074",hair:t.hair||"#3a2a30",hairStyle:t.hairStyle||"crop"},
+   classroomId:t.room||"",seeded:true});
+  have[String(t.name).toLowerCase()]=1})}
+function load(){try{var v=JSON.parse(localStorage.getItem(KEY)||"null");if(Array.isArray(v))S=v}catch(e){}mergeHQ();
  try{ROOMS=JSON.parse(localStorage.getItem(RKEY)||"null")||{}}catch(e){ROOMS={}}}
 function persistStaff(){if(READONLY)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
  try{window.dispatchEvent(new CustomEvent("unify-hq-update",{detail:{key:KEY}}))}catch(e){}}

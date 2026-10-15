@@ -57,6 +57,7 @@ ul.tight{margin:4px 0 4px 20px}
 </head>
 <body>
 <div id="root"></div>
+<script src="hq-data.js"></script>
 <script>
 "use strict";
 /* ================= ADMIN GATE (exact per brief) ================= */
@@ -65,6 +66,10 @@ const isAdmin=(()=>{try{return sessionStorage.getItem("unify.family.ci")==="pare
 /* ================= DATA ================= */
 const GRADES=["K-2","3-5","6-8","9-12"];
 const SUBJECTS=["English","Math","Science","History","Geography","Art","Music","PE","Health","Technology","World Languages"];
+/* Prefer canonical catalog subjects/rooms from hq-data.js when present (merged, deduped — original lists stay intact). */
+const HQD=(typeof window!=="undefined"&&window.UNIFY_HQ_DATA)||null;
+const SUBJECT_LIST=(()=>{const out=SUBJECTS.slice();if(HQD&&Array.isArray(HQD.subjects)){HQD.subjects.forEach(s=>{const l=(s&&(s.label||s.id))||"";if(l&&out.indexOf(l)<0)out.push(l);});}return out;})();
+const ROOM_LIST=(HQD&&Array.isArray(HQD.rooms))?HQD.rooms.map(r=>r.label||r.id).filter(Boolean):[];
 const TYPES=["article","video","interactive","game","model"];
 const LS_LESSONS="unify.hq.lessons", LS_STAFF="unify.hq.staff";
 
@@ -149,6 +154,14 @@ function loadLessons(){try{return JSON.parse(localStorage.getItem(LS_LESSONS)||"
 function saveLessons(a){localStorage.setItem(LS_LESSONS,JSON.stringify(a));window.dispatchEvent(new CustomEvent("unify-hq-update",{detail:{key:LS_LESSONS}}));}
 function loadStaff(){try{const s=JSON.parse(localStorage.getItem(LS_STAFF)||"[]");return Array.isArray(s)&&s.length?s:null;}catch(e){return null;}}
 function teacherName(t){return t.name||t.fullName||t.displayName||"Teacher";}
+/* Merged teacher pool: unify.hq.staff + canonical teachers from hq-data.js (dedupe by name, case-insensitive). */
+function allTeachers(){
+ const out=[],seen={};
+ const push=t=>{if(!t)return;const k=teacherName(t).toLowerCase();if(seen[k])return;seen[k]=1;out.push(t);};
+ (loadStaff()||[]).forEach(push);
+ if(HQD&&Array.isArray(HQD.teachers))HQD.teachers.forEach(t=>push({id:t.id,name:t.name,subject:t.subject,traits:[t.personality].filter(Boolean),room:t.room}));
+ return out;
+}
 
 /* ================= GENERATOR ================= */
 function minMinutes(band){return (band==="K-2"||band==="3-5")?15:30;}
@@ -157,8 +170,8 @@ function genLesson(opts){
  const res=RESOURCES.filter(r=>r.gradeBand===band&&r.subject===subject);
  const base=res.length?res:RESOURCES.filter(r=>r.subject===subject);
  const picked=(opts.resourceId&&RESOURCES.find(r=>r.id===opts.resourceId))||base[Math.floor(Math.random()*base.length)]||RESOURCES[0];
- const staff=loadStaff();
- const teacher=(staff&&(staff.find(t=>t.id===opts.teacherId)||staff[Math.floor(Math.random()*staff.length)]))||{id:"default-teacher",name:"Ms. River",traits:["warm","patient","encouraging","clear"]};
+ const staff=allTeachers();
+ const teacher=(staff.length&&(staff.find(t=>t.id===opts.teacherId)||staff[Math.floor(Math.random()*staff.length)]))||{id:"default-teacher",name:"Ms. River",traits:["warm","patient","encouraging","clear"]};
  const traits=teacher.traits||["warm","patient","encouraging","clear"];
  const segDefs=SEGMENTS_BY_BAND[band];
  let total=segDefs.reduce((s,d)=>s+d[1],0);
@@ -249,7 +262,7 @@ function renderResources(){
  let out='<div class="card"><h2>🌐 Resource Bank — redone &amp; organized for classroom use</h2>'
  +'<p class="muted">Every entry is an original short summary with key facts and vocabulary, curated from safe, well-known sources. Filter by grade band, subject, and type, or search.</p>'
  +'<div class="grid g3"><div><label>Grade band</label><select id="fg">'+GRADES.map(x=>'<option'+(filters.grade===x?" selected":"")+'>'+x+'</option>').join("")+'<option value=""'+(filters.grade===""?" selected":"")+'>All</option></select></div>'
- +'<div><label>Subject</label><select id="fs"><option value="">All</option>'+SUBJECTS.map(x=>'<option'+(filters.subject===x?" selected":"")+'>'+x+'</option>').join("")+'</select></div>'
+ +'<div><label>Subject</label><select id="fs"><option value="">All</option>'+SUBJECT_LIST.map(x=>'<option'+(filters.subject===x?" selected":"")+'>'+x+'</option>').join("")+'</select></div>'
  +'<div><label>Type</label><select id="ft"><option value="">All</option>'+TYPES.map(x=>'<option'+(filters.type===x?" selected":"")+'>'+x+'</option>').join("")+'</select></div></div>'
  +'<label>Search</label><input type="text" id="fq" placeholder="topic, keyword, source…" value="'+esc(filters.q)+'"></div>';
  let rs=RESOURCES.filter(r=>(!filters.grade||r.gradeBand===filters.grade)&&(!filters.subject||r.subject===filters.subject)&&(!filters.type||r.type===filters.type)
@@ -264,12 +277,12 @@ function renderResources(){
 
 /* ---------- builder ---------- */
 function renderBuilder(){
- const staff=loadStaff();
- const tOpts=staff?staff.map(t=>'<option value="'+esc(t.id)+'"'+(builder.teacherId===t.id?" selected":"")+'>'+esc(teacherName(t))+'</option>').join(""):'';
+ const staff=allTeachers();
+ const tOpts=staff.length?staff.map(t=>'<option value="'+esc(t.id)+'"'+(builder.teacherId===t.id?" selected":"")+'>'+esc(teacherName(t))+'</option>').join(""):'';
  let out='<div class="card"><h2>✏️ Build a Lesson</h2>'
  +'<p class="muted">Rule-based generator — no external API. Duration rule: K-2 &amp; 3-5 lessons total <b>at least 15 minutes</b>; 6-8 &amp; 9-12 <b>at least 30 minutes</b>. Segment timings are computed and summed automatically.</p>'
  +'<div class="grid g3"><div><label>Grade band</label><select id="bgrade">'+GRADES.map(x=>'<option'+(builder.gradeBand===x?" selected":"")+'>'+x+'</option>').join("")+'</select></div>'
- +'<div><label>Subject</label><select id="bsubj">'+SUBJECTS.map(x=>'<option'+(builder.subject===x?" selected":"")+'>'+x+'</option>').join("")+'</select></div>'
+ +'<div><label>Subject</label><select id="bsubj">'+SUBJECT_LIST.map(x=>'<option'+(builder.subject===x?" selected":"")+'>'+x+'</option>').join("")+'</select></div>'
  +'<div><label>AI teacher (from unify.hq.staff)</label><select id="bteacher"><option value="">Auto-pick</option>'+tOpts+(tOpts?"":'<option value="" disabled>(roster empty — default teacher will be used)</option>')+'</select></div></div>'
  +'<div class="grid g2"><div><label>Topic</label><input type="text" id="btopic" placeholder="e.g. Fractions, The Water Cycle…" value="'+esc(builder.topic)+'"></div>'
  +'<div><label>…or base it on a resource</label><select id="bres"><option value="">(auto-pick for grade+subject)</option>'+RESOURCES.filter(r=>r.gradeBand===builder.gradeBand&&r.subject===builder.subject).map(r=>'<option value="'+r.id+'"'+(builder.resourceId===r.id?" selected":"")+'>'+esc(r.title)+' ('+r.type+')</option>').join("")+'</select></div></div>'
