@@ -4,6 +4,7 @@ import { PORTRAIT_SCALE, type Look } from "./characters";
 import { Convo, converse, type Ctx, type Opt, type Reply } from "./dialogue";
 import { byId, type NpcDef } from "./roster";
 import { Social, hearts, tier } from "./social";
+import { speechButtons } from "../shared/speechio";
 
 const CSS = `
 .uchat{position:absolute;left:0;right:0;bottom:0;z-index:45;display:none;justify-content:center;padding:0 10px calc(10px + env(safe-area-inset-bottom,0px));pointer-events:none}
@@ -26,6 +27,11 @@ const CSS = `
 .uchat-in{display:flex;gap:6px}
 .uchat-in input{flex:1;min-width:0;font:inherit;font-size:15px;border:1px solid var(--kraft-edge,#C9B28A);border-radius:10px;padding:7px 10px;background:#fff;color:var(--ink,#4A3B3F)}
 .uchat-in button{font:inherit;color:#fff;background:var(--acc,#E07A66);border:1px solid rgba(255,255,255,.7);border-radius:10px;padding:6px 14px;cursor:pointer;box-shadow:0 2px 0 #b95a48}
+.uchat-voice{display:flex;gap:6px}
+.uchat-voice .uchat-vbtn{color:var(--ink,#4A3B3F);background:#FFF9F0;box-shadow:0 2px 0 var(--kraft-edge,#C9B28A);padding:6px 10px;font-size:16px;line-height:1}
+.uchat-voice .uchat-vbtn:disabled{opacity:.45;cursor:not-allowed}
+.uchat-voice .uchat-vbtn.rec{background:#E07A66;color:#fff;animation:urec 1s infinite}
+@keyframes urec{50%{opacity:.55}}
 .uchat-bubble{position:absolute;z-index:35;transform:translate(-50%,-100%);max-width:200px;background:#FFF9F0;border:1.5px solid #6d5a5f;border-radius:12px;padding:5px 9px;font:500 12px/1.25 var(--ui,"Fredoka","Trebuchet MS",sans-serif);color:#4A3B3F;box-shadow:0 2px 0 var(--kraft-edge,#C9B28A),0 5px 9px rgba(80,50,40,.25);pointer-events:none;text-align:center}
 .uchat-bubble:after{content:"";position:absolute;left:50%;bottom:-6px;width:8px;height:8px;background:#FFF9F0;border-right:1.5px solid #6d5a5f;border-bottom:1.5px solid #6d5a5f;transform:translateX(-50%) rotate(45deg)}
 .uchat-tag{position:absolute;z-index:34;transform:translate(-50%,-100%);font:600 11px var(--ui,"Fredoka","Trebuchet MS",sans-serif);color:#4A3B3F;background:rgba(255,249,240,.92);border:1px solid #C9B28A;border-radius:8px;padding:1px 7px;white-space:nowrap;pointer-events:none}
@@ -68,6 +74,7 @@ export class ChatPanel {
     this.optsEl = el("div", "uchat-opts", main);
     const form = el("form", "uchat-in", main); this.input = el("input", "", form) as HTMLInputElement; this.input.placeholder = "Or type something to say…"; this.input.maxLength = 200; this.input.autocomplete = "off";
     const send = el("button", "", form, "Say"); send.type = "submit";
+    const vb = speechButtons(this.input, (t) => { this.input.value = t; this.input.focus(); }, () => this.input.value); if (vb) form.insertBefore(vb, send);
     form.onsubmit = (e) => { e.preventDefault(); const v = this.input.value.trim(); if (v) { this.input.value = ""; void this.say(v); } };
     this.root.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Escape") this.close(); else if (document.activeElement !== this.input && /^[1-6]$/.test(e.key)) this.opts[+e.key - 1] && void this.pick(this.opts[+e.key - 1]); });
     ["pointerdown", "wheel", "touchstart"].forEach((n) => this.root.addEventListener(n, (e) => e.stopPropagation(), { passive: true }));
@@ -137,12 +144,15 @@ export class Journal {
 export class SpeakPanel {
   root: HTMLElement; cv: HTMLCanvasElement; nameEl: HTMLElement; textEl: HTMLElement; optsEl: HTMLElement; form: HTMLFormElement; input: HTMLInputElement; private raf = 0; private npc?: NpcDef; private t0 = 0; private talkUntil = 0; private hideT: any = 0;
   onPick: (o: Opt) => void = () => {}; onText: (t: string) => void = () => {};
+  /** optional: first shot at a voice transcript (e.g. matching it to the known answers of an open question); return true when consumed */
+  onHeard: ((t: string) => boolean) | null = null;
   constructor(host: HTMLElement) {
     ensureCss(); this.root = el("div", "uchat top", host); const card = el("div", "uchat-card", this.root);
     this.cv = el("canvas", "uchat-portrait", card) as HTMLCanvasElement; this.cv.width = 236; this.cv.height = 300;
     const main = el("div", "uchat-main", card), head = el("div", "uchat-head", main); this.nameEl = el("b", "", head);
     this.textEl = el("div", "uchat-text", main); this.textEl.setAttribute("aria-live", "polite"); this.optsEl = el("div", "uchat-opts", main);
     this.form = el("form", "uchat-in", main) as HTMLFormElement; this.input = el("input", "", this.form) as HTMLInputElement; this.input.maxLength = 200; this.input.autocomplete = "off"; const b = el("button", "", this.form, "Ask"); b.type = "submit";
+    const vb = speechButtons(this.input, (t) => { if (this.onHeard?.(t)) { this.input.value = ""; return; } this.input.value = ""; this.onText(t); }, () => this.input.value); if (vb) this.form.insertBefore(vb, b);
     this.form.onsubmit = (e) => { e.preventDefault(); const v = this.input.value.trim(); if (v) { this.input.value = ""; this.onText(v); } };
     this.root.addEventListener("keydown", (e) => e.stopPropagation()); ["pointerdown", "wheel", "touchstart"].forEach((n) => this.root.addEventListener(n, (e) => e.stopPropagation(), { passive: true }));
   }

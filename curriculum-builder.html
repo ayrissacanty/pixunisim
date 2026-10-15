@@ -36,6 +36,7 @@ textarea{min-height:80px;resize:vertical}
 .muted{color:var(--soft);font-size:13px}
 .tag{display:inline-block;background:#fff9;border:1px solid var(--edge);border-radius:99px;padding:1px 9px;font-size:12px;margin:2px 3px 2px 0}
 .tag.acc{background:var(--acc);color:#fff;border-color:transparent}
+.tag.free{background:#2c6e91;color:#fff;border-color:transparent}
 .tag.sage{background:var(--sage);color:#fff;border-color:transparent}
 .res{display:flex;flex-direction:column;gap:5px;background:#fff9;border-radius:12px;padding:10px 12px;border:1px solid var(--edge)}
 .res b{font-size:15px}
@@ -58,6 +59,11 @@ ul.tight{margin:4px 0 4px 20px}
 <body>
 <div id="root"></div>
 <script src="hq-data.js"></script>
+<script src="curriculum-seed-1.js"></script>
+<script src="curriculum-seed-2.js"></script>
+<script src="curriculum-seed-3.js"></script>
+<script src="curriculum-seed-4.js"></script>
+<script src="curriculum-seed-5.js"></script>
 <script>
 "use strict";
 /* ================= ADMIN GATE (exact per brief) ================= */
@@ -125,6 +131,42 @@ const RESOURCES=[
 {id:"r49",title:"Simple Machines Playground",gradeBand:"3-5",subject:"Science",type:"model",source:"CK-12",url:"https://www.ck12.org",summary:"Build and test levers, pulleys, and ramps in a virtual playground to see how machines make work easier.",facts:["A lever trades distance for force.","A ramp is an inclined plane."],vocab:["lever","pulley","inclined plane"]},
 {id:"r50",title:"Civics: How a Bill Becomes a Law",gradeBand:"9-12",subject:"History",type:"video",source:"PBS LearningMedia",url:"https://www.pbslearningmedia.org",summary:"Follow a bill from idea to law through committees, votes, and the President's desk, with checks-and-balances context.",facts:["A bill must pass both the House and Senate.","The President can veto a bill; Congress can override with 2/3 votes."],vocab:["bill","veto","legislature"]}
 ];
+
+/* ================= SEED CURRICULUM (curriculum-seed.js — graceful if missing) ================= */
+const SEED=(typeof window!=="undefined"&&window.UNIFY_CURRICULUM_SEED)||null;
+const LS_SEEDED="unify.hq.seeded.v1";
+/* Merge the built-in bank with seed resources (dedupe by title, case-insensitive).
+   Seed entries use keyFacts/vocabulary/addTo — normalize to the built-in facts/vocab shape. */
+(function mergeSeedResources(){
+ if(!SEED||!Array.isArray(SEED.resources))return;
+ const seen={};RESOURCES.forEach(r=>{seen[(r.title||"").toLowerCase()]=1;});
+ SEED.resources.forEach(r=>{
+   const k=(r.title||"").toLowerCase();if(!k||seen[k])return;seen[k]=1;
+   RESOURCES.push({id:"sr"+String(RESOURCES.length+1).padStart(3,"0"),title:r.title,gradeBand:r.gradeBand,subject:r.subject,
+     type:r.type,source:r.source,url:r.url,summary:r.summary,facts:(r.keyFacts||r.facts||[]).slice(0,3),
+     vocab:(r.vocabulary||r.vocab||[]).slice(0,3),addTo:r.addTo||"resources",free:true});
+ });
+})();
+/* Merge seed lessons into unify.hq.lessons, skipping ids already present. Returns count added. */
+function importSeedLessons(){
+ if(!SEED||!Array.isArray(SEED.lessons)||!SEED.lessons.length)return 0;
+ const cur=loadLessons();
+ const have={};cur.forEach(l=>{have[l.id]=1;});
+ let added=0;
+ SEED.lessons.forEach(l=>{if(!have[l.id]){cur.push(JSON.parse(JSON.stringify(l)));added++;}});
+ if(added){saveLessons(cur);try{list=[].concat(cur);}catch(e){/* called before UI-state init — render() will reload */}}
+ try{localStorage.setItem(LS_SEEDED,"1");}catch(e){}
+ return added;
+}
+/* AUTO-SEED on first run: if the library is empty and we've never seeded, do it silently
+   so the main app immediately has lessons to teach. */
+(function autoSeed(){
+ try{
+   if(localStorage.getItem(LS_SEEDED)==="1")return;
+   if(loadLessons().length>0)return;
+   importSeedLessons();
+ }catch(e){/* storage blocked — skip auto-seed */}
+})();
 
 /* ================= GENERATOR CONTENT BANKS ================= */
 const SEGMENTS_BY_BAND={
@@ -268,11 +310,38 @@ function renderResources(){
  let rs=RESOURCES.filter(r=>(!filters.grade||r.gradeBand===filters.grade)&&(!filters.subject||r.subject===filters.subject)&&(!filters.type||r.type===filters.type)
    &&(!filters.q||(r.title+" "+r.summary+" "+r.subject+" "+r.source+" "+r.vocab.join(" ")).toLowerCase().includes(filters.q.toLowerCase())));
  out+='<p class="muted">'+rs.length+' of '+RESOURCES.length+' resources</p><div class="grid g2">'+rs.map(r=>
-  '<div class="res"><div><b>'+esc(r.title)+'</b></div><div><span class="tag acc">'+r.gradeBand+'</span><span class="tag">'+esc(r.subject)+'</span><span class="tag sage">'+r.type+'</span><span class="tag">'+esc(r.source)+'</span></div>'
+  '<div class="res"><div><b>'+esc(r.title)+'</b></div><div><span class="tag acc">'+r.gradeBand+'</span><span class="tag">'+esc(r.subject)+'</span><span class="tag sage">'+r.type+'</span><span class="tag">'+esc(r.source)+'</span><span class="tag free">🆓 Free &amp; easy to add</span>'+(r.addTo?'<span class="tag">feeds: '+esc(r.addTo)+'</span>':"")+'</div>'
   +'<div>'+esc(r.summary)+'</div><div class="kv"><b>Key facts:</b><ul class="tight">'+r.facts.map(f=>'<li>'+esc(f)+'</li>').join("")+'</ul></div>'
   +'<div class="kv"><b>Vocabulary:</b> '+r.vocab.map(v=>'<span class="tag">'+esc(v)+'</span>').join("")+'</div>'
   +'<div class="acts"><button class="btn small sage" data-buildfrom="'+r.id+'">✏️ Build lesson from this</button><a class="btn small ghost" href="'+esc(r.url)+'" target="_blank" rel="noopener">🔗 Source</a></div></div>').join("")+'</div>';
+ out+=renderFreeDirectory();
  return out;
+}
+/* ---------- "Add more free resources" provider directory ---------- */
+const FREE_PROVIDERS=[
+ ["Khan Academy","https://www.khanacademy.org","Free courses, videos, and practice for math, English, science, and history at every grade.","lessons"],
+ ["CK-12","https://www.ck12.org","Free flexbooks, readings, and simulations across math and science.","lessons"],
+ ["PhET (Univ. of Colorado)","https://phet.colorado.edu","Free interactive physics, chemistry, and math simulations.","games"],
+ ["PBS LearningMedia","https://www.pbslearningmedia.org","Free classroom videos, interactives, and lesson clips for every subject.","lessons"],
+ ["National Geographic Kids","https://kids.nationalgeographic.com","Free articles, photos, and map games for geography and science.","imagery"],
+ ["NASA","https://www.nasa.gov","Free space imagery, videos, and STEM activities.","imagery"],
+ ["NASA Climate Kids","https://climatekids.nasa.gov","Free games and animations about weather and climate.","games"],
+ ["Smithsonian","https://www.si.edu","Free museum artifacts, virtual tours, and history/science media.","imagery"],
+ ["Library of Congress","https://www.loc.gov","Free primary sources — photos, letters, maps — for history lessons.","lessons"],
+ ["NOAA","https://www.noaa.gov","Free ocean and weather data, charts, and explainers.","imagery"],
+ ["USGS","https://www.usgs.gov","Free maps, earthquake data, and geology resources.","models"],
+ ["Storyline Online","https://storylineonline.net","Free read-aloud videos of picture books by actors.","lessons"],
+ ["Code.org","https://code.org","Free coding games and courses for all ages.","games"],
+ ["Scratch","https://scratch.mit.edu","Free block-coding studio — students build their own games and models.","games"],
+ ["Math Playground","https://www.mathplayground.com","Free math games and logic puzzles for elementary grades.","games"],
+ ["Duolingo ABC","https://abc.duolingo.com","Free early-literacy app teaching letters and sounds.","games"],
+ ["Common Sense Education","https://www.commonsense.org/education","Free digital-citizenship and online-safety lessons.","lessons"],
+ ["USDA MyPlate","https://www.myplate.gov","Free nutrition interactives and healthy-eating printables.","lessons"]
+];
+function renderFreeDirectory(){
+ return '<div class="card"><h2>➕ Add more free resources</h2>'
+ +'<p class="muted">All of these providers are free for classroom use. Grab a resource, then use “Build a Lesson” or the generator to fold it in. The “feeds” tag says which app section the provider suits best — <b>lessons</b> (teaching content), <b>games</b> (interactive play), <b>imagery</b> (visuals &amp; photos), <b>models</b> (data &amp; simulations).</p>'
+ +'<div class="grid g2">'+FREE_PROVIDERS.map(p=>'<div class="res"><div><b>'+esc(p[0])+'</b> <span class="tag free">🆓 free</span><span class="tag sage">feeds: '+esc(p[3])+'</span></div><div>'+esc(p[2])+'</div><div class="acts"><a class="btn small ghost" href="'+esc(p[1])+'" target="_blank" rel="noopener">🔗 Visit</a></div></div>').join("")+'</div></div>';
 }
 
 /* ---------- builder ---------- */
@@ -321,8 +390,9 @@ function renderDraft(){
 
 /* ---------- library ---------- */
 function renderLibrary(){
- let out='<div class="card"><h2>🗂 Lesson Library</h2><p class="muted">Saved in localStorage under <b>unify.hq.lessons</b>. '+(preview?"Preview mode: read-only.":"View, duplicate, delete, or assign to a class.")+'</p>';
- if(!list.length)return out+'<p class="muted">No saved lessons yet — build one! ✏️</p></div>';
+ let out='<div class="card"><h2>🗂 Lesson Library</h2><p class="muted">Saved in localStorage under <b>unify.hq.lessons</b>. '+(preview?"Preview mode: read-only.":"View, duplicate, delete, or assign to a class.")+'</p>'
+ +((SEED&&!preview)?'<div style="margin-bottom:10px"><button class="btn acc" id="importseed">📥 Import seed curriculum ('+SEED.lessons.length+' ready-to-teach lessons)</button> <span class="muted">Merges the free regenerated curriculum — lessons you already have are skipped.</span></div>':"");
+ if(!list.length)return out+'<p class="muted">No saved lessons yet — build one or import the seed curriculum above! ✏️</p></div>';
  out+=list.slice().reverse().map(L=>'<div class="lessonrow"><div class="inf"><b>'+esc(L.title)+'</b><br><span class="tag acc">'+esc(L.gradeBand)+'</span><span class="tag">'+esc(L.subject)+'</span><span class="tag sage">'+L.durationMin+' min</span><span class="tag">👩‍🏫 '+esc(L.teacherId)+'</span>'+(L.assigned?'<span class="tag acc">✅ Assigned</span>':"")+'</div>'
   +'<div class="acts"><button class="btn small" data-view="'+L.id+'">👁 View</button>'
   +(preview?"":'<button class="btn small" data-dup="'+L.id+'">⧉ Duplicate</button><button class="btn small sage" data-assign="'+L.id+'">📣 '+(L.assigned?"Assigned":"Assign to class")+'</button><button class="btn small ghost" data-del="'+L.id+'">🗑 Delete</button>')+'</div></div>').join("");
@@ -390,6 +460,10 @@ function wire(){
    const dc=$("discard");if(dc)dc.onclick=()=>{draft=null;render();};
  }
  if(view==="library"){
+   const im=$("importseed");if(im)im.onclick=()=>{
+     const n=importSeedLessons();list=loadLessons();render();
+     setTimeout(()=>alert(n?("Imported "+n+" seed lessons into the library. ✅"):"Nothing new to import — every seed lesson is already in your library."),50);
+   };
    root.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{viewLesson=list.find(l=>l.id===b.dataset.view);view="view";render();});
    root.querySelectorAll("[data-dup]").forEach(b=>b.onclick=()=>{
      const L=list.find(l=>l.id===b.dataset.dup);if(!L)return;

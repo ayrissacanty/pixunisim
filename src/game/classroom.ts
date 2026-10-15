@@ -7,6 +7,7 @@ import { TEACHER_BY_SUBJECT, byId, type NpcDef } from "../hall3d/roster";
 import { Social, today } from "../hall3d/social";
 import type { Look } from "../hall3d/characters";
 import { LESSONS, explain, type Lesson } from "./lessons";
+import { matchAnswer } from "../shared/speechio";
 import type { Subject } from "./types";
 
 export interface ClassHost {
@@ -34,10 +35,13 @@ export class ClassroomLife {
   /** the lesson being taught; set it to make questions and answers follow the current board. `auto:false` turns off the timed question loop (a director calls ask methods itself). */
   lesson: Lesson | null = null; auto = true;
   panel: SpeakPanel; subject: Subject = "math"; handUp = false; private tok = 0; private busy = false; private rot = 0; private raiseWaiter: (() => void) | null = null; private resolver: ((p: Pick) => void) | null = null; private asked = 0;
+  /** the choices of the currently open question, while it is open: a voice transcript is matched against these first */
+  private pendingOpts: { id: string; label: string }[] | null = null;
   onState: (s: { handUp: boolean; question: boolean }) => void = () => {};
   constructor(private host: ClassHost, root: HTMLElement) {
     this.panel = new SpeakPanel(root);
     this.panel.onPick = (o) => this.resolver?.(o); this.panel.onText = (t) => this.resolver?.(t);
+    this.panel.onHeard = (t) => this.heard(t);
     addEventListener("keydown", (e) => {
       if (e.key === "Escape" && this.resolver) this.resolver(null);
       else if ((e.target as HTMLElement)?.tagName !== "INPUT") { if (e.key === "h" || e.key === "H") this.raiseHand(); else if (/^[1-5]$/.test(e.key) && this.panel.isOpen) { const b = this.panel.optsEl.children[+e.key - 1] as HTMLButtonElement | undefined; b?.click(); } }
@@ -129,11 +133,30 @@ export class ClassroomLife {
     if (help) { this.handUp = true; this.host.playerHand(true); await this.playerAnswers(t, quiz, who); this.handUp = false; this.host.playerHand(false); }
     else await this.say(spk(T), `The answer is "${quiz.options[quiz.answer]}". ${quiz.why ?? ""} Don't worry, ${who.first}, that's how we learn.`, 5200);
   }
+  /** a voice transcript while a question with known answers is open: match it to a choice (exact/keyword/fuzzy) and answer with it */
+  private heard(t: string): boolean {
+    const o = this.pendingOpts; if (!o || !this.resolver) return false;
+    const i = matchAnswer(t, o.map((x) => x.label)); if (i < 0) return false;
+    this.resolver(o[i]); return true;
+  }
   private async playerAnswers(t: number, quiz: Quiz, helping?: NpcDef) {
     const T = this.teacher, me = Social.profile.name || "friend";
-    const r = await this.ask(spk(T), `${me}? Go ahead. ${helping ? "" : quiz.q}`, quiz.options.map((o, i) => ({ id: "a" + i, label: o })));
-    if (r === null || typeof r === "string") { await this.say(spk(T), "That's okay. We'll come back to it.", 2200); return; }
-    const ok = r.id === "a" + quiz.answer; Social.profile.stats.quizTotal++; if (ok) Social.profile.stats.quizRight++; Social.save();
+    const opts = quiz.options.map((o, i) => ({ id: "a" + i, label: o }));
+    let prompt = `${me}? Go ahead. ${helping ? "" : quiz.q}`, pickId: string | null = null;
+    while (this.alive(t) && pickId === null) {
+      this.pendingOpts = opts;
+      const r = await this.ask(spk(T), prompt, opts, "Or say your answer…");
+      this.pendingOpts = null;
+      if (r === null) { await this.say(spk(T), "That's okay. We'll come back to it.", 2200); return; }
+      if (typeof r === "string") {
+        const i = matchAnswer(r, quiz.options);                        // typed or spoken freely: understand it as one of the choices
+        if (i >= 0) { pickId = "a" + i; break; }
+        await this.say(spk(T), `Hmm, I heard "${r.slice(0, 60)}" — which of the choices do you mean?`, 3000); prompt = `${me}? ${quiz.q}`; continue;
+      }
+      pickId = r.id;
+    }
+    if (pickId === null) return;
+    const ok = pickId === "a" + quiz.answer; Social.profile.stats.quizTotal++; if (ok) Social.profile.stats.quizRight++; Social.save();
     Social.edit(T.id, (m) => { m.quiz.total++; if (ok) m.quiz.right++; m.fr = Math.min(100, m.fr + (ok ? 2 : 1)); m.called++; });
     if (ok && helping) Social.edit(helping.id, (m) => { m.helped++; m.fr = Math.min(100, m.fr + 3); });
     this.host.seated().forEach((d) => { const m = Social.peek(d.id); if (m?.met) Social.edit(d.id, (mm) => { mm.seenInClass++; }); });
