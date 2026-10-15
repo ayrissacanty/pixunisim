@@ -61,6 +61,8 @@ iframe.on{display:block}
   <button id="tDorm" title="My dorm: your avatar, room, grades and homework">🏠 My Dorm</button>
   <button id="tBeam" title="Light beam over your avatar: easy to find yourself" aria-pressed="true">💡 Light beam</button>
   <button id="tPhone" title="Flip phone (P)">📱 Phone</button>
+  <button id="tBook" title="Textbook: the class book (pages, highlights, notes, quizzes)">📖 Textbook</button>
+  <button id="tHQ" title="Agent Team HQ: staff-only tools for grown-ups" hidden>🛠 HQ</button>
 </nav>
 <div id="bar">
   <span id="room">Walk into a doorway to enter a lesson</span>
@@ -138,6 +140,9 @@ const pw=$('phoneWrap'),pf=$('fPhone');let pfReady=false;const pfBuf=[];
 function sendPhone(m){if(pfReady&&pf.contentWindow){pf.contentWindow.postMessage(m,'*');return;}if(m.type!=='phone:clock'){pfBuf.push(m);if(pfBuf.length>12)pfBuf.shift();}if(!pf.getAttribute('src'))pf.src='phone.html';}
 function phone(on){on=on===undefined?!pw.classList.contains('show'):on;pw.classList.toggle('show',on);if(on){if(!pf.getAttribute('src'))pf.src='phone.html';else if(pfReady)pf.contentWindow.postMessage({type:'phone:open'},'*');}else try{F[view].contentWindow.focus();}catch(e){}}
 $('tPhone').onclick=()=>phone();
+$('tBook').onclick=()=>{open('textbook.html','_blank');};
+/* Agent Team HQ is the only staff-only tool here: hidden unless the grown-up check passes (same keys the HQ apps use) */
+try{if(sessionStorage.getItem('unify.family.ci')==='parent'||localStorage.getItem('unify.opendoor.adult')==='1'){$('tHQ').hidden=false;$('tHQ').onclick=()=>{open('hq.html','_blank');};}}catch(e){}
 addEventListener('message',e=>{const m=e.data;if(m&&m.type==='unify:text'&&e.source===F.hall.contentWindow)sendPhone({type:'phone:message',from:String(m.from||'').slice(0,20),text:String(m.text||'').slice(0,200),contact:null});});
 addEventListener('message',e=>{const m=e.data;if(m&&m.type==='unify:clock')sendPhone({type:'phone:clock',minutes:m.minutes});});
 addEventListener('message',e=>{const m=e.data;if(m&&m.type==='unify:event'&&(e.source===F.hall.contentWindow||e.source===F.aud.contentWindow)){sendPhone(Object.assign({},m,{type:'phone:event'}));}

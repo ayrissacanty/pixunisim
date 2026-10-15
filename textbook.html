@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UNIFY Textbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Caveat:wght@500;600&family=Shadows+Into+Light&display=swap">
+<style>
+:root{--sheet:#EADFCB;--kraft:#F3E7CF;--edge:#C9B28A;--ink:#4A3B3F;--soft:#8A7A70;--acc:#E07A66;--acc2:#b95a48;--blue:#4F91C7;
+ --page:#f7f0dd;--page2:#efe5c9;--cloth:#8e2f2a;--cloth2:#6f221e;
+ --ui:"Fredoka","Trebuchet MS",system-ui,-apple-system,"Segoe UI",sans-serif;
+ --hand:"Caveat","Shadows Into Light",cursive}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;font:14px/1.4 var(--ui);color:var(--ink);background:var(--sheet)}
+body{display:flex;flex-direction:column;align-items:center;padding-bottom:70px}
+/* top bar */
+.topbar{width:100%;display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--kraft);border-bottom:2px solid var(--edge);box-shadow:0 2px 8px rgba(80,50,40,.15);position:sticky;top:0;z-index:50}
+.topbar .appname{font-weight:600;font-size:17px}
+.topbar nav{margin-left:auto;display:flex;gap:8px}
+.topbar a{font:inherit;font-weight:500;color:var(--ink);text-decoration:none;background:#fff8;border:1px solid var(--edge);border-radius:12px;padding:5px 14px;box-shadow:0 2px 0 var(--edge)}
+.topbar a:active{transform:translateY(2px);box-shadow:none}
+/* toolbar */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:14px 8px 4px;max-width:1000px}
+.tool{font:inherit;color:var(--ink);background:var(--kraft);border:1px solid rgba(255,255,255,.7);border-radius:12px;padding:6px 14px;min-height:34px;cursor:pointer;box-shadow:0 2px 0 var(--edge),0 6px 10px rgba(80,50,40,.2)}
+.tool:active{transform:translateY(2px);box-shadow:0 0 0 var(--edge)}
+.tool.on{background:var(--acc);color:#fff}
+.tool:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.lesson-tag{font-size:12px;color:var(--soft);align-self:center}
+/* book */
+.bookwrap{margin:16px auto 8px;perspective:2200px;width:min(96vw,980px)}
+.book{position:relative;width:100%;aspect-ratio:2/1.32;transform-style:preserve-3d}
+.cover{position:absolute;inset:-14px -18px;background:linear-gradient(135deg,var(--cloth),var(--cloth2) 60%,var(--cloth));border-radius:10px 16px 16px 10px;box-shadow:0 18px 40px rgba(60,30,20,.45),inset 0 0 0 3px rgba(255,255,255,.12),inset 0 0 30px rgba(0,0,0,.35)}
+.cover:before{content:"";position:absolute;left:50%;top:0;bottom:0;width:26px;margin-left:-13px;background:linear-gradient(90deg,rgba(0,0,0,.35),rgba(255,255,255,.08),rgba(0,0,0,.35));border-radius:4px}
+.basepage{position:absolute;top:0;bottom:0;width:50%;background:var(--page);overflow:hidden}
+.basepage.left{left:0;border-radius:8px 2px 2px 8px;background:linear-gradient(90deg,var(--page) 82%,#e4d7b6 96%,#cbbd97 100%)}
+.basepage.right{right:0;border-radius:2px 8px 8px 2px;background:linear-gradient(270deg,var(--page) 82%,#e4d7b6 96%,#cbbd97 100%)}
+.basepage.left:after,.basepage.right:after{content:"";position:absolute;top:0;bottom:0;width:60px;pointer-events:none}
+.basepage.left:after{right:0;background:linear-gradient(270deg,rgba(90,70,40,.28),transparent)}
+.basepage.right:after{left:0;background:linear-gradient(90deg,rgba(90,70,40,.28),transparent)}
+.sheet{position:absolute;top:0;bottom:0;left:50%;width:50%;transform-style:preserve-3d;transform-origin:left center;transition:transform .7s cubic-bezier(.45,.05,.25,1);cursor:pointer}
+.sheet.flipped{transform:rotateY(-180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--page);overflow:hidden}
+.face.front{border-radius:2px 8px 8px 2px;background:linear-gradient(270deg,var(--page) 80%,#e9ddbd 96%,#d5c69f 100%)}
+.face.back{transform:rotateY(180deg);border-radius:8px 2px 2px 8px;background:linear-gradient(90deg,var(--page) 80%,#e9ddbd 96%,#d5c69f 100%)}
+.face .spineshad{position:absolute;top:0;bottom:0;width:60px;pointer-events:none;z-index:3}
+.face.front .spineshad{left:0;background:linear-gradient(90deg,rgba(90,70,40,.28),transparent)}
+.face.back .spineshad{right:0;background:linear-gradient(270deg,rgba(90,70,40,.28),transparent)}
+.pg{position:absolute;inset:0;padding:26px 30px 34px;font-family:Georgia,"Times New Roman",serif;font-size:13.5px;line-height:1.5;color:#3c332e;overflow-y:auto;overflow-x:hidden}
+.pg::-webkit-scrollbar{width:4px}.pg::-webkit-scrollbar-thumb{background:var(--edge);border-radius:4px}
+.pgnum{position:absolute;bottom:8px;font:11px var(--ui);color:var(--soft);z-index:4}
+.face.front .pgnum{right:14px}.face.back .pgnum{left:14px}
+/* corner flip zones */
+.corner{position:absolute;bottom:0;width:52px;height:52px;z-index:6;cursor:pointer;opacity:0;transition:opacity .2s}
+.face.front .corner{right:0;background:linear-gradient(225deg,transparent 50%,rgba(0,0,0,.12) 50%)}
+.face.back .corner{left:0;background:linear-gradient(135deg,transparent 50%,rgba(0,0,0,.12) 50%)}
+.sheet:hover .corner{opacity:1}
+/* dog ear */
+.dogear{position:absolute;top:0;width:0;height:0;z-index:5;pointer-events:none}
+.dogear.de-r{right:0;border-top:34px solid #e0d2ab;border-left:34px solid transparent;filter:drop-shadow(-2px 2px 2px rgba(0,0,0,.25))}
+.dogear.de-l{left:0;border-top:34px solid #e0d2ab;border-right:34px solid transparent;filter:drop-shadow(2px 2px 2px rgba(0,0,0,.25))}
+.dogear.de-r:after,.dogear.de-l:after{content:"";position:absolute;top:-34px;width:0;height:0}
+.dogear.de-r:after{right:0;border-top:34px solid rgba(120,90,50,.25);border-right:34px solid transparent}
+.dogear.de-l:after{left:0;border-top:34px solid rgba(120,90,50,.25);border-left:34px solid transparent}
+/* chapter content */
+.chapbanner{background:linear-gradient(90deg,var(--acc),#e9967f);color:#fff;border-radius:6px;padding:8px 12px;margin-bottom:12px;box-shadow:0 2px 0 var(--acc2)}
+.chapbanner small{display:block;font:600 10px var(--ui);letter-spacing:2px;text-transform:uppercase;opacity:.85}
+.chapbanner h1{font:600 21px Georgia,serif}
+.pg h2{font:600 16px Georgia,serif;color:var(--acc2);border-bottom:2px solid var(--edge);padding-bottom:3px;margin:10px 0 7px}
+.pg p{margin:0 0 8px;text-align:justify}
+.imgpanel{background:repeating-linear-gradient(45deg,#e8dcbd,#e8dcbd 10px,#e2d4b0 10px,#e2d4b0 20px);border:2px solid var(--edge);border-radius:6px;text-align:center;padding:14px 8px;margin:9px 0;box-shadow:inset 0 0 12px rgba(120,90,40,.2)}
+.imgpanel .emo{font-size:38px;display:block}
+.imgpanel figcaption{font:11px var(--ui);color:var(--soft);margin-top:4px}
+.factbox{float:right;width:44%;margin:4px 0 8px 10px;background:#dcebf5;border:2px solid #7fa8c9;border-radius:6px;padding:8px 10px;font-size:12px;box-shadow:2px 2px 0 rgba(80,110,140,.3)}
+.factbox b{display:block;font:600 11px var(--ui);color:#2f6190;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+.vocabbox{background:#f3e2c7;border:2px dashed #b99c62;border-radius:6px;padding:8px 10px;margin:9px 0;font-size:12.5px}
+.vocabbox b{color:var(--acc2)}
+.vocabbox h3{font:600 11px var(--ui);letter-spacing:1px;text-transform:uppercase;color:#8a6a35;margin-bottom:4px}
+.qlist ol{margin:4px 0 8px 18px}
+.qlist li{margin-bottom:6px}
+.quizq{margin-bottom:12px}
+.quizq .opt{display:block;background:#fff6;border:1px solid var(--edge);border-radius:8px;padding:4px 9px;margin:3px 0 3px 10px;cursor:pointer;font-family:Georgia,serif;font-size:13px}
+.quizq .opt.sel{background:#cfe4c8;border-color:#6BAF7B;box-shadow:inset 0 0 0 1px #6BAF7B}
+/* highlights */
+.hl-yellow{background:#fff3a0;border-radius:2px}
+.hl-green{background:#c8eec0;border-radius:2px}
+.hl-pink{background:#ffcfe0;border-radius:2px}
+/* write-in answers */
+.writein{margin:4px 0 10px 10px}
+.wi-view{font:19px var(--hand);color:#555;min-height:26px;padding:0 4px;cursor:text;background:repeating-linear-gradient(transparent,transparent 24px,rgba(79,145,199,.4) 24px,rgba(79,145,199,.4) 25px);white-space:pre-wrap;word-break:break-word}
+.wi-view .ch{display:inline-block}
+.wi-view:empty:before{content:"write your answer here…";color:#b0a48c;font-size:15px}
+.wi-edit{display:none;width:100%;min-height:52px;font:19px var(--hand);color:#555;background:repeating-linear-gradient(transparent,transparent 24px,rgba(79,145,199,.4) 24px,rgba(79,145,199,.4) 25px);border:0;outline:none;resize:vertical;padding:0 4px}
+.writein.editing .wi-view{display:none}
+.writein.editing .wi-edit{display:block}
+/* sticky scribble notes */
+.note{position:absolute;min-width:90px;max-width:170px;background:#fff6b8;border-radius:3px;padding:8px 9px 10px;font:17px var(--hand);color:#4a4a3a;box-shadow:2px 3px 6px rgba(60,40,20,.3);cursor:grab;z-index:20;word-break:break-word}
+.note:before{content:"";position:absolute;top:-7px;left:50%;margin-left:-14px;width:28px;height:12px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.08);transform:rotate(-2deg)}
+.note:active{cursor:grabbing}
+.note .del{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--acc);color:#fff;font:10px/16px var(--ui);text-align:center;display:none;cursor:pointer}
+.note:hover .del{display:block}
+body.notemode .pg,body.notemode .face{cursor:crosshair}
+/* highlight popup */
+#hlpop{position:fixed;display:none;z-index:99;background:#fff;border:1px solid var(--edge);border-radius:12px;padding:6px;box-shadow:0 6px 16px rgba(60,40,20,.3);gap:6px}
+#hlpop button{width:26px;height:26px;border-radius:50%;border:2px solid rgba(0,0,0,.15);cursor:pointer}
+#hlpop .hy{background:#fff3a0}#hlpop .hg{background:#c8eec0}#hlpop .hp{background:#ffcfe0}
+/* teacher strip */
+.teacher{position:fixed;left:0;right:0;bottom:0;background:var(--kraft);border-top:2px solid var(--edge);padding:8px 14px;text-align:center;font-size:12.5px;color:var(--soft);z-index:40}
+.teacher b{color:var(--ink)}
+@media(max-width:760px){.bookwrap{width:96vw}.pg{padding:16px 16px 30px;font-size:12px}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <span class="appname">📖 UNIFY Textbook</span>
+  <nav><a href="index.html">Campus</a><a href="hq.html">HQ</a></nav>
+</header>
+<div class="toolbar">
+  <button class="tool" id="btnPrev">← Prev page</button>
+  <button class="tool" id="btnNext">Next page →</button>
+  <button class="tool" id="btnDogEar">📑 Dog-ear this page</button>
+  <button class="tool" id="btnNote">✏️ Note mode: off</button>
+  <span class="lesson-tag" id="lessonTag"></span>
+</div>
+<div class="bookwrap"><div class="book" id="book">
+  <div class="cover"></div>
+  <div class="basepage left"></div>
+  <div class="basepage right"></div>
+</div></div>
+<div id="hlpop">
+  <button class="hy" data-c="yellow" title="yellow"></button>
+  <button class="hg" data-c="green" title="green"></button>
+  <button class="hp" data-c="pink" title="pink"></button>
+</div>
+<div class="teacher">🍎 <b>Teacher note:</b> Your teacher explains this in their own words in class — the book and the lesson are companions, not copies.</div>
+<script>
+"use strict";
+/* ---------- sample fallback lesson ---------- */
+const SAMPLE={id:"sample-water-cycle",title:"The Water Cycle",subject:"Science",chapter:4,
+ intro:"Water never sits still. The water in your glass has been around for billions of years — it may once have been sipped by a dinosaur! In this chapter we follow one drop of water on its endless journey around our planet.",
+ sections:[
+  {heading:"Evaporation: Up, Up and Away",emoji:"☀️",caption:"The Sun heats water in oceans, lakes and puddles.",
+   paragraphs:["When the Sun shines on the ocean, water at the surface warms up and turns into an invisible gas called water vapor. This process is called evaporation.","Plants join in too! They release water vapor from their leaves in a process called transpiration — like tiny fountains you cannot see."],
+   fact:"About 90% of the water vapor in our air comes from oceans, seas and lakes.",
+   vocab:[{term:"evaporation",definition:"when liquid water heats up and becomes water vapor (a gas)"},{term:"transpiration",definition:"water vapor released from plant leaves"}]},
+  {heading:"Condensation: Clouds Are Born",emoji:"☁️",caption:"Water vapor cools high in the sky and gathers into clouds.",
+   paragraphs:["High above the ground the air is cold. Water vapor cools down and turns back into tiny liquid droplets. This is called condensation.","Billions of these droplets huddle together around specks of dust — and that is how a cloud is made. Fog is simply a cloud that sits on the ground."],
+   fact:"A fluffy summer cloud can weigh as much as 100 elephants — but it floats because the droplets are spread out.",
+   vocab:[{term:"condensation",definition:"when water vapor cools and turns back into liquid droplets"}]},
+  {heading:"Precipitation and Collection",emoji:"🌧️",caption:"Rain, snow and hail fall; rivers carry water home.",
+   paragraphs:["When droplets grow too heavy to float, they fall as precipitation — rain, snow, sleet or hail.","The fallen water collects in streams, rivers, lakes and oceans, or soaks into the ground. And then the Sun warms it again… and the whole journey starts over. That is why we call it a cycle!"],
+   fact:"A single drop of water spends about 9 days in the atmosphere before falling again.",
+   vocab:[{term:"precipitation",definition:"water that falls from clouds: rain, snow, sleet or hail"},{term:"collection",definition:"water gathering back into oceans, lakes, rivers and soil"}]}],
+ questions:["Put the four stages of the water cycle in order and describe each in one sentence.","Why doesn't the ocean ever run out of water, even though it evaporates all the time?","Where might the water in your breakfast juice have been a million years ago? Use your imagination, but keep the science true!"],
+ quiz:[
+  {q:"What powers the water cycle?",choices:["The wind","The Sun","Gravity only","Plants"],answer:1},
+  {q:"Condensation is when…",choices:["water falls as rain","water vapor cools into droplets","ice melts","rivers meet the sea"],answer:1},
+  {q:"Fog is…",choices:["smoke from factories","a cloud on the ground","frozen rain","steam from volcanoes"],answer:1}]};
+/* ---------- storage contract ---------- */
+const LS_LESSONS="unify.hq.lessons", TB_PREFIX="unify.hq.textbook.";
+function loadLessons(){try{const raw=localStorage.getItem(LS_LESSONS);if(!raw)return[];const d=JSON.parse(raw);
+ if(Array.isArray(d))return d;
+ if(d&&Array.isArray(d.lessons))return d.lessons;
+ if(d&&typeof d==="object")return Object.keys(d).map(k=>{const v=d[k];return v&&typeof v==="object"&&!v.id?Object.assign({id:k},v):v;}).filter(v=>v&&typeof v==="object");
+ return[];}catch(e){return[];}}
+function pickLesson(){const ls=loadLessons();
+ const q=new URLSearchParams(location.search).get("lesson");
+ if(q){const f=ls.find(l=>String(l.id)===q||String(l.lessonId)===q);if(f)return f;}
+ const assigned=ls.filter(l=>l.assigned||l.status==="assigned"||l.assignedAt);
+ if(assigned.length){assigned.sort((a,b)=>String(b.assignedAt||b.updatedAt||b.date||"").localeCompare(String(a.assignedAt||a.updatedAt||a.date||"")));return assigned[0];}
+ if(ls.length)return ls[ls.length-1];
+ return SAMPLE;}
+const lesson=pickLesson();
+const lessonId=String(lesson.id||lesson.lessonId||lesson.title||"sample");
+const TB_KEY=TB_PREFIX+lessonId;
+function blankState(){return{highlights:[],notes:[],dogEars:[],answers:{}};}
+function loadState(){try{const d=JSON.parse(localStorage.getItem(TB_KEY));const b=blankState();if(d&&typeof d==="object"){for(const k in b)if(d[k]!==undefined)b[k]=d[k];}return b;}catch(e){return blankState();}}
+let state=loadState();
+function save(){localStorage.setItem(TB_KEY,JSON.stringify(state));window.dispatchEvent(new CustomEvent("unify-hq-update",{detail:{key:TB_KEY}}));}
+window.addEventListener("storage",e=>{if(e.key===TB_KEY){state=loadState();renderAll();}if(e.key===LS_LESSONS)location.reload();});
+/* ---------- normalize lesson into chapter pages ---------- */
+function asArr(x){if(!x)return[];return Array.isArray(x)?x:[x];}
+function parasOf(s){return asArr(s.paragraphs||s.text||s.body||s.content).map(String);}
+function vocabOf(s){return asArr(s.vocab||s.vocabulary).map(v=>typeof v==="string"?{term:v,definition:""}:{term:v.term||v.word||"",definition:v.definition||v.meaning||""});}
+function factOf(s){const f=s.fact||s.didYouKnow||s.funFact;return typeof f==="string"?f:(f&&(f.text||f.fact))||"";}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function buildPages(){
+ const pages=[];
+ const chNo=lesson.chapter||lesson.chapterNumber||1;
+ const title=lesson.title||lesson.name||"Untitled Chapter";
+ const subj=lesson.subject||lesson.unit||"";
+ // title page
+ pages.push({html:`<div class="chapbanner"><small>${esc(subj||"Chapter")} · Chapter ${esc(chNo)}</small><h1>${esc(title)}</h1></div>
+  <figure class="imgpanel"><span class="emo">📚</span><figcaption>${esc(title)} — chapter opener</figcaption></figure>
+  <p><i>Open the book, ${esc(title)} awaits. Turn the page with the corners or the buttons below.</i></p>`});
+ const intro=lesson.intro||lesson.introduction||lesson.summary||"";
+ if(intro)pages.push({html:`<h2>Introduction</h2>${asArr(intro).map(p=>`<p>${esc(p)}</p>`).join("")}`});
+ asArr(lesson.sections||lesson.parts).forEach(s=>{
+  let h=`<h2>${esc(s.heading||s.title||"Section")}</h2>`;
+  const f=factOf(s);
+  if(f)h+=`<aside class="factbox"><b>Did you know?</b>${esc(f)}</aside>`;
+  h+=parasOf(s).map(p=>`<p>${esc(p)}</p>`).join("");
+  if(s.emoji||s.image||s.caption)h+=`<figure class="imgpanel"><span class="emo">${esc(s.emoji||"🖼️")}</span><figcaption>${esc(s.caption||s.imageCaption||"Illustration")}</figcaption></figure>`;
+  const vb=vocabOf(s);
+  if(vb.length)h+=`<aside class="vocabbox"><h3>Vocabulary</h3>${vb.map(v=>`<p><b>${esc(v.term)}</b> — ${esc(v.definition)}</p>`).join("")}</aside>`;
+  pages.push({html:h});
+ });
+ // top-level vocab page
+ const tv=vocabOf(lesson);
+ if(tv.length)pages.push({html:`<h2>Words to Know</h2><aside class="vocabbox"><h3>Vocabulary</h3>${tv.map(v=>`<p><b>${esc(v.term)}</b> — ${esc(v.definition)}</p>`).join("")}</aside>`});
+ // questions
+ const qs=asArr(lesson.questions||lesson.discussionQuestions).map(String);
+ if(qs.length)pages.push({html:`<h2>End-of-Chapter Questions</h2><div class="qlist"><ol>${qs.map((q,i)=>`<li>${esc(q)}<div class="writein" data-q="q${i}"><div class="wi-view"></div><textarea class="wi-edit" rows="2"></textarea></div></li>`).join("")}</ol></div>`});
+ // quiz
+ const quiz=asArr(lesson.quiz||lesson.quizQuestions).map(qq=>({q:qq.q||qq.question||"",choices:asArr(qq.choices||qq.options),answer:qq.answer}));
+ if(quiz.length)pages.push({html:`<h2>Chapter Quiz</h2>`+quiz.map((qq,i)=>`<div class="quizq" data-quiz="${i}"><p><b>${i+1}.</b> ${esc(qq.q)}</p>${qq.choices.map((c,j)=>`<button class="opt" data-j="${j}">${esc(c)}</button>`).join("")}</div>`).join("")+`<p style="font-size:11px;color:var(--soft)">Tap an answer to mark it — your choices stay in the book.</p>`});
+ if(pages.length%2)pages.push({html:`<div style="text-align:center;margin-top:60px;color:var(--soft);font-size:40px">🦉</div><p style="text-align:center;color:var(--soft)"><i>End of the chapter.</i></p>`});
+ return pages;
+}
+const pages=buildPages();
+</script>
+<script>
+"use strict";
+/* ---------- spread / sheet rendering ---------- */
+const book=document.getElementById("book");
+const numSheets=Math.ceil(pages.length/2);
+let flipped=0; // number of flipped sheets
+let sheets=[];
+function renderBook(){
+ book.querySelectorAll(".sheet").forEach(s=>s.remove());
+ sheets=[];
+ for(let i=0;i<numSheets;i++){
+  const sh=document.createElement("div");sh.className="sheet";sh.dataset.i=i;
+  const front=document.createElement("div");front.className="face front";
+  const back=document.createElement("div");back.className="face back";
+  front.innerHTML=`<div class="pg" data-pg="${2*i}">${pages[2*i]?pages[2*i].html:""}</div><div class="spineshad"></div><span class="pgnum">${2*i+1}</span><div class="corner" data-dir="1"></div>`;
+  const bp=2*i+1;
+  back.innerHTML=`<div class="pg" data-pg="${bp}">${pages[bp]?pages[bp].html:""}</div><div class="spineshad"></div><span class="pgnum">${bp+1}</span><div class="corner" data-dir="-1"></div>`;
+  sh.appendChild(front);sh.appendChild(back);
+  book.appendChild(sh);sheets.push(sh);
+ }
+ layoutZ();applyDogEars();applyAllHighlights();renderNotes();wireContent();
+}
+function layoutZ(){sheets.forEach((sh,i)=>{const f=i<flipped;sh.classList.toggle("flipped",f);sh.style.zIndex=f?i+1:numSheets-i+1;});}
+function next(){if(flipped<numSheets){flipped++;layoutZ();}}
+function prev(){if(flipped>0){flipped--;layoutZ();}}
+document.getElementById("btnNext").onclick=next;
+document.getElementById("btnPrev").onclick=prev;
+book.addEventListener("click",e=>{
+ const c=e.target.closest(".corner");if(!c)return;
+ if(noteMode)return;
+ const i=+c.closest(".sheet").dataset.i;
+ if(+c.dataset.dir===1&&i===flipped)next();
+ else if(+c.dataset.dir===-1&&i===flipped-1)prev();
+});
+document.addEventListener("keydown",e=>{if(e.target.closest("textarea"))return;if(e.key==="ArrowRight")next();if(e.key==="ArrowLeft")prev();});
+/* ---------- dog-ears ---------- */
+function visiblePages(){const out=[];if(flipped>0)out.push(2*(flipped-1)+1);if(flipped<numSheets)out.push(2*flipped);return out;}
+function applyDogEars(){
+ document.querySelectorAll(".dogear").forEach(d=>d.remove());
+ (state.dogEars||[]).forEach(pg=>{
+  const el=document.querySelector(`.pg[data-pg="${pg}"]`);if(!el)return;
+  const d=document.createElement("div");
+  d.className="dogear "+(el.closest(".face").classList.contains("front")?"de-r":"de-l");
+  el.appendChild(d);
+ });
+}
+document.getElementById("btnDogEar").onclick=()=>{
+ visiblePages().forEach(pg=>{
+  const i=state.dogEars.indexOf(pg);
+  if(i>=0)state.dogEars.splice(i,1);else state.dogEars.push(pg);
+ });
+ save();applyDogEars();
+};
+/* ---------- write-in answers (pencil) ---------- */
+function pencilRender(view,text){
+ view.innerHTML="";
+ [...text].forEach(ch=>{const s=document.createElement("span");s.className="ch";s.textContent=ch;s.style.transform=`rotate(${(Math.random()*4-2).toFixed(1)}deg) translateY(${(Math.random()*1.6-0.8).toFixed(1)}px)`;view.appendChild(s);});
+}
+function wireWriteins(root){
+ root.querySelectorAll(".writein").forEach(w=>{
+  if(w.dataset.wired)return;w.dataset.wired="1";
+  const key=w.dataset.q,view=w.querySelector(".wi-view"),ta=w.querySelector(".wi-edit");
+  ta.value=state.answers[key]||"";pencilRender(view,ta.value);
+  view.addEventListener("click",()=>{w.classList.add("editing");ta.focus();});
+  ta.addEventListener("blur",()=>{state.answers[key]=ta.value;save();pencilRender(view,ta.value);w.classList.remove("editing");});
+ });
+}
+/* quiz */
+function wireQuiz(root){
+ root.querySelectorAll(".quizq").forEach(q=>{
+  const i=q.dataset.quiz,sel=state.answers["quiz"+i];
+  q.querySelectorAll(".opt").forEach(o=>o.classList.toggle("sel",+o.dataset.j===sel));
+  if(q.dataset.wired)return;q.dataset.wired="1";
+  q.addEventListener("click",e=>{
+   const o=e.target.closest(".opt");if(!o)return;
+   state.answers["quiz"+i]=+o.dataset.j;save();
+   q.querySelectorAll(".opt").forEach(x=>x.classList.toggle("sel",x===o));
+  });
+ });
+}
+function wireContent(){document.querySelectorAll(".pg").forEach(pg=>{wireWriteins(pg);wireQuiz(pg);});}
+/* ---------- highlighting ---------- */
+const hlpop=document.getElementById("hlpop");
+let pendingHl=null;
+document.addEventListener("selectionchange",()=>{
+ const sel=window.getSelection();
+ if(!sel||sel.isCollapsed||!sel.rangeCount){if(!hlpop.matches(":hover"))hlpop.style.display="none";return;}
+ const range=sel.getRangeAt(0);
+ const pg=range.commonAncestorContainer.nodeType===3?range.commonAncestorContainer.parentElement.closest(".pg"):range.commonAncestorContainer.closest(".pg");
+ if(!pg||!String(sel).trim()){hlpop.style.display="none";return;}
+ const r=range.getBoundingClientRect();
+ hlpop.style.display="flex";
+ hlpop.style.left=Math.min(innerWidth-120,Math.max(4,r.left+r.width/2-55))+"px";
+ hlpop.style.top=Math.max(4,r.top-46)+"px";
+ pendingHl={page:+pg.dataset.pg,text:String(sel)};
+});
+hlpop.addEventListener("mousedown",e=>e.preventDefault());
+hlpop.addEventListener("click",e=>{
+ const b=e.target.closest("button");if(!b||!pendingHl)return;
+ state.highlights.push({page:pendingHl.page,text:pendingHl.text,color:b.dataset.c});
+ save();window.getSelection().removeAllRanges();hlpop.style.display="none";
+ applyAllHighlights();
+});
+function unwrapHls(pg){pg.querySelectorAll("span[data-hl]").forEach(s=>{s.replaceWith(document.createTextNode(s.textContent));});pg.normalize();}
+function applyHlToPage(pgEl,pageIdx){
+ unwrapHls(pgEl);
+ state.highlights.filter(h=>h.page===pageIdx).forEach(h=>{
+  // find h.text across text nodes
+  const walker=document.createTreeWalker(pgEl,NodeFilter.SHOW_TEXT);
+  let nodes=[],n;
+  while(n=walker.nextNode())nodes.push(n);
+  const full=nodes.map(t=>t.data).join("");
+  const idx=full.indexOf(h.text);
+  if(idx<0)return;
+  let pos=0,startN=null,startO=0,endN=null,endO=0;
+  for(const t of nodes){
+   const next=pos+t.data.length;
+   if(startN===null&&idx<next){startN=t;startO=idx-pos;}
+   if(idx+h.text.length<=next){endN=t;endO=idx+h.text.length-pos;break;}
+   pos=next;
+  }
+  if(!startN||!endN)return;
+  try{
+   const range=document.createRange();range.setStart(startN,startO);range.setEnd(endN,endO);
+   const span=document.createElement("span");span.dataset.hl="1";span.className="hl-"+h.color;
+   range.surroundContents(span);
+  }catch(e){/* range crosses element boundary; skip */}
+ });
+}
+function applyAllHighlights(){document.querySelectorAll(".pg").forEach(pg=>applyHlToPage(pg,+pg.dataset.pg));}
+/* ---------- scribble notes ---------- */
+let noteMode=false;
+const btnNote=document.getElementById("btnNote");
+btnNote.onclick=()=>{noteMode=!noteMode;btnNote.textContent="✏️ Note mode: "+(noteMode?"on":"off");btnNote.classList.toggle("on",noteMode);document.body.classList.toggle("notemode",noteMode);};
+book.addEventListener("click",e=>{
+ if(!noteMode)return;
+ if(e.target.closest(".note,.corner,.tool"))return;
+ const pg=e.target.closest(".pg");if(!pg)return;
+ const r=pg.getBoundingClientRect();
+ const note={id:Date.now()+"-"+Math.floor(Math.random()*1e4),page:+pg.dataset.pg,
+  x:Math.round((e.clientX-r.left)/r.width*100),y:Math.round((e.clientY-r.top+pg.scrollTop)/Math.max(r.height,pg.scrollHeight)*100),
+  text:"✏️ note…",rot:Math.round((Math.random()*6-3)*10)/10};
+ state.notes.push(note);save();renderNotes();
+ const el=document.querySelector(`.note[data-id="${note.id}"] .ntext`);
+ if(el)el.focus();
+});
+function renderNotes(){
+ document.querySelectorAll(".note").forEach(n=>n.remove());
+ (state.notes||[]).forEach(nt=>{
+  const pg=document.querySelector(`.pg[data-pg="${nt.page}"]`);if(!pg)return;
+  const el=document.createElement("div");el.className="note";el.dataset.id=nt.id;
+  el.style.left=nt.x+"%";el.style.top=nt.y+"%";el.style.transform=`rotate(${nt.rot}deg)`;
+  el.innerHTML=`<span class="del">×</span><div class="ntext" contenteditable="true" spellcheck="false"></div>`;
+  el.querySelector(".ntext").textContent=nt.text;
+  pg.appendChild(el);
+  const tx=el.querySelector(".ntext");
+  tx.addEventListener("blur",()=>{nt.text=tx.textContent;save();});
+  el.querySelector(".del").addEventListener("click",ev=>{ev.stopPropagation();state.notes=state.notes.filter(x=>x.id!==nt.id);save();renderNotes();});
+  el.addEventListener("dblclick",()=>{state.notes=state.notes.filter(x=>x.id!==nt.id);save();renderNotes();});
+  // drag
+  el.addEventListener("pointerdown",ev=>{
+   if(ev.target.closest(".del")||ev.target.closest(".ntext"))return;
+   ev.preventDefault();el.setPointerCapture(ev.pointerId);
+   const r=pg.getBoundingClientRect(),sx=ev.clientX,sy=ev.clientY,ox=nt.x,oy=nt.y;
+   const mv=e2=>{nt.x=Math.max(0,Math.min(92,ox+(e2.clientX-sx)/r.width*100));nt.y=Math.max(0,oy+(e2.clientY-sy)/Math.max(r.height,pg.scrollHeight)*100);el.style.left=nt.x+"%";el.style.top=nt.y+"%";};
+   const up=()=>{el.removeEventListener("pointermove",mv);el.removeEventListener("pointerup",up);save();};
+   el.addEventListener("pointermove",mv);el.addEventListener("pointerup",up);
+  });
+ });
+}
+/* ---------- boot ---------- */
+function renderAll(){renderBook();}
+document.getElementById("lessonTag").textContent="📕 "+(lesson.title||lesson.name||lessonId)+(lesson===SAMPLE?" (sample chapter)":"");
+renderBook();
+</script>
+</body>
+</html>

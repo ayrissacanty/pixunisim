@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Curriculum Builder — UNIFY HQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
+<style>
+:root{--sheet:#EADFCB;--kraft:#F3E7CF;--edge:#C9B28A;--ink:#4A3B3F;--soft:#8A7A70;--acc:#E07A66;--sage:#4E8A64;
+ --ui:"Fredoka","Trebuchet MS",system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font:15px/1.45 var(--ui);color:var(--ink);background:var(--sheet);min-height:100vh}
+.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--kraft);border-bottom:2px solid var(--edge);box-shadow:0 3px 0 var(--edge),0 8px 16px rgba(80,50,40,.18)}
+.topbar .brand{font-weight:600;font-size:19px}.topbar .brand small{color:var(--soft);font-weight:400;margin-left:8px}
+.topbar .sp{flex:1}
+.btn,.pill{font:inherit;color:var(--ink);background:var(--kraft);border:1px solid rgba(255,255,255,.7);border-radius:12px;padding:8px 16px;min-height:42px;cursor:pointer;box-shadow:0 2px 0 var(--edge),0 6px 10px rgba(80,50,40,.25);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn:active,.pill:active{transform:translateY(2px);box-shadow:0 0 0 var(--edge),0 3px 6px rgba(80,50,40,.25)}
+.btn:focus-visible,.pill:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.btn.acc{background:var(--acc);color:#fff;border-color:#fff6}
+.btn.sage{background:var(--sage);color:#fff;border-color:#fff6}
+.btn.ghost{background:transparent;box-shadow:none;border:1px solid var(--edge)}
+.btn.small{min-height:32px;padding:4px 10px;font-size:13px}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 14px 60px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pill.on{background:var(--ink);color:var(--kraft)}
+.card{background:var(--kraft);border-radius:16px;padding:16px;box-shadow:0 3px 0 var(--edge),0 12px 24px rgba(80,50,40,.3);margin-bottom:16px}
+.card h2{font-size:18px;margin-bottom:8px}
+.card h3{font-size:15px;margin:12px 0 6px}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+label{display:block;font-size:12px;font-weight:600;color:var(--soft);text-transform:uppercase;letter-spacing:.4px;margin:8px 0 3px}
+select,input[type=text],textarea{font:inherit;color:var(--ink);width:100%;background:#fff9;border:1px solid var(--edge);border-radius:10px;padding:9px 10px;min-height:42px}
+textarea{min-height:80px;resize:vertical}
+.muted{color:var(--soft);font-size:13px}
+.tag{display:inline-block;background:#fff9;border:1px solid var(--edge);border-radius:99px;padding:1px 9px;font-size:12px;margin:2px 3px 2px 0}
+.tag.acc{background:var(--acc);color:#fff;border-color:transparent}
+.tag.sage{background:var(--sage);color:#fff;border-color:transparent}
+.res{display:flex;flex-direction:column;gap:5px;background:#fff9;border-radius:12px;padding:10px 12px;border:1px solid var(--edge)}
+.res b{font-size:15px}
+.res .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.segrow{display:flex;gap:8px;align-items:flex-start;background:#fff9;border:1px solid var(--edge);border-radius:10px;padding:8px 10px;margin-bottom:6px;flex-wrap:wrap}
+.segrow .m{font-weight:600;min-width:52px;text-align:center;background:var(--acc);color:#fff;border-radius:8px;padding:4px 6px}
+.warn{background:#f8d7cd;border:1px solid #c96a52;color:#7c3220;border-radius:10px;padding:8px 12px;margin:8px 0;font-weight:600}
+.ok{background:#d8ecd9;border:1px solid var(--sage);color:#2c5a3d;border-radius:10px;padding:8px 12px;margin:8px 0}
+.lessonrow{display:flex;align-items:center;gap:10px;background:#fff9;border:1px solid var(--edge);border-radius:12px;padding:10px 12px;margin-bottom:8px;flex-wrap:wrap}
+.lessonrow .inf{flex:1;min-width:200px}
+.lessonrow .acts{display:flex;gap:6px;flex-wrap:wrap}
+pre.json{background:#3b2f33;color:#EADFCB;border-radius:10px;padding:12px;font-size:12px;overflow:auto;max-height:340px;white-space:pre-wrap;word-break:break-word}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;gap:14px}
+.gate-emoji{font-size:64px}
+.kv{font-size:14px}.kv b{color:var(--ink)}
+details{margin:8px 0}summary{cursor:pointer;font-weight:600;padding:6px 0}
+ul.tight{margin:4px 0 4px 20px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+"use strict";
+/* ================= ADMIN GATE (exact per brief) ================= */
+const isAdmin=(()=>{try{return sessionStorage.getItem("unify.family.ci")==="parent"||localStorage.getItem("unify.opendoor.adult")==="1";}catch{return false;}})();
+
+/* ================= DATA ================= */
+const GRADES=["K-2","3-5","6-8","9-12"];
+const SUBJECTS=["English","Math","Science","History","Geography","Art","Music","PE","Health","Technology","World Languages"];
+const TYPES=["article","video","interactive","game","model"];
+const LS_LESSONS="unify.hq.lessons", LS_STAFF="unify.hq.staff";
+
+const RESOURCES=[
+{id:"r01",title:"Phonics Foundations: Letter Sounds",gradeBand:"K-2",subject:"English",type:"interactive",source:"Starfall",url:"https://www.starfall.org",summary:"Playful animated lessons that connect each letter to its sound, with songs and click-along practice for emerging readers.",facts:["Short vowels are usually taught before long vowels.","Blending two sounds (c-a-t) is the first decoding skill."],vocab:["phoneme","blend","vowel"]},
+{id:"r02",title:"Sight Words Mini-Games",gradeBand:"K-2",subject:"English",type:"game",source:"PBS LearningMedia",url:"https://www.pbslearningmedia.org",summary:"Quick games where children spot common words like 'the', 'and', and 'said' to build reading fluency through repetition.",facts:["About 100 sight words make up roughly half of early-reader text.","Fluency means reading smoothly, not just correctly."],vocab:["sight word","fluency","decode"]},
+{id:"r03",title:"Story Elements: Characters & Setting",gradeBand:"3-5",subject:"English",type:"video",source:"PBS LearningMedia",url:"https://www.pbslearningmedia.org",summary:"Short animated videos that show how authors build characters, settings, and plots, followed by discussion prompts.",facts:["The setting is when and where a story happens.","A plot usually has a beginning, middle, and end."],vocab:["character","setting","plot"]},
+{id:"r04",title:"Writing Strong Paragraphs",gradeBand:"6-8",subject:"English",type:"article",source:"Khan Academy",url:"https://www.khanacademy.org",summary:"A step-by-step guide to topic sentences, supporting details, and conclusions, with before-and-after example paragraphs.",facts:["A topic sentence states the main idea of a paragraph.","Transitions like 'however' and 'for example' connect ideas."],vocab:["topic sentence","transition","evidence"]},
+{id:"r05",title:"Analyzing Argument & Rhetoric",gradeBand:"9-12",subject:"English",type:"article",source:"Khan Academy",url:"https://www.khanacademy.org",summary:"An introduction to ethos, pathos, and logos, showing how speakers persuade audiences and how to evaluate claims.",facts:["Ethos appeals to credibility, pathos to emotion, logos to logic.","A counterclaim is an argument against your thesis."],vocab:["rhetoric","thesis","counterclaim"]},
+{id:"r06",title:"Counting to 100 with Numberblocks",gradeBand:"K-2",subject:"Math",type:"video",source:"PBS LearningMedia",url:"https://www.pbslearningmedia.org",summary:"Cheerful block characters demonstrate counting, skip-counting, and simple addition through song and story.",facts:["Skip counting by 5s and 10s prepares kids for multiplication.","Ten ones make one ten — the base-ten idea."],vocab:["digit","sum","skip count"]},
+{id:"r07",title:"Place Value Blocks",gradeBand:"K-2",subject:"Math",type:"model",source:"CK-12",url:"https://www.ck12.org",summary:"Virtual base-ten blocks let students build two-digit numbers and see how tens and ones combine.",facts:["In 47, the 4 means four tens.","Place value is the foundation of all arithmetic."],vocab:["place value","tens","ones"]},
+{id:"r08",title:"Fractions on the Number Line",gradeBand:"3-5",subject:"Math",type:"interactive",source:"PhET (University of Colorado)",url:"https://phet.colorado.edu",summary:"An interactive lab where students drag fraction pieces onto a number line and compare sizes like 1/2 vs 2/3.",facts:["Equivalent fractions name the same amount.","The denominator tells how many equal parts make a whole."],vocab:["numerator","denominator","equivalent"]},
+{id:"r09",title:"Multiplication Grand Prix",gradeBand:"3-5",subject:"Math",type:"game",source:"Arcademics",url:"https://www.arcademics.com",summary:"A racing game where answering times-table questions correctly speeds up your car — fluency through fun competition.",facts:["Fluency with facts to 10×10 is a 3rd-grade milestone.","Arrays model multiplication visually."],vocab:["factor","product","array"]},
+{id:"r10",title:"Intro to Negative Numbers",gradeBand:"6-8",subject:"Math",type:"video",source:"Khan Academy",url:"https://www.khanacademy.org",summary:"Videos and exercises introducing integers using temperature, elevation, and debt as real-world examples.",facts:["Numbers less than zero are negative.","The absolute value of -5 is 5 — its distance from zero."],vocab:["integer","absolute value","number line"]},
+{id:"r11",title:"Balancing Equations with Algebra Tiles",gradeBand:"6-8",subject:"Math",type:"model",source:"CK-12",url:"https://www.ck12.org",summary:"A virtual balance-scale model showing that whatever you do to one side of an equation, you must do to the other.",facts:["An equation says two expressions are equal.","Inverse operations 'undo' each other."],vocab:["variable","equation","inverse operation"]},
+{id:"r12",title:"Quadratic Functions & Parabolas",gradeBand:"9-12",subject:"Math",type:"interactive",source:"PhET (University of Colorado)",url:"https://phet.colorado.edu",summary:"Explore how changing a, b, and c in y = ax² + bx + c stretches, shifts, and flips the parabola in real time.",facts:["The vertex is the highest or lowest point of a parabola.","The discriminant tells how many real roots a quadratic has."],vocab:["parabola","vertex","coefficient"]},
+{id:"r13",title:"Statistics: Mean, Median, Mode",gradeBand:"9-12",subject:"Math",type:"article",source:"CK-12",url:"https://www.ck12.org",summary:"A practical guide to measures of center, with sports statistics and survey data showing when each measure is most honest.",facts:["The median resists outliers better than the mean.","The mode is the most frequent value."],vocab:["mean","median","outlier"]},
+{id:"r14",title:"Weather Watching for Kids",gradeBand:"K-2",subject:"Science",type:"video",source:"National Geographic Kids",url:"https://kids.nationalgeographic.com",summary:"Short videos introducing clouds, rain, and sunshine, plus simple ideas for keeping a daily weather journal.",facts:["Cumulus clouds look like cotton puffs and often mean fair weather.","A thermometer measures temperature."],vocab:["weather","temperature","forecast"]},
+{id:"r15",title:"The Water Cycle Adventure",gradeBand:"3-5",subject:"Science",type:"interactive",source:"NASA Climate Kids",url:"https://climatekids.nasa.gov",summary:"Follow a water drop through evaporation, condensation, and precipitation with animations and mini-challenges.",facts:["The sun powers the water cycle.","Condensation forms clouds."],vocab:["evaporation","condensation","precipitation"]},
+{id:"r16",title:"Ecosystems: Food Webs",gradeBand:"3-5",subject:"Science",type:"article",source:"National Geographic Kids",url:"https://kids.nationalgeographic.com",summary:"An illustrated guide to producers, consumers, and decomposers, and how removing one species affects the whole web.",facts:["Producers (plants) make their own food from sunlight.","Decomposers recycle nutrients back into the soil."],vocab:["producer","consumer","decomposer"]},
+{id:"r17",title:"Build an Atom",gradeBand:"6-8",subject:"Science",type:"interactive",source:"PhET (University of Colorado)",url:"https://phet.colorado.edu",summary:"Drag protons, neutrons, and electrons into an atom and watch the element name, charge, and stability update live.",facts:["The number of protons defines the element.","Isotopes have the same protons but different neutrons."],vocab:["proton","neutron","electron"]},
+{id:"r18",title:"Plate Tectonics & Earthquakes",gradeBand:"6-8",subject:"Science",type:"video",source:"Smithsonian Science Education Center",url:"https://ssec.si.edu",summary:"Museum-quality videos and maps showing how Earth's crustal plates move, collide, and cause earthquakes and volcanoes.",facts:["Earth's outer shell is broken into about 15 major plates.","The Ring of Fire circles the Pacific Ocean with volcanoes."],vocab:["plate tectonics","fault","magma"]},
+{id:"r19",title:"Newton's Laws Skate Park",gradeBand:"9-12",subject:"Science",type:"interactive",source:"PhET (University of Colorado)",url:"https://phet.colorado.edu",summary:"A skate park simulator for exploring force, friction, and energy, with live graphs of kinetic and potential energy.",facts:["Energy transforms but is never created or destroyed.","F = ma links force, mass, and acceleration."],vocab:["kinetic energy","friction","acceleration"]},
+{id:"r20",title:"NASA Image of the Day",gradeBand:"9-12",subject:"Science",type:"article",source:"NASA",url:"https://www.nasa.gov",summary:"Daily telescope and spacecraft imagery with scientist-written explanations — great for astronomy bell-ringers.",facts:["Light from the Sun takes about 8 minutes to reach Earth.","The James Webb telescope sees infrared light."],vocab:["light-year","spectrum","orbit"]},
+{id:"r21",title:"Community Helpers",gradeBand:"K-2",subject:"History",type:"video",source:"PBS LearningMedia",url:"https://www.pbslearningmedia.org",summary:"Meet firefighters, doctors, and mail carriers and learn how communities have organized helpers throughout history.",facts:["Communities work better when people share jobs.","The first US postal routes date to the 1600s."],vocab:["community","past","citizen"]},
+{id:"r22",title:"Then & Now: Life 100 Years Ago",gradeBand:"K-2",subject:"History",type:"article",source:"Smithsonian",url:"https://www.si.edu",summary:"Photo comparisons of schools, toys, and transportation showing how daily life has changed over a century.",facts:["A primary source is something made during the time being studied.","Historians compare past and present."],vocab:["past","present","timeline"]},
+{id:"r23",title:"Ancient Egypt Virtual Tomb Tour",gradeBand:"3-5",subject:"History",type:"interactive",source:"Smithsonian",url:"https://www.si.edu",summary:"Explore a recreated Egyptian tomb, decode hieroglyphs, and learn how archaeologists piece together ancient life.",facts:["Hieroglyphs are picture-symbols used in Egyptian writing.","The Nile River made Egyptian farming possible."],vocab:["pharaoh","hieroglyph","archaeologist"]},
+{id:"r24",title:"The American Revolution: Cause & Effect",gradeBand:"6-8",subject:"History",type:"article",source:"Khan Academy",url:"https://www.khanacademy.org",summary:"An overview of the taxes, protests, and ideas that pushed thirteen colonies toward independence, with primary-source excerpts.",facts:["The Declaration of Independence was adopted in 1776.","Taxation without representation was a central complaint."],vocab:["revolution","independence","boycott"]},
+{id:"r25",title:"Primary Sources: Reading History Firsthand",gradeBand:"9-12",subject:"History",type:"article",source:"Library of Congress",url:"https://www.loc.gov",summary:"A guide to analyzing letters, photographs, and speeches as evidence, with questions historians ask of every source.",facts:["Sourcing means asking who created a document and why.","Corroboration checks one source against others."],vocab:["primary source","bias","corroboration"]},
+{id:"r26",title:"Maps & Globes for Beginners",gradeBand:"K-2",subject:"Geography",type:"interactive",source:"National Geographic Kids",url:"https://kids.nationalgeographic.com",summary:"Simple map games introducing continents, oceans, and symbols like the compass rose.",facts:["Earth has seven continents and five oceans.","A map key explains what symbols mean."],vocab:["map","continent","ocean"]},
+{id:"r27",title:"US States & Capitals Game",gradeBand:"3-5",subject:"Geography",type:"game",source:"National Geographic Kids",url:"https://kids.nationalgeographic.com",summary:"Timed map games for placing all 50 states and matching capitals, with fun facts for each state.",facts:["There are 50 US states; Alaska is the largest by area.","A capital is the city where a state's government sits."],vocab:["capital","border","region"]},
+{id:"r28",title:"Climate Zones of the World",gradeBand:"6-8",subject:"Geography",type:"model",source:"NASA Climate Kids",url:"https://climatekids.nasa.gov",summary:"An interactive globe comparing tropical, temperate, and polar zones and explaining how latitude shapes climate.",facts:["Latitude measures distance north or south of the equator.","Tropical zones lie between the Tropics of Cancer and Capricorn."],vocab:["latitude","climate","equator"]},
+{id:"r29",title:"Human Geography: Migration Patterns",gradeBand:"9-12",subject:"Geography",type:"article",source:"National Geographic",url:"https://www.nationalgeographic.com",summary:"Case studies of push and pull factors — jobs, safety, climate — that move populations around the globe.",facts:["Push factors drive people away; pull factors attract them.","Urbanization is the growth of cities."],vocab:["migration","urbanization","demography"]},
+{id:"r30",title:"Color Mixing Lab",gradeBand:"K-2",subject:"Art",type:"interactive",source:"Tate Kids",url:"https://www.tate.org.uk/kids",summary:"A digital paint-mixing bench where kids combine primary colors to discover secondary colors.",facts:["Red, blue, and yellow are primary colors.","Blue + yellow makes green."],vocab:["primary color","secondary color","mix"]},
+{id:"r31",title:"Famous Artists in 5 Minutes",gradeBand:"3-5",subject:"Art",type:"video",source:"Tate Kids",url:"https://www.tate.org.uk/kids",summary:"Bite-sized artist biographies — from Frida Kahlo to Hokusai — with prompts to try each style.",facts:["Frida Kahlo is famous for symbolic self-portraits.","Hokusai's 'Great Wave' is a woodblock print."],vocab:["portrait","style","medium"]},
+{id:"r32",title:"Elements of Art: Line, Shape, Form",gradeBand:"6-8",subject:"Art",type:"article",source:"Smithsonian",url:"https://www.si.edu",summary:"Museum artworks used to teach the seven elements of art, with sketchbook challenges for each element.",facts:["Shape is flat; form has depth.","Value describes how light or dark something is."],vocab:["line","value","composition"]},
+{id:"r33",title:"Rhythm & Beat Body Percussion",gradeBand:"K-2",subject:"Music",type:"video",source:"PBS LearningMedia",url:"https://www.pbslearningmedia.org",summary:"Clap-and-stomp-along videos teaching steady beat, loud/soft, and fast/slow.",facts:["A steady beat is the heartbeat of music.","Tempo means how fast or slow music goes."],vocab:["beat","tempo","rhythm"]},
+{id:"r34",title:"Chrome Music Lab",gradeBand:"3-5",subject:"Music",type:"interactive",source:"Google (Chrome Music Lab)",url:"https://musiclab.chromeexperiments.com",summary:"Hands-on experiments with rhythm, melody, and sound waves — no instrument required.",facts:["Sound is made by vibrations.","A melody is a sequence of notes that sounds like a tune."],vocab:["melody","harmony","vibration"]},
+{id:"r35",title:"Orchestra Instruments Explorer",gradeBand:"6-8",subject:"Music",type:"interactive",source:"Classics for Kids",url:"https://www.classicsforkids.com",summary:"Hear and compare strings, woodwinds, brass, and percussion with audio clips and quizzes.",facts:["The four orchestra families are strings, woodwinds, brass, percussion.","A conductor keeps an orchestra together."],vocab:["orchestra","woodwind","conductor"]},
+{id:"r36",title:"Fit & Fun: Movement Breaks",gradeBand:"K-2",subject:"PE",type:"video",source:"GoNoodle",url:"https://www.gonoodle.com",summary:"Short guided movement videos — stretches, dances, and balance games — for indoor activity breaks.",facts:["Kids should be active for at least 60 minutes a day.","Balance improves with practice."],vocab:["exercise","balance","stretch"]},
+{id:"r37",title:"Team Sports: Rules & Fair Play",gradeBand:"3-5",subject:"PE",type:"article",source:"SHAPE America",url:"https://www.shapeamerica.org",summary:"Kid-friendly rule guides for soccer, basketball, and tag games, emphasizing sportsmanship and inclusion.",facts:["Sportsmanship means respecting teammates, opponents, and officials.","Aerobic activity strengthens the heart."],vocab:["sportsmanship","aerobic","cooperation"]},
+{id:"r38",title:"Heart Rate & Fitness Science",gradeBand:"9-12",subject:"PE",type:"interactive",source:"CK-12",url:"https://www.ck12.org",summary:"Measure resting and active heart rates, chart the data, and learn what target heart-rate zones mean.",facts:["Resting heart rate for teens is typically 60–100 bpm.","Cardiovascular fitness improves with regular aerobic exercise."],vocab:["heart rate","cardiovascular","endurance"]},
+{id:"r39",title:"MyPlate: Building a Healthy Meal",gradeBand:"3-5",subject:"Health",type:"interactive",source:"USDA MyPlate",url:"https://www.myplate.gov",summary:"Drag foods onto a plate to build balanced meals and learn the five food groups.",facts:["Half your plate should be fruits and vegetables.","Protein helps build and repair the body."],vocab:["nutrition","food group","balanced"]},
+{id:"r40",title:"Understanding Emotions",gradeBand:"6-8",subject:"Health",type:"video",source:"PBS LearningMedia",url:"https://www.pbslearningmedia.org",summary:"Videos on naming feelings, stress management, and when to ask a trusted adult for help.",facts:["Naming an emotion is the first step to managing it.","Sleep, movement, and talking help manage stress."],vocab:["emotion","stress","coping skill"]},
+{id:"r41",title:"Typing Clubhouse",gradeBand:"3-5",subject:"Technology",type:"game",source:"TypingClub",url:"https://www.typingclub.com",summary:"Gamified keyboarding lessons that build home-row muscle memory with progress badges.",facts:["Home row is where fingers rest: A-S-D-F and J-K-L-;.","Accuracy matters more than speed at first."],vocab:["keyboard","home row","accuracy"]},
+{id:"r42",title:"Hour of Code: Dance Party",gradeBand:"3-5",subject:"Technology",type:"game",source:"Code.org",url:"https://code.org",summary:"Drag-and-drop coding blocks to choreograph animated dancers — a friendly first taste of programming.",facts:["An algorithm is a set of steps to solve a problem.","A loop repeats instructions."],vocab:["code","algorithm","loop"]},
+{id:"r43",title:"How the Internet Works",gradeBand:"6-8",subject:"Technology",type:"video",source:"Khan Academy",url:"https://www.khanacademy.org",summary:"Clear explanations of packets, IP addresses, and how a web page travels across the world in milliseconds.",facts:["Data travels in small chunks called packets.","A URL is the address of a resource on the web."],vocab:["internet","packet","server"]},
+{id:"r44",title:"Intro to Python with Turtle Graphics",gradeBand:"9-12",subject:"Technology",type:"interactive",source:"Code.org",url:"https://code.org",summary:"Write real Python commands to steer a turtle across the screen, learning variables, loops, and functions.",facts:["A function is a reusable block of code.","Python uses indentation to group statements."],vocab:["variable","function","syntax"]},
+{id:"r45",title:"Digital Citizenship & Online Safety",gradeBand:"6-8",subject:"Technology",type:"article",source:"Common Sense Education",url:"https://www.commonsense.org/education",summary:"Scenarios about passwords, privacy, and kind online behavior, with class discussion prompts.",facts:["A strong password is long and hard to guess.","Once shared online, content can be copied forever."],vocab:["privacy","password","digital footprint"]},
+{id:"r46",title:"First Words in Spanish: Colors & Animals",gradeBand:"K-2",subject:"World Languages",type:"video",source:"PBS LearningMedia",url:"https://www.pbslearningmedia.org",summary:"Sing-along videos introducing Spanish color and animal words with repetition and movement.",facts:["'Rojo' means red in Spanish.","Children learn languages fastest through songs and play."],vocab:["greeting","color","animal"]},
+{id:"r47",title:"Greetings Around the World",gradeBand:"3-5",subject:"World Languages",type:"article",source:"National Geographic Kids",url:"https://kids.nationalgeographic.com",summary:"Learn to say hello, please, and thank you in ten languages, with cultural notes on politeness customs.",facts:["Over 7,000 languages are spoken worldwide.","Mandarin Chinese has the most native speakers."],vocab:["language","greeting","culture"]},
+{id:"r48",title:"Spanish Verb Bootcamp: Ser vs Estar",gradeBand:"9-12",subject:"World Languages",type:"interactive",source:"CK-12",url:"https://www.ck12.org",summary:"Interactive drills that untangle the two Spanish verbs for 'to be', with memory tricks and practice quizzes.",facts:["'Ser' describes identity and origin; 'estar' describes location and condition.","Verb conjugation changes a verb's ending to match the subject."],vocab:["conjugation","infinitive","tense"]},
+{id:"r49",title:"Simple Machines Playground",gradeBand:"3-5",subject:"Science",type:"model",source:"CK-12",url:"https://www.ck12.org",summary:"Build and test levers, pulleys, and ramps in a virtual playground to see how machines make work easier.",facts:["A lever trades distance for force.","A ramp is an inclined plane."],vocab:["lever","pulley","inclined plane"]},
+{id:"r50",title:"Civics: How a Bill Becomes a Law",gradeBand:"9-12",subject:"History",type:"video",source:"PBS LearningMedia",url:"https://www.pbslearningmedia.org",summary:"Follow a bill from idea to law through committees, votes, and the President's desk, with checks-and-balances context.",facts:["A bill must pass both the House and Senate.","The President can veto a bill; Congress can override with 2/3 votes."],vocab:["bill","veto","legislature"]}
+];
+
+/* ================= GENERATOR CONTENT BANKS ================= */
+const SEGMENTS_BY_BAND={
+ "K-2":[["Warm-up",3],["Mini-lesson",4],["Main activity",5],["Interactive element",3],["Wrap-up",2]],
+ "3-5":[["Warm-up",3],["Mini-lesson",5],["Main activity",6],["Interactive element",4],["Wrap-up",2]],
+ "6-8":[["Warm-up",5],["Direct instruction",8],["Main activity",10],["Interactive element",5],["Wrap-up",4]],
+ "9-12":[["Warm-up",5],["Direct instruction",10],["Main activity",10],["Interactive element",5],["Wrap-up",5]]
+};
+const INTERACTIVE_BY_SUBJECT={
+ English:"paired storytelling circle where partners retell the topic in their own words",
+ Math:"a hands-on number game with manipulatives tied to today's target skill",
+ Science:"a mini model-building station where students test one idea from the lesson",
+ History:"a 'you are there' role-play discussion of a moment from the topic",
+ Geography:"a map-sketch challenge where students label the key places from the lesson",
+ Art:"a quick studio task where students create a small artwork using the lesson's technique",
+ Music:"a call-and-response rhythm game echoing the patterns from the lesson",
+ PE:"a movement game that practices the target skill in short rounds",
+ Health:"a scenario sort game where students pick healthy responses to everyday situations",
+ Technology:"a guided unplugged-then-online coding or tool challenge",
+ "World Languages":"a partner dialogue game practicing the target phrases"
+};
+const GESTURES={"Warm-up":{gesture:"wave",expression:"smile"},"Mini-lesson":{gesture:"point-at-board",expression:"focused"},"Direct instruction":{gesture:"point-at-board",expression:"focused"},"Main activity":{gesture:"open-hands-invite",expression:"encouraging"},"Interactive element":{gesture:"clap-and-gesture",expression:"excited"},"Wrap-up":{gesture:"thumbs-up",expression:"proud"}};
+const MEDIA_BY_TYPE={article:"display a key passage or diagram from the resource on the board",video:"play the curated video clip (pausing for predictions)",interactive:"project the interactive simulation and take student steering suggestions",game:"run the learning game in two quick rounds",model:"demo the model/manipulative, then hand it to table groups"};
+
+/* ================= STORAGE HELPERS ================= */
+function loadLessons(){try{return JSON.parse(localStorage.getItem(LS_LESSONS)||"[]")||[];}catch(e){return [];}}
+function saveLessons(a){localStorage.setItem(LS_LESSONS,JSON.stringify(a));window.dispatchEvent(new CustomEvent("unify-hq-update",{detail:{key:LS_LESSONS}}));}
+function loadStaff(){try{const s=JSON.parse(localStorage.getItem(LS_STAFF)||"[]");return Array.isArray(s)&&s.length?s:null;}catch(e){return null;}}
+function teacherName(t){return t.name||t.fullName||t.displayName||"Teacher";}
+
+/* ================= GENERATOR ================= */
+function minMinutes(band){return (band==="K-2"||band==="3-5")?15:30;}
+function genLesson(opts){
+ const band=opts.gradeBand, subject=opts.subject, topic=opts.topic||("Introduction to "+subject);
+ const res=RESOURCES.filter(r=>r.gradeBand===band&&r.subject===subject);
+ const base=res.length?res:RESOURCES.filter(r=>r.subject===subject);
+ const picked=(opts.resourceId&&RESOURCES.find(r=>r.id===opts.resourceId))||base[Math.floor(Math.random()*base.length)]||RESOURCES[0];
+ const staff=loadStaff();
+ const teacher=(staff&&(staff.find(t=>t.id===opts.teacherId)||staff[Math.floor(Math.random()*staff.length)]))||{id:"default-teacher",name:"Ms. River",traits:["warm","patient","encouraging","clear"]};
+ const traits=teacher.traits||["warm","patient","encouraging","clear"];
+ const segDefs=SEGMENTS_BY_BAND[band];
+ let total=segDefs.reduce((s,d)=>s+d[1],0);
+ const min=minMinutes(band);
+ const segments=segDefs.map((d,i)=>{
+   let m=d[1];
+   if(total<min&&i===2)m+=(min-total); // pad main activity to meet minimum
+   return {name:d[0],minutes:m};
+ });
+ total=segments.reduce((s,x)=>s+x.minutes,0);
+ const vocab=(picked.vocab||["concept","skill","practice"]).map(t=>({term:t,def:"A key word for understanding "+topic+"."}));
+ const low=band==="K-2"||band==="3-5";
+ const segFull=segments.map(s=>{
+   const g=GESTURES[s.name]||GESTURES["Main activity"];
+   let activity;
+   if(s.name==="Warm-up")activity="Quick review question + curiosity hook about "+topic+". Students share one thing they already know.";
+   else if(s.name==="Mini-lesson"||s.name==="Direct instruction")activity="Introduce "+topic+" using '"+picked.title+"' ("+picked.source+"). Highlight: "+picked.facts[0];
+   else if(s.name==="Main activity")activity=low?"Guided practice: students work through examples of "+topic+" with the teacher, then try two on their own.":"Collaborative task: small groups apply "+topic+" to a real scenario, then compare approaches.";
+   else if(s.name==="Interactive element")activity="Interactive element: "+INTERACTIVE_BY_SUBJECT[subject]+". Tie it explicitly back to "+topic+".";
+   else activity="Wrap-up: exit ticket — each student states one thing learned about "+topic+" and one question they still have.";
+   const media=(s.name==="Mini-lesson"||s.name==="Direct instruction")?(MEDIA_BY_TYPE[picked.type]||"display the resource"):(s.name==="Interactive element"?(INTERACTIVE_BY_SUBJECT[subject]):"board with the lesson objective visible");
+   return {name:s.name,minutes:s.minutes,activity:activity,gesture:g.gesture,expression:g.expression,media:topic+" — "+media};
+ });
+ const objectives=[
+   "Students will be able to describe the main idea of "+topic+".",
+   "Students will use the vocabulary terms ("+vocab.map(v=>v.term).join(", ")+") correctly in discussion.",
+   "Students will complete a "+(low?"guided practice task":"written or group task")+" demonstrating "+topic+"."
+ ];
+ const questions=[
+   "What is the most important thing to remember about "+topic+"?",
+   "Which vocabulary word best describes "+topic+", and why?",
+   low?"Draw or describe one example of "+topic+".":"Explain one real-world situation where "+topic+" matters, using evidence from today's lesson.",
+   low?"True or false: "+picked.facts[0]+" — explain your answer.":"Do you agree with this claim based on today's lesson: \""+picked.facts[0]+"\" Defend your answer in 3–4 sentences."
+ ];
+ const lesson={
+   id:"l"+Date.now().toString(36)+Math.floor(Math.random()*999),
+   title:topic+" ("+subject+", "+band+")",
+   gradeBand:band, subject:subject, topic:topic, durationMin:total,
+   objectives:objectives, vocabulary:vocab,
+   resources:[{id:picked.id,title:picked.title,source:picked.source,url:picked.url,type:picked.type}],
+   segments:segFull, questions:questions,
+   homework:(low?"Practice sheet: 5 quick items on "+topic+", plus read/retell one fact to someone at home.":"Written task: a one-page reflection or problem set applying "+topic+", citing the resource '"+picked.title+"'."),
+   extraCredit:"Extra credit: find a real-life example of "+topic+" (photo, news story, or object) and present it to the class in 1 minute.",
+   teacherId:teacher.id,
+   delivery:{
+     traits:traits,
+     guidelines:"Speak naturally in your own words — do NOT read the textbook or resource text verbatim. Paraphrase, use the students' names, keep sentences short for "+band+", and check understanding before moving on.",
+     engagement:["Ask a question roughly every 3 minutes to keep attention","Call on students by name, spreading turns across the room","Wait at least 3 seconds after each question before accepting an answer","Praise specific effort, not just correct answers","Scan for confusion and re-teach in different words when needed"]
+   },
+   assigned:false, created:new Date().toISOString()
+ };
+ return {lesson:lesson,teacher:teacher};
+}
+
+/* ================= UI STATE ================= */
+let view="build"; // build | library | resources | view
+let preview=!isAdmin;
+let filters={grade:"",subject:"",type:"",q:""};
+let builder={gradeBand:"K-2",subject:"Science",topic:"",resourceId:"",teacherId:"",custom:""};
+let draft=null; // generated lesson (not yet saved)
+let viewLesson=null;
+let list=[].concat(loadLessons());
+window.addEventListener("storage",e=>{if(e.key===LS_LESSONS){list=loadLessons();render();}});
+window.addEventListener("unify-hq-update",e=>{if(e.detail&&e.detail.key===LS_LESSONS)list=loadLessons();});
+
+const root=document.getElementById("root");
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function topbar(){
+ return '<div class="topbar"><span class="brand">📚 Curriculum Builder <small>UNIFY HQ · Admin</small></span><span class="sp"></span>'
+  +'<a class="btn" href="index.html">🏫 Campus</a><a class="btn" href="hq.html">🏢 HQ</a></div>';
+}
+function tabs(){
+ const t=[["build","✏️ Build a Lesson"],["library","🗂 Lesson Library ("+list.length+")"],["resources","🌐 Resource Bank ("+RESOURCES.length+")"]];
+ return '<div class="tabs">'+t.map(x=>'<button class="pill'+(view===x[0]?" on":"")+'" data-tab="'+x[0]+'">'+x[1]+'</button>').join("")+"</div>";
+}
+
+/* ---------- gate ---------- */
+function renderGate(){
+ root.innerHTML='<div class="wrap"><div class="center card"><div class="gate-emoji">🔐</div>'
+ +'<h2>Staff only</h2><p class="muted">The Curriculum Builder is for UNIFY teachers and administrators.<br>Please sign in as a parent/admin or head back to campus.</p>'
+ +'<div><a class="btn acc" href="index.html">🏫 Back to Campus</a> <button class="btn" id="prev">👀 Preview anyway (read-only demo)</button></div></div></div>';
+ document.getElementById("prev").onclick=()=>{preview=true;render();};
+}
+
+/* ---------- resources ---------- */
+function renderResources(){
+ let out='<div class="card"><h2>🌐 Resource Bank — redone &amp; organized for classroom use</h2>'
+ +'<p class="muted">Every entry is an original short summary with key facts and vocabulary, curated from safe, well-known sources. Filter by grade band, subject, and type, or search.</p>'
+ +'<div class="grid g3"><div><label>Grade band</label><select id="fg">'+GRADES.map(x=>'<option'+(filters.grade===x?" selected":"")+'>'+x+'</option>').join("")+'<option value=""'+(filters.grade===""?" selected":"")+'>All</option></select></div>'
+ +'<div><label>Subject</label><select id="fs"><option value="">All</option>'+SUBJECTS.map(x=>'<option'+(filters.subject===x?" selected":"")+'>'+x+'</option>').join("")+'</select></div>'
+ +'<div><label>Type</label><select id="ft"><option value="">All</option>'+TYPES.map(x=>'<option'+(filters.type===x?" selected":"")+'>'+x+'</option>').join("")+'</select></div></div>'
+ +'<label>Search</label><input type="text" id="fq" placeholder="topic, keyword, source…" value="'+esc(filters.q)+'"></div>';
+ let rs=RESOURCES.filter(r=>(!filters.grade||r.gradeBand===filters.grade)&&(!filters.subject||r.subject===filters.subject)&&(!filters.type||r.type===filters.type)
+   &&(!filters.q||(r.title+" "+r.summary+" "+r.subject+" "+r.source+" "+r.vocab.join(" ")).toLowerCase().includes(filters.q.toLowerCase())));
+ out+='<p class="muted">'+rs.length+' of '+RESOURCES.length+' resources</p><div class="grid g2">'+rs.map(r=>
+  '<div class="res"><div><b>'+esc(r.title)+'</b></div><div><span class="tag acc">'+r.gradeBand+'</span><span class="tag">'+esc(r.subject)+'</span><span class="tag sage">'+r.type+'</span><span class="tag">'+esc(r.source)+'</span></div>'
+  +'<div>'+esc(r.summary)+'</div><div class="kv"><b>Key facts:</b><ul class="tight">'+r.facts.map(f=>'<li>'+esc(f)+'</li>').join("")+'</ul></div>'
+  +'<div class="kv"><b>Vocabulary:</b> '+r.vocab.map(v=>'<span class="tag">'+esc(v)+'</span>').join("")+'</div>'
+  +'<div class="acts"><button class="btn small sage" data-buildfrom="'+r.id+'">✏️ Build lesson from this</button><a class="btn small ghost" href="'+esc(r.url)+'" target="_blank" rel="noopener">🔗 Source</a></div></div>').join("")+'</div>';
+ return out;
+}
+
+/* ---------- builder ---------- */
+function renderBuilder(){
+ const staff=loadStaff();
+ const tOpts=staff?staff.map(t=>'<option value="'+esc(t.id)+'"'+(builder.teacherId===t.id?" selected":"")+'>'+esc(teacherName(t))+'</option>').join(""):'';
+ let out='<div class="card"><h2>✏️ Build a Lesson</h2>'
+ +'<p class="muted">Rule-based generator — no external API. Duration rule: K-2 &amp; 3-5 lessons total <b>at least 15 minutes</b>; 6-8 &amp; 9-12 <b>at least 30 minutes</b>. Segment timings are computed and summed automatically.</p>'
+ +'<div class="grid g3"><div><label>Grade band</label><select id="bgrade">'+GRADES.map(x=>'<option'+(builder.gradeBand===x?" selected":"")+'>'+x+'</option>').join("")+'</select></div>'
+ +'<div><label>Subject</label><select id="bsubj">'+SUBJECTS.map(x=>'<option'+(builder.subject===x?" selected":"")+'>'+x+'</option>').join("")+'</select></div>'
+ +'<div><label>AI teacher (from unify.hq.staff)</label><select id="bteacher"><option value="">Auto-pick</option>'+tOpts+(tOpts?"":'<option value="" disabled>(roster empty — default teacher will be used)</option>')+'</select></div></div>'
+ +'<div class="grid g2"><div><label>Topic</label><input type="text" id="btopic" placeholder="e.g. Fractions, The Water Cycle…" value="'+esc(builder.topic)+'"></div>'
+ +'<div><label>…or base it on a resource</label><select id="bres"><option value="">(auto-pick for grade+subject)</option>'+RESOURCES.filter(r=>r.gradeBand===builder.gradeBand&&r.subject===builder.subject).map(r=>'<option value="'+r.id+'"'+(builder.resourceId===r.id?" selected":"")+'>'+esc(r.title)+' ('+r.type+')</option>').join("")+'</select></div></div>'
+ +'<label>Custom request (optional)</label><textarea id="bcustom" placeholder="e.g. Make it hands-on, outdoor-friendly, and include a group competition…">'+esc(builder.custom)+'</textarea>'
+ +'<div style="margin-top:10px"><button class="btn acc" id="gen">⚙️ Generate lesson plan</button></div></div>';
+ if(draft)out+=renderDraft();
+ return out;
+}
+function renderDraft(){
+ const L=draft.lesson, t=draft.teacher, min=minMinutes(L.gradeBand);
+ const total=L.segments.reduce((s,x)=>s+(+x.minutes||0),0);
+ const ok=total>=min;
+ let out='<div class="card"><h2>📋 Draft: '+esc(L.title)+'</h2>'
+ +'<p><span class="tag acc">'+L.gradeBand+'</span><span class="tag">'+esc(L.subject)+'</span><span class="tag sage">'+total+' min total (min '+min+')</span><span class="tag">👩‍🏫 '+esc(teacherName(t))+'</span></p>'
+ +(ok?'<div class="ok">✅ Duration requirement met: '+total+' minutes ≥ '+min+' minutes.</div>'
+      :'<div class="warn">⚠️ Total time is '+total+' min — under the '+min+'-minute minimum for grades '+L.gradeBand+'. Add minutes to a segment below before saving.</div>')
+ +'<h3>Objectives</h3><ul class="tight">'+L.objectives.map(o=>'<li>'+esc(o)+'</li>').join("")+'</ul>'
+ +'<h3>Key vocabulary</h3>'+L.vocabulary.map(v=>'<span class="tag"><b>'+esc(v.term)+'</b> — '+esc(v.def)+'</span>').join("")
+ +'<h3>Materials</h3><p class="muted">Board/projector; resource “'+esc(L.resources[0].title)+'” ('+esc(L.resources[0].source)+', '+L.resources[0].type+'); paper &amp; pencils; printed exit tickets.</p>'
+ +'<h3>Segments (editable minutes — must sum to ≥ '+min+')</h3>'
+ +L.segments.map((s,i)=>'<div class="segrow"><input type="text" inputmode="numeric" class="m" style="width:60px;min-height:36px;background:var(--acc);color:#fff;text-align:center;font-weight:600" data-seg="'+i+'" value="'+s.minutes+'"><div style="flex:1;min-width:220px"><b>'+esc(s.name)+'</b> — '+esc(s.activity)+'<br><span class="muted">🎭 gesture: '+esc(s.gesture)+' · expression: '+esc(s.expression)+' · mouthSync: true<br>🖼 media: '+esc(s.media)+'</span></div></div>').join("")
+ +'<h3>Assessment ('+L.questions.length+' questions)</h3><ol class="tight">'+L.questions.map(q=>'<li>'+esc(q)+'</li>').join("")+'</ol>'
+ +'<h3>Homework</h3><p>'+esc(L.homework)+'</p><h3>Extra credit</h3><p>'+esc(L.extraCredit)+'</p>'
+ +'<details><summary>🎙 Teacher delivery spec (for '+esc(teacherName(t))+')</summary>'
+ +'<p class="kv"><b>Traits:</b> '+L.delivery.traits.map(x=>'<span class="tag sage">'+esc(x)+'</span>').join("")+'</p>'
+ +'<p class="kv"><b>Dialog guidelines:</b> '+esc(L.delivery.guidelines)+'</p>'
+ +'<p class="kv"><b>Engagement moves:</b></p><ul class="tight">'+L.delivery.engagement.map(e=>'<li>'+esc(e)+'</li>').join("")+'</ul>'
+ +'<p class="kv"><b>Per-segment mouth-movement / gesture / imagery cues:</b></p><ul class="tight">'+L.segments.map(s=>'<li>{segment:"'+esc(s.name)+'", gesture:"'+esc(s.gesture)+'", expression:"'+esc(s.expression)+'", mouthSync:true, media:"'+esc(s.media)+'"}</li>').join("")+'</ul></details>'
+ +'<details><summary>{} Lesson JSON</summary><pre class="json">'+esc(JSON.stringify(L,null,2))+'</pre></details>'
+ +'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'
+ +(preview?'<span class="muted">Preview mode — saving disabled.</span>'
+   :'<button class="btn sage" id="save" '+(ok?"":"disabled")+'>💾 Save to library</button>')
+ +'<button class="btn" id="regen">🔁 Regenerate</button><button class="btn ghost" id="discard">Discard</button></div></div>';
+ return out;
+}
+
+/* ---------- library ---------- */
+function renderLibrary(){
+ let out='<div class="card"><h2>🗂 Lesson Library</h2><p class="muted">Saved in localStorage under <b>unify.hq.lessons</b>. '+(preview?"Preview mode: read-only.":"View, duplicate, delete, or assign to a class.")+'</p>';
+ if(!list.length)return out+'<p class="muted">No saved lessons yet — build one! ✏️</p></div>';
+ out+=list.slice().reverse().map(L=>'<div class="lessonrow"><div class="inf"><b>'+esc(L.title)+'</b><br><span class="tag acc">'+esc(L.gradeBand)+'</span><span class="tag">'+esc(L.subject)+'</span><span class="tag sage">'+L.durationMin+' min</span><span class="tag">👩‍🏫 '+esc(L.teacherId)+'</span>'+(L.assigned?'<span class="tag acc">✅ Assigned</span>':"")+'</div>'
+  +'<div class="acts"><button class="btn small" data-view="'+L.id+'">👁 View</button>'
+  +(preview?"":'<button class="btn small" data-dup="'+L.id+'">⧉ Duplicate</button><button class="btn small sage" data-assign="'+L.id+'">📣 '+(L.assigned?"Assigned":"Assign to class")+'</button><button class="btn small ghost" data-del="'+L.id+'">🗑 Delete</button>')+'</div></div>').join("");
+ return out+"</div>";
+}
+function renderView(L){
+ const min=minMinutes(L.gradeBand);
+ return '<div class="card"><button class="btn ghost small" id="backlib">← Back to library</button><h2 style="margin-top:8px">'+esc(L.title)+'</h2>'
+ +'<p><span class="tag acc">'+esc(L.gradeBand)+'</span><span class="tag">'+esc(L.subject)+'</span><span class="tag sage">'+L.durationMin+' min</span>'+(L.assigned?'<span class="tag acc">✅ Assigned</span>':"")+'</p>'
+ +(L.durationMin>=min?'<div class="ok">Meets the '+min+'-minute minimum.</div>':'<div class="warn">Under the '+min+'-minute minimum for '+esc(L.gradeBand)+'.</div>')
+ +'<h3>Objectives</h3><ul class="tight">'+(L.objectives||[]).map(o=>'<li>'+esc(o)+'</li>').join("")+'</ul>'
+ +'<h3>Vocabulary</h3>'+(L.vocabulary||[]).map(v=>'<span class="tag"><b>'+esc(v.term)+'</b> — '+esc(v.def)+'</span>').join("")
+ +'<h3>Segments</h3>'+(L.segments||[]).map(s=>'<div class="segrow"><span class="m">'+s.minutes+'m</span><div style="flex:1;min-width:220px"><b>'+esc(s.name)+'</b> — '+esc(s.activity)+'<br><span class="muted">gesture: '+esc(s.gesture)+' · expression: '+esc(s.expression)+' · media: '+esc(s.media)+'</span></div></div>').join("")
+ +'<h3>Assessment</h3><ol class="tight">'+(L.questions||[]).map(q=>'<li>'+esc(q)+'</li>').join("")+'</ol>'
+ +'<h3>Homework</h3><p>'+esc(L.homework)+'</p><h3>Extra credit</h3><p>'+esc(L.extraCredit)+'</p>'
+ +'<h3>Delivery</h3><p class="kv"><b>Guidelines:</b> '+esc(L.delivery&&L.delivery.guidelines)+'</p>'
+ +'<details><summary>{} Full JSON</summary><pre class="json">'+esc(JSON.stringify(L,null,2))+'</pre></details></div>';
+}
+
+/* ---------- master render ---------- */
+function render(){
+ if(!isAdmin&&!preview){renderGate();return;}
+ let body=tabs();
+ if(view==="build")body+=renderBuilder();
+ else if(view==="library")body+=renderLibrary();
+ else if(view==="resources")body+=renderResources();
+ else if(view==="view"&&viewLesson)body+=renderView(viewLesson);
+ if(preview)body='<div class="warn">👀 Preview mode (read-only demo) — saving is disabled. <a href="index.html">Back to campus</a></div>'+body;
+ root.innerHTML=topbar()+'<div class="wrap">'+body+'</div>';
+ wire();
+}
+function wire(){
+ root.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{view=b.dataset.tab;viewLesson=null;render();});
+ const $=id=>root.querySelector("#"+id);
+ if(view==="resources"){
+   ["fg","fs","ft"].forEach((id,i)=>{const el=$(id);if(el)el.onchange=()=>{filters.grade=$("fg").value;filters.subject=$("fs").value;filters.type=$("ft").value;render();};});
+   const q=$("fq");if(q)q.oninput=()=>{filters.q=q.value;const cards=root.querySelectorAll(".grid.g2,.muted");renderDebounced();};
+   root.querySelectorAll("[data-buildfrom]").forEach(b=>b.onclick=()=>{const r=RESOURCES.find(x=>x.id===b.dataset.buildfrom);builder.gradeBand=r.gradeBand;builder.subject=r.subject;builder.resourceId=r.id;builder.topic=r.title;view="build";render();});
+ }
+ if(view==="build"){
+   const g=$("bgrade"),s=$("bsubj");if(g)g.onchange=()=>{builder.gradeBand=g.value;builder.resourceId="";render();};
+   if(s)s.onchange=()=>{builder.subject=s.value;builder.resourceId="";render();};
+   const gen=$("gen");if(gen)gen.onclick=()=>{
+     builder.topic=($("btopic").value||"").trim();
+     builder.resourceId=$("bres").value;
+     builder.teacherId=$("bteacher").value;
+     builder.custom=($("bcustom").value||"").trim();
+     if(builder.custom&&!builder.topic)builder.topic=builder.custom.split(/[.\n]/)[0].slice(0,60);
+     draft=genLesson(builder);render();
+     window.scrollTo({top:root.querySelectorAll(".card")[1].offsetTop-70,behavior:"smooth"});
+   };
+   root.querySelectorAll("[data-seg]").forEach(inp=>inp.onchange=()=>{
+     const v=parseInt(inp.value,10);
+     if(isNaN(v)||v<1){inp.value=draft.lesson.segments[+inp.dataset.seg].minutes;return;}
+     draft.lesson.segments[+inp.dataset.seg].minutes=v;
+     draft.lesson.durationMin=draft.lesson.segments.reduce((a,x)=>a+x.minutes,0);
+     render();
+   });
+   const sv=$("save");if(sv)sv.onclick=()=>{
+     const total=draft.lesson.segments.reduce((a,x)=>a+x.minutes,0);
+     if(total<minMinutes(draft.lesson.gradeBand)){alert("Cannot save: total time is under the minimum for this grade band.");return;}
+     list.push(draft.lesson);saveLessons(list);draft=null;view="library";render();
+   };
+   const rg=$("regen");if(rg)rg.onclick=()=>{draft=genLesson(builder);render();};
+   const dc=$("discard");if(dc)dc.onclick=()=>{draft=null;render();};
+ }
+ if(view==="library"){
+   root.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{viewLesson=list.find(l=>l.id===b.dataset.view);view="view";render();});
+   root.querySelectorAll("[data-dup]").forEach(b=>b.onclick=()=>{
+     const L=list.find(l=>l.id===b.dataset.dup);if(!L)return;
+     const c=JSON.parse(JSON.stringify(L));c.id="l"+Date.now().toString(36)+Math.floor(Math.random()*999);c.title=L.title+" (copy)";c.assigned=false;c.created=new Date().toISOString();
+     list.push(c);saveLessons(list);render();
+   });
+   root.querySelectorAll("[data-assign]").forEach(b=>b.onclick=()=>{const L=list.find(l=>l.id===b.dataset.assign);if(L){L.assigned=true;saveLessons(list);render();}});
+   root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this lesson?")){list=list.filter(l=>l.id!==b.dataset.del);saveLessons(list);render();}});
+ }
+ if(view==="view"){const bk=$("backlib");if(bk)bk.onclick=()=>{view="library";viewLesson=null;render();};}
+}
+let _deb=null;
+function renderDebounced(){clearTimeout(_deb);_deb=setTimeout(render,350);}
+render();
+</script>
+</body>
+</html>

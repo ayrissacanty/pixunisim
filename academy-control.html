@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Academy Control — Unify Campus Quest</title>
+<style>
+:root{--paper:#EADFCB;--paper2:#F3E7CF;--ink:#4A3B3F;--soft:#8A7A70;--acc:#E07A66;--sage:#4E8A64;--kraft:#C9B28A}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.5 "Fredoka","Trebuchet MS",system-ui,sans-serif;background:var(--paper);color:var(--ink)}
+.topbar{display:flex;gap:10px;align-items:center;padding:12px 18px;background:var(--paper2);border-bottom:3px solid var(--kraft);position:sticky;top:0;z-index:5}
+.topbar h1{font-size:20px;margin:0;flex:1}
+.btn{background:var(--paper2);color:var(--ink);border:2px solid var(--kraft);border-radius:12px;padding:8px 14px;min-height:40px;text-decoration:none;cursor:pointer;font:inherit;font-size:15px;box-shadow:0 3px 0 var(--kraft)}
+.btn:hover{border-color:var(--acc)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--kraft)}
+main{max-width:1150px;margin:0 auto;padding:20px 16px 60px}
+.cols{display:grid;grid-template-columns:340px 1fr;gap:16px}
+@media(max-width:900px){.cols{grid-template-columns:1fr}}
+.panel{background:var(--paper2);border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 3px 0 var(--kraft),0 12px 24px rgba(80,50,40,.3)}
+.panel h2{margin:0 0 12px;font-size:17px}
+label{display:block;font-size:12.5px;color:var(--soft);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.04em}
+select,input[type=text],textarea{width:100%;padding:10px;border-radius:12px;border:2px solid var(--kraft);background:var(--paper);color:var(--ink);font:inherit;font-size:14.5px;min-height:40px}
+textarea{min-height:70px;resize:vertical}
+.rooms{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.room{background:var(--paper);border:2px solid var(--kraft);border-radius:12px;padding:10px;min-height:40px;cursor:pointer;font:inherit;font-size:14px;color:var(--ink);text-align:left}
+.room.sel{border-color:var(--acc);background:#fbe6da}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.sw{width:36px;height:36px;border-radius:10px;border:3px solid transparent;cursor:pointer;box-shadow:0 2px 0 var(--kraft)}
+.sw.sel{border-color:var(--ink)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:var(--paper);border:2px solid var(--kraft);border-radius:99px;padding:6px 14px;min-height:40px;cursor:pointer;font:inherit;font-size:14px;color:var(--ink)}
+.chip.sel{border-color:var(--acc);background:#fbe6da}
+.props{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.props label{display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);margin:0;background:var(--paper);border:2px solid var(--kraft);border-radius:10px;padding:8px 10px;min-height:40px;cursor:pointer}
+.actions{display:flex;gap:10px;margin-top:16px;align-items:center;flex-wrap:wrap}
+.save{background:var(--acc);color:#fff;border:0;border-radius:12px;padding:10px 20px;min-height:40px;font:inherit;font-size:15px;cursor:pointer;box-shadow:0 3px 0 #b85c4c}
+.save:hover{filter:brightness(1.05)}
+.save:active{transform:translateY(2px);box-shadow:0 1px 0 #b85c4c}
+.reset{background:var(--paper);color:var(--soft);border:2px solid var(--kraft);border-radius:12px;padding:9px 14px;min-height:40px;cursor:pointer;font:inherit}
+.saved{color:var(--sage);font-size:13.5px;min-height:18px}
+#preview{width:100%;background:#fbf6ea;border:2px solid var(--kraft);border-radius:12px}
+.pv-note{font-size:13px;color:var(--soft);margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px;border-bottom:2px solid var(--kraft);vertical-align:top}
+th{color:var(--soft);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.sev{font-size:11.5px;padding:2px 10px;border-radius:99px;border:2px solid var(--kraft)}
+.sev.high{color:#c0392b;border-color:#c0392b}
+.sev.med{color:#c07f2a;border-color:#c07f2a}
+.sev.low{color:var(--sage);border-color:var(--sage)}
+.pill{font-size:11.5px;padding:2px 10px;border-radius:99px}
+.pill.open{background:#f6dcd2;color:#c0392b}
+.pill.fixed{background:#dcecdf;color:var(--sage)}
+.tgl{background:var(--paper);color:var(--ink);border:2px solid var(--kraft);border-radius:10px;padding:5px 12px;min-height:40px;cursor:pointer;font:inherit;font-size:13px}
+.tgl:hover{border-color:var(--acc)}
+.empty{color:var(--soft);font-style:italic}
+.sync{font-size:13.5px;color:var(--soft)}
+.sync b{color:var(--sage)}
+.demo-note{background:#fbe6da;border:2px dashed var(--acc);border-radius:12px;padding:8px 12px;font-size:13.5px;margin-bottom:14px}
+#gate{position:fixed;inset:0;background:var(--paper);display:flex;align-items:center;justify-content:center;z-index:50}
+#gate .box{background:var(--paper2);border-radius:16px;padding:32px;max-width:400px;text-align:center;box-shadow:0 3px 0 var(--kraft),0 12px 24px rgba(80,50,40,.3)}
+#gate h2{margin:8px 0}
+#gate p{color:var(--soft);font-size:14.5px}
+#gate .links{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+#app{display:none}
+</style>
+</head>
+<body>
+<div id="gate">
+  <div class="box">
+    <div style="font-size:44px">🏫</div>
+    <h2>Staff only</h2>
+    <p>This app lives in the campus HQ. It's for the grown-ups running the academy.</p>
+    <div class="links">
+      <a class="btn" href="index.html">🏫 Back to Campus</a>
+      <a class="btn" href="#" id="preview-link">👀 Preview anyway (read-only demo)</a>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+<header class="topbar">
+  <h1>🎛️ Academy Control</h1>
+  <a class="btn" href="index.html">🏫 Campus</a>
+  <a class="btn" href="hq.html">🤖 HQ</a>
+</header>
+<main>
+  <div class="demo-note" id="demo-note" style="display:none">👀 Read-only demo mode — changes won't be saved.</div>
+  <div class="sync" style="margin-bottom:14px">Sync status: <b>live</b> · last update <span id="sync-at">—</span></div>
+  <div class="cols">
+    <div>
+      <section class="panel">
+        <h2>🚪 Rooms</h2>
+        <div class="rooms" id="rooms"></div>
+      </section>
+      <section class="panel">
+        <h2>⚙️ Room setup — <span id="cur-room"></span></h2>
+        <label>Theme</label>
+        <div class="chips" id="themes"></div>
+        <label>Wall color</label>
+        <div class="swatches" id="walls"></div>
+        <label>Floor style</label>
+        <div class="chips" id="floors"></div>
+        <label>Desk / seat layout</label>
+        <div class="chips" id="layouts"></div>
+        <label>Decorations</label>
+        <div class="props" id="props"></div>
+        <div class="actions">
+          <button class="save" id="save">💾 Save room</button>
+          <button class="reset" id="reset">Reset</button>
+          <span class="saved" id="saved"></span>
+        </div>
+      </section>
+    </div>
+    <div>
+      <section class="panel">
+        <h2>🗺️ Live preview</h2>
+        <svg id="preview" viewBox="0 0 400 260" aria-label="Top-down room preview"></svg>
+        <div class="pv-note" id="pv-note"></div>
+      </section>
+      <section class="panel">
+        <h2>🐞 File a bug</h2>
+        <label>Page</label>
+        <select id="bug-page">
+          <option>hallway.html</option><option>classroom3d.html</option><option>auditorium3d.html</option>
+          <option>dorm.html</option><option>newsdesk.html</option><option>fieldtrip.html</option>
+          <option>phone.html</option><option>hq.html</option><option>academy-control.html</option>
+          <option>other</option>
+        </select>
+        <label>Title</label>
+        <input type="text" id="bug-title" placeholder="Short summary">
+        <label>Detail</label>
+        <textarea id="bug-detail" placeholder="What happened? What did you expect?"></textarea>
+        <label>Severity</label>
+        <div class="chips" id="bug-sev"></div>
+        <div class="actions">
+          <button class="save" id="bug-save">📨 File bug</button>
+          <span class="saved" id="bug-saved"></span>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>🗂️ Bug board</h2>
+        <div id="bug-list"></div>
+      </section>
+    </div>
+  </div>
+</main>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* ---------- admin gate (exact contract) ---------- */
+const isAdmin=(()=>{try{return sessionStorage.getItem("unify.family.ci")==="parent"||localStorage.getItem("unify.opendoor.adult")==="1";}catch{return false;}})();
+var readOnly=!isAdmin;
+
+/* ---------- storage helpers ---------- */
+function lsGet(k,d){try{var v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function notify(key){try{window.dispatchEvent(new CustomEvent("unify-hq-update",{detail:{key:key}}));}catch(e){}}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+/* ---------- gate / demo ---------- */
+var gate=document.getElementById('gate'),app=document.getElementById('app');
+function showApp(){
+  gate.style.display='none';app.style.display='block';
+  if(readOnly){
+    document.getElementById('demo-note').style.display='block';
+    document.getElementById('save').disabled=true;document.getElementById('save').style.opacity='.5';
+    document.getElementById('bug-save').disabled=true;document.getElementById('bug-save').style.opacity='.5';
+  }
+  init();
+}
+document.getElementById('preview-link').addEventListener('click',function(e){e.preventDefault();showApp();});
+
+/* ---------- constants ---------- */
+var ROOMS=[
+ {id:'hallway',name:'Hallway',icon:'🚪'},
+ {id:'classroom3d',name:'Classroom 3D',icon:'🏫'},
+ {id:'auditorium3d',name:'Auditorium 3D',icon:'🎭'},
+ {id:'dorm',name:'Dorm',icon:'🛏️'},
+ {id:'news',name:'News Studio',icon:'🎥'},
+ {id:'fieldtrip',name:'Field Trip',icon:'🚌'}
+];
+var THEMES={Forest:'#4E8A64',Ocean:'#5a8fc4',Sunset:'#E07A66',Candy:'#d77fb0',Classic:'#8A7A70'};
+var WALLS=['#EADFCB','#cfe3f5','#d8f0dd','#f6dcd6','#efe3f7','#8A7A70','#4A3B3F','#F3E7CF'];
+var FLOORS=['wood','tile','carpet','checker','grass'];
+var LAYOUTS=['rows','clusters','circle','u-shape'];
+var PROPS=[['plants','🪴 Plants'],['posters','🖼️ Posters'],['bookshelf','📚 Bookshelf'],['rug','🟦 Rug'],['globe','🌍 Globe'],['fairy lights','✨ Fairy lights'],['trophy shelf','🏆 Trophy shelf'],['aquarium','🐠 Aquarium']];
+var DEFAULT={theme:'Classic',wallColor:'#EADFCB',floorStyle:'wood',deskLayout:'rows',props:['plants','posters']};
+
+/* ---------- state ---------- */
+var cur=ROOMS[0].id;
+var cfg=JSON.parse(JSON.stringify(DEFAULT));
+var bugSev='med';
+
+function roomsData(){var v=lsGet('unify.hq.rooms',{});return (v&&typeof v==='object'&&!Array.isArray(v))?v:{};}
+function saveRoom(){
+  if(readOnly)return;
+  var all=roomsData();
+  all[cur]={theme:cfg.theme,wallColor:cfg.wallColor,floorStyle:cfg.floorStyle,deskLayout:cfg.deskLayout,props:cfg.props.slice()};
+  lsSet('unify.hq.rooms',all);notify('unify.hq.rooms');
+  var s=document.getElementById('saved');s.textContent='Saved ✓ '+new Date().toLocaleTimeString();
+  setTimeout(function(){s.textContent='';},2500);
+  renderRooms();stamp();
+}
+function loadRoom(){
+  var saved=roomsData()[cur];
+  cfg=Object.assign(JSON.parse(JSON.stringify(DEFAULT)),saved||{});
+  if(!Array.isArray(cfg.props))cfg.props=[];
+  document.getElementById('cur-room').textContent=ROOMS.filter(function(r){return r.id===cur;})[0].name;
+  renderChips();renderProps();renderPreview();
+}
+
+/* ---------- room selector ---------- */
+function renderRooms(){
+  var host=document.getElementById('rooms');host.innerHTML='';
+  var all=roomsData();
+  ROOMS.forEach(function(r){
+    var b=document.createElement('button');b.className='room'+(r.id===cur?' sel':'');
+    b.innerHTML=r.icon+' '+r.name+(all[r.id]?' <span style="color:var(--sage);font-size:11px">●</span>':'');
+    b.addEventListener('click',function(){cur=r.id;loadRoom();renderRooms();});
+    host.appendChild(b);
+  });
+}
+
+/* ---------- option chips ---------- */
+function chips(hostId,items,get,set,isColor){
+  var host=document.getElementById(hostId);host.innerHTML='';
+  items.forEach(function(it){
+    var el;
+    if(isColor){
+      el=document.createElement('button');el.className='sw'+(get()===it?' sel':'');
+      el.style.background=it;el.title=it;
+    }else{
+      el=document.createElement('button');el.className='chip'+(get()===it?' sel':'');
+      el.textContent=it;
+    }
+    el.addEventListener('click',function(){set(it);renderChips();renderPreview();});
+    host.appendChild(el);
+  });
+}
+function renderChips(){
+  chips('themes',Object.keys(THEMES),function(){return cfg.theme;},function(v){cfg.theme=v;});
+  chips('walls',WALLS,function(){return cfg.wallColor;},function(v){cfg.wallColor=v;},true);
+  chips('floors',FLOORS,function(){return cfg.floorStyle;},function(v){cfg.floorStyle=v;});
+  chips('layouts',LAYOUTS,function(){return cfg.deskLayout;},function(v){cfg.deskLayout=v;});
+  var sevHost=document.getElementById('bug-sev');sevHost.innerHTML='';
+  ['low','med','high'].forEach(function(s){
+    var b=document.createElement('button');b.className='chip'+(bugSev===s?' sel':'');b.textContent=s;
+    b.addEventListener('click',function(){bugSev=s;renderChips();});
+    sevHost.appendChild(b);
+  });
+}
+function renderProps(){
+  var host=document.getElementById('props');host.innerHTML='';
+  PROPS.forEach(function(p){
+    var id=p[0],lab=document.createElement('label');
+    var cb=document.createElement('input');cb.type='checkbox';cb.checked=cfg.props.indexOf(id)>=0;
+    cb.addEventListener('change',function(){
+      var i=cfg.props.indexOf(id);
+      if(cb.checked&&i<0)cfg.props.push(id);
+      if(!cb.checked&&i>=0)cfg.props.splice(i,1);
+      renderPreview();
+    });
+    lab.appendChild(cb);lab.appendChild(document.createTextNode(p[1]));
+    host.appendChild(lab);
+  });
+}
+
+/* ---------- preview (top-down SVG) ---------- */
+var FLOORCOL={wood:'#c9a06a',tile:'#d9d9e0',carpet:'#b39bd0',checker:'#b8b2a4',grass:'#8fbe8f'};
+function renderPreview(){
+  var svg=document.getElementById('preview');
+  var accent=THEMES[cfg.theme]||'#8A7A70';
+  var floorCol=FLOORCOL[cfg.floorStyle]||'#c9a06a';
+  var s='';
+  /* floor */
+  s+='<rect x="10" y="10" width="380" height="240" rx="10" fill="'+floorCol+'"/>';
+  if(cfg.floorStyle==='checker'){
+    for(var y=0;y<6;y++)for(var x=0;x<10;x++)if((x+y)%2===0)s+='<rect x="'+(10+x*38)+'" y="'+(10+y*40)+'" width="38" height="40" fill="#8f897c" opacity="0.5"/>';
+  }
+  if(cfg.floorStyle==='tile'){
+    for(var gx=1;gx<10;gx++)s+='<line x1="'+(10+gx*38)+'" y1="10" x2="'+(10+gx*38)+'" y2="250" stroke="#b5b5c0" stroke-width="1"/>';
+    for(var gy=1;gy<6;gy++)s+='<line x1="10" y1="'+(10+gy*40)+'" x2="390" y2="'+(10+gy*40)+'" stroke="#b5b5c0" stroke-width="1"/>';
+  }
+  /* walls */
+  s+='<rect x="10" y="10" width="380" height="240" rx="10" fill="none" stroke="'+cfg.wallColor+'" stroke-width="10"/>';
+  s+='<rect x="10" y="10" width="380" height="240" rx="10" fill="none" stroke="#4A3B3F" stroke-width="1" opacity="0.3"/>';
+  /* door */
+  s+='<rect x="180" y="244" width="40" height="8" fill="'+accent+'"/>';
+  /* teacher desk */
+  s+='<rect x="170" y="24" width="60" height="22" rx="4" fill="'+accent+'" opacity="0.85"/>';
+  /* seats by layout */
+  var seats=[];
+  if(cfg.deskLayout==='rows'){
+    for(var r=0;r<3;r++)for(var c=0;c<4;c++)seats.push([70+c*90,80+r*55]);
+  }else if(cfg.deskLayout==='clusters'){
+    [[90,90],[270,90],[90,180],[270,180]].forEach(function(o){
+      seats.push([o[0]-25,o[1]-15],[o[0]+25,o[1]-15],[o[0]-25,o[1]+25],[o[0]+25,o[1]+25]);
+    });
+  }else if(cfg.deskLayout==='circle'){
+    for(var a=0;a<10;a++){var t=a/10*Math.PI*2;seats.push([200+Math.cos(t)*110,140+Math.sin(t)*70]);}
+  }else{ /* u-shape */
+    for(var u=0;u<4;u++){seats.push([90+u*75,90]);seats.push([90+u*75,195]);}
+    for(var v=0;v<2;v++){seats.push([90,120+v*45]);seats.push([315,120+v*45]);}
+  }
+  seats.forEach(function(p){
+    s+='<circle cx="'+p[0].toFixed(0)+'" cy="'+p[1].toFixed(0)+'" r="12" fill="#F3E7CF" stroke="'+accent+'" stroke-width="3"/>';
+  });
+  /* props */
+  var px=30,py=225;
+  cfg.props.forEach(function(p){
+    var glyph={'plants':'🪴','posters':'🖼️','bookshelf':'📚','rug':'🟦','globe':'🌍','fairy lights':'✨','trophy shelf':'🏆','aquarium':'🐠'}[p]||'•';
+    if(p==='rug'){s+='<ellipse cx="200" cy="150" rx="70" ry="40" fill="'+accent+'" opacity="0.25"/>';return;}
+    if(p==='posters'){s+='<text x="40" y="35" font-size="16">'+glyph+'</text><text x="350" y="35" font-size="16">'+glyph+'</text>';return;}
+    if(p==='fairy lights'){s+='<text x="150" y="22" font-size="14">✨ ✨ ✨ ✨ ✨</text>';return;}
+    s+='<text x="'+px+'" y="'+py+'" font-size="16">'+glyph+'</text>';px+=26;
+  });
+  s+='<text x="200" y="135" text-anchor="middle" font-size="13" fill="#4A3B3F" opacity="0.7" font-family="Fredoka,sans-serif">'+esc(ROOMS.filter(function(r){return r.id===cur;})[0].name)+'</text>';
+  svg.innerHTML=s;
+  document.getElementById('pv-note').textContent='Theme: '+cfg.theme+' · Wall: '+cfg.wallColor+' · Floor: '+cfg.floorStyle+' · Layout: '+cfg.deskLayout+' · '+(cfg.props.length?cfg.props.join(', '):'no decorations');
+}
+document.getElementById('save').addEventListener('click',saveRoom);
+document.getElementById('reset').addEventListener('click',function(){cfg=JSON.parse(JSON.stringify(DEFAULT));renderChips();renderProps();renderPreview();});
+
+/* ---------- bug board ---------- */
+function issues(){var v=lsGet('unify.hq.issues',[]);return Array.isArray(v)?v:[];}
+function saveIssues(a){if(readOnly)return;lsSet('unify.hq.issues',a);notify('unify.hq.issues');stamp();}
+document.getElementById('bug-save').addEventListener('click',function(){
+  if(readOnly)return;
+  var title=document.getElementById('bug-title').value.trim();
+  var s=document.getElementById('bug-saved');
+  if(!title){s.style.color='#c0392b';s.textContent='Title required';return;}
+  var list=issues();
+  list.push({id:'b'+Date.now().toString(36)+Math.floor(Math.random()*1e4),
+    page:document.getElementById('bug-page').value,title:title,
+    detail:document.getElementById('bug-detail').value.trim(),
+    severity:bugSev,status:'open',created:Date.now()});
+  saveIssues(list);
+  document.getElementById('bug-title').value='';document.getElementById('bug-detail').value='';
+  s.style.color='var(--sage)';s.textContent='Filed ✓';
+  setTimeout(function(){s.textContent='';},2500);
+  renderBugs();
+});
+function renderBugs(){
+  var list=issues(),wrap=document.getElementById('bug-list');
+  if(!list.length){wrap.innerHTML='<p class="empty">No bugs filed yet.</p>';return;}
+  var html='<table><thead><tr><th>Status</th><th>Sev</th><th>Page</th><th>Title</th><th>Detail</th><th></th></tr></thead><tbody>';
+  list.slice().sort(function(a,b){return (b.created||0)-(a.created||0);}).forEach(function(i){
+    var st=i.status==='fixed'?'fixed':'open';
+    html+='<tr><td><span class="pill '+st+'">'+st+'</span></td>'+
+      '<td><span class="sev '+(i.severity||'med')+'">'+esc(i.severity||'med')+'</span></td>'+
+      '<td>'+esc(i.page||'—')+'</td><td><b>'+esc(i.title||'')+'</b></td>'+
+      '<td>'+esc(i.detail||'')+'</td>'+
+      '<td>'+(readOnly?'':'<button class="tgl" data-id="'+i.id+'">'+(st==='open'?'Mark fixed':'Reopen')+'</button>')+'</td></tr>';
+  });
+  wrap.innerHTML=html+'</tbody></table>';
+  wrap.querySelectorAll('.tgl').forEach(function(b){
+    b.addEventListener('click',function(){
+      var id=b.getAttribute('data-id'),list=issues();
+      list.forEach(function(i){if(String(i.id)===id)i.status=i.status==='fixed'?'open':'fixed';});
+      saveIssues(list);renderBugs();
+    });
+  });
+}
+
+/* ---------- sync ---------- */
+function stamp(){var el=document.getElementById('sync-at');if(el)el.textContent=new Date().toLocaleTimeString();}
+window.addEventListener('storage',function(e){
+  if(!e.key||e.key.indexOf('unify.hq.')===0){renderBugs();renderRooms();loadRoom();stamp();}
+});
+window.addEventListener('unify-hq-update',function(){stamp();});
+
+function init(){renderRooms();loadRoom();renderBugs();stamp();}
+if(isAdmin)showApp();
+})();
+</script>
+</body>
+</html>

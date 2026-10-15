@@ -43,6 +43,13 @@ PAGES = [
     "mail.html",
     "newsdesk.html",
     "dorm.html",
+    # Agent Team apps: HQ + admin studios (gated in-page) and the in-class textbook (open to students)
+    "hq.html",
+    "academy-control.html",
+    "staff.html",
+    "customize.html",
+    "curriculum-builder.html",
+    "textbook.html",
 ]
 LEGACY = [
     "pages.html",

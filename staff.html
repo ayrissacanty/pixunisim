@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Staff Studio — UNIFY HQ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
+<style>
+:root{--sheet:#EADFCB;--kraft:#F3E7CF;--ink:#4A3B3F;--soft:#8A7A70;--acc:#E07A66;--sage:#4E8A64;--edge:#C9B28A;--ui:"Fredoka","Trebuchet MS",system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:var(--ui);color:var(--ink);background:var(--sheet)}
+body{overflow-y:auto;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(90px + env(safe-area-inset-bottom,0px))}
+.topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;background:var(--kraft);border:1px solid rgba(255,255,255,.75);border-radius:16px;box-shadow:0 3px 0 var(--edge),0 12px 24px rgba(80,50,40,.3);padding:10px 14px}
+.topbar b{font-size:22px;flex:1}
+.sub{color:var(--soft);font-size:15px;margin:8px 2px 12px}
+button,.btn{font:inherit;font-size:15px;color:var(--ink);background:var(--kraft);border:1px solid rgba(255,255,255,.8);border-radius:12px;padding:8px 14px;min-height:44px;cursor:pointer;box-shadow:0 2px 0 var(--edge);touch-action:manipulation;text-decoration:none;display:inline-block}
+button.pri,.btn.pri{background:var(--acc);color:#fff;box-shadow:0 2px 0 #b95a48}
+button.on{background:var(--acc);color:#fff;box-shadow:0 2px 0 #b95a48}
+button.sm{min-height:36px;font-size:13px;padding:4px 10px}
+button:active{transform:translateY(2px);box-shadow:none}
+button:disabled{opacity:.5;cursor:default}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.card{background:var(--kraft);border:1px solid rgba(255,255,255,.75);border-radius:16px;box-shadow:0 3px 0 var(--edge),0 12px 24px rgba(80,50,40,.3);padding:14px;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden}
+.card:before{content:"";position:absolute;left:0;top:0;right:0;height:7px;background:var(--c,var(--acc))}
+.card h3{font-size:19px;margin-top:4px}.card p{font-size:14px;line-height:1.35;color:var(--ink)}
+.tag{display:inline-block;font-size:12px;border-radius:99px;padding:2px 9px;background:var(--c,var(--acc));color:#fff;margin:0 4px 4px 0}
+.tag.role{background:var(--sage)}.tag.role.student{background:#6AA9F0}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
+.panel{background:var(--kraft);border:1px solid rgba(255,255,255,.75);border-radius:16px;box-shadow:0 3px 0 var(--edge),0 12px 24px rgba(80,50,40,.3);padding:16px;max-width:860px;margin:0 auto 14px}
+.panel h2{font-size:22px;margin-bottom:4px}
+label{display:block;font-size:14px;font-weight:500;margin:10px 0 3px}
+input,select,textarea{width:100%;font:inherit;font-size:16px;padding:9px 11px;border-radius:11px;border:1px solid var(--edge);background:#fff;color:var(--ink);min-height:44px}
+input[type=range]{padding:0;min-height:32px}
+textarea{min-height:100px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.two{grid-template-columns:1fr}}
+.note{font-size:13px;color:var(--soft);margin-top:6px;line-height:1.4}
+.hide{display:none!important}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px}
+.chip{font-size:13px;padding:5px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.8);background:#FFF9F0;color:inherit;cursor:pointer;box-shadow:0 2px 0 var(--edge);min-height:36px}
+.chip.on{background:var(--acc);color:#fff;box-shadow:0 2px 0 #b95a48}
+.sws{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px}
+.sw{width:32px;height:32px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px #6d5a5f,0 2px 0 rgba(0,0,0,.15);cursor:pointer;padding:0;min-height:0}
+.sw.on{box-shadow:0 0 0 3px var(--acc),0 2px 0 rgba(0,0,0,.15)}
+.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;gap:6px;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));background:rgba(243,231,207,.95);box-shadow:0 -4px 14px rgba(0,0,0,.2);z-index:5}
+.tabs button{flex:1;min-height:40px;font-size:13px;padding:3px 8px}
+.gate{max-width:560px;margin:8vh auto;text-align:center}
+.gate h2{font-size:26px}
+.vprev{display:flex;align-items:center;gap:10px;margin-top:8px}
+.msg{font-size:13px;color:var(--sage);min-height:18px;margin-top:8px}
+.ro-badge{position:absolute;top:10px;right:10px;background:var(--soft);color:#fff;font-size:11px;border-radius:99px;padding:2px 8px}
+</style>
+</head>
+<body>
+<div id="gate" class="panel gate hide">
+  <h2>🔒 Staff only</h2>
+  <p class="note" style="text-align:center">The AI Staff Studio is for parents, guardians and school admins. Sign in as the parent on the family check-in screen, then come back.</p>
+  <div class="row" style="justify-content:center;margin-top:14px"><a class="btn pri" href="index.html">🏫 Back to campus</a><button id="previewBtn">Preview anyway (read-only)</button></div>
+</div>
+<div id="app" class="hide">
+<div class="topbar"><b>🎓 AI Staff Studio</b><a class="btn sm" href="index.html">🏫 Campus</a><a class="btn sm" href="hq.html">🏛 HQ</a><a class="btn sm" href="customize.html">🎨 Customize Studio</a></div>
+<div class="sub">Personalize and generate the AI teachers and classmates who live on campus.<span id="roNote" class="hide"> Read-only preview — nothing is saved.</span></div>
+<div id="roster" class="grid"></div>
+<div id="gen" class="panel hide"></div>
+<div id="edit" class="panel hide"></div>
+<div class="tabs"><button id="tRoster" class="on">🧑‍🏫 Roster</button><button id="tGen">✨ New character</button></div>
+</div>
+<script>
+(function(){
+"use strict";
+var $=function(i){return document.getElementById(i)};
+var KEY="unify.hq.staff";
+var esc=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
+var rid=function(){return "c"+Math.random().toString(36).slice(2,9)};
+const isAdmin=(()=>{try{return sessionStorage.getItem("unify.family.ci")==="parent"||localStorage.getItem("unify.opendoor.adult")==="1";}catch{return false;}})();
+var READONLY=!isAdmin;
+
+/* ---- option lists mirrored from src/hall3d/avatar.ts (keep in sync!) ---- */
+var SKIN_TONES=["#fde7d3","#fbdcc4","#f5cfa8","#f0c29b","#e3ad7f","#d9a074","#c58a5f","#a86f4f","#8d5a3e","#7a4a36","#5e3a2b","#4a2e24"];
+var HAIR_COLORS=["#d62f3a","#f08a24","#f5c542","#3fb8af","#7b4fbf","#ff5fa2","#ffffff","#2b2b33","#3a2a30","#5a3a35","#694a38","#9a653d","#b5563e","#c9773e","#e0b04e","#f1d98a","#d9d4cc","#8c8c96","#4F91C7","#b8a8da","#e8789a","#5e9c72","#e07a66"];
+var CLOTH_COLORS=["#4f91c7","#326c9e","#8fc9e8","#88b89a","#5e9c72","#a9dcc0","#eab94e","#f8d977","#f6b294","#f28f7e","#d9564a","#eaa5b2","#b8a8da","#8173ae","#c98569","#9a653d","#fff6ea","#9da7aa","#4a3b3f","#2b3a55"];
+var OPT={
+ hairStyle:[["fade","Skin fade"],["sidecut","Side shave"],["balding","Balding on top"],["receding","Receding"],["flattop","Flat top"],["pompadour","Pompadour"],["quiff","Quiff"],["hime","Hime cut"],["bantuknots","Bantu knots"],["highpony","High ponytail"],["mullet","Mullet"],["bald","Shaved bald"],["mohawk","Mohawk"],["bowl","Bowl cut"],["slick","Slicked back"],["cornrows","Cornrows"],["locs","Locs"],["shag","Shaggy"],["halfup","Half up"],["crop","Short crop"],["buzz","Buzz cut"],["undercut","Undercut"],["spiky","Spiky"],["messy","Messy"],["sidebang","Side bangs"],["curtains","Curtains"],["pixie","Pixie"],["bob","Bob"],["long","Long"],["wavy","Wavy long"],["curly","Curly puffs"],["afro","Afro"],["pony","Ponytail"],["pigtails","Pigtails"],["twinbuns","Twin buns"],["bun","Bun"],["topknot","Top knot"],["braids","Braids"]],
+ glasses:[["none","None"],["round","Round"],["square","Square"],["cat","Cat-eye"],["half","Half-rim"],["sun","Sunglasses"]],
+ hat:[["none","None"],["bandana","Bandana"],["visor","Visor"],["sunhat","Sun hat"],["cap","Cap"],["beanie","Beanie"],["bucket","Bucket hat"],["beret","Beret"],["headband","Headband"],["bow","Bow"],["flower","Flower"],["crown","Crown"],["headphones","Headphones"],["catears","Cat ears"]],
+ top:[["henley","Henley"],["flannel","Flannel shirt"],["sailor","Sailor top"],["vneck","V-neck jumper"],["cableknit","Cable-knit jumper"],["argyle","Argyle jumper"],["fairisle","Fair Isle jumper"],["cowl","Cowl-neck jumper"],["chunky","Chunky jumper"],["ziphoodie","Zip hoodie"],["varsity","Varsity jacket"],["denim","Denim jacket"],["puffer","Puffer jacket"],["raincoat","Raincoat"],["labcoat","Lab coat"],["apron","Apron"],["polo","Polo"],["turtleneck","Turtleneck"],["cardigan","Cardigan"],["track","Track jacket"],["longsleeve","Long sleeve"],["buttonup","Button-up shirt"],["croptop","Crop top"],["tee","T-shirt"],["hoodie","Hoodie"],["sweater","Sweater"],["jersey","Jersey"],["blazer","Blazer"],["dress","Dress"],["overalls","Overalls"],["vest","Vest"],["tank","Tank top"]],
+ bottom:[["flares","Flared pants"],["minikirt","Mini skirt"],["jeans","Jeans"],["pleated","Pleated skirt"],["tutu","Tutu"],["kilt","Kilt"],["bike","Bike shorts"],["leggings","Leggings"],["cargo","Cargo pants"],["capri","Capris"],["pants","Pants"],["joggers","Joggers"],["shorts","Shorts"],["skirt","Skirt"]],
+ shoeStyle:[["hightop","High-tops"],["loafer","Loafers"],["rainboot","Rain boots"],["slipper","Slippers"],["skate","Skate shoes"],["sneaker","Sneakers"],["boot","Boots"],["sandal","Sandals"],["plain","Plain shoes"]],
+ build:[["slim","Slim"],["regular","Regular"],["sturdy","Sturdy"]],
+ age:[["k2","Grades K-2"],["g35","Grades 3-5"],["g68","Grades 6-8"],["hs","High school"],["adult","Adult (teacher)"]]
+};
+var TRAITS=["warm","strict","funny","patient","energetic","calm","curious","encouraging","organized","creative","gentle","playful","thoughtful","bold","kind","focused","silly","wise","adventurous","caring"];
+var STYLES=[["storyteller","Storyteller"],["socratic","Socratic questioner"],["coach","Coach"],["scientist","Scientist"],["comedian","Comedian"],["mentor","Quiet mentor"],["cheerleader","Cheerleader"]];
+var TIMBRES=[["default","Default"],["warm","Warm"],["bright","Bright"],["deep","Deep"],["soft","Soft"]];
+var SUBJECTS=["English","Math","Science","History","Art","Music","PE","Reading","Geography","Drama","Computers","Homeroom"];
+var BAND_LABEL={k2:"Grades K-2",g35:"Grades 3-5",g68:"Grades 6-8",hs:"High school",adult:"Adult"};
+var COLORS=["#E07A66","#4E8A64","#6AA9F0","#C2456B","#8E7CC3","#E8A33D","#2E9C9A"];
+var FIRST=["Maple","Juniper","Wren","Sage","Rowan","Hazel","Indigo","Marigold","Clover","Briar","Aspen","Poppy","Cedar","Lark","Ember","Willow","Skye","River","Autumn","Felix","Oscar","Hugo","Milo","Theo","Jasper","Silas","Ezra","Nico","Amara","Zoe","Nadia","Priya","Lena","Iris","Maya","Noor","Selene","Dara","Quinn","Tessa"];
+var TEACHER_TITLES=["Ms.","Mr.","Mx.","Dr.","Coach","Prof."];
+var pick=function(a){return a[Math.floor(Math.random()*a.length)]};
+var picks=function(a,n){var c=a.slice(),o=[];while(o.length<n&&c.length)o.push(c.splice(Math.floor(Math.random()*c.length),1)[0]);return o};
+
+function mkAvatar(grade,role){
+ return {age:role==="teacher"?"adult":grade,build:pick(["slim","regular","sturdy"]),skin:pick(SKIN_TONES),
+  hairStyle:pick(OPT.hairStyle)[0],hair:pick(HAIR_COLORS),
+  top:role==="teacher"?pick(["blazer","cardigan","buttonup","sweater","polo","labcoat"]):pick(OPT.top)[0],
+  shirt:pick(CLOTH_COLORS),bottom:pick(OPT.bottom)[0],pants:pick(CLOTH_COLORS),
+  shoeStyle:pick(OPT.shoeStyle)[0],hat:Math.random()<.2?pick(OPT.hat.filter(function(x){return x[0]!=="none"}))[0]:"none",
+  glasses:Math.random()<.3?pick(OPT.glasses.filter(function(x){return x[0]!=="none"}))[0]:"none"};
+}
+function mkChar(o){
+ o=o||{};var role=o.role||"teacher",grade=o.grade||"g35";
+ var id=rid();
+ return {id:id,role:role,name:role==="teacher"?pick(TEACHER_TITLES)+" "+pick(FIRST):pick(FIRST),
+  grade:grade,subject:o.subject||pick(SUBJECTS),traits:picks(TRAITS,3+Math.floor(Math.random()*3)),
+  style:pick(STYLES)[0],personality:"",
+  voice:{pitch:+(0.7+Math.random()*0.7).toFixed(2),rate:+(0.85+Math.random()*0.35).toFixed(2),timbre:"default"},
+  avatar:mkAvatar(grade,role),classroomId:role==="teacher"?"classroom-"+id:"",color:pick(COLORS)};
+}
+function seed(){
+ return [
+  {id:"seed-maple",role:"teacher",name:"Ms. Maple",grade:"k2",subject:"English",traits:["warm","patient","encouraging"],style:"storyteller",personality:"Reads every story with voices for each character and always has a spare bookmark for a friend.",voice:{pitch:1.2,rate:0.95,timbre:"warm"},avatar:{age:"adult",build:"regular",skin:"#f0c29b",hairStyle:"bun",hair:"#b5563e",top:"cardigan",shirt:"#eab94e",bottom:"skirt",pants:"#4a3b3f",shoeStyle:"loafer",hat:"none",glasses:"round"},classroomId:"classroom-seed-maple",color:"#E07A66"},
+  {id:"seed-flint",role:"teacher",name:"Mr. Flint",grade:"g68",subject:"Science",traits:["curious","energetic","funny"],style:"scientist",personality:"Believes every lesson is better with one small, safe explosion and a lot of questions.",voice:{pitch:0.9,rate:1.05,timbre:"bright"},avatar:{age:"adult",build:"sturdy",skin:"#8d5a3e",hairStyle:"buzz",hair:"#2b2b33",top:"labcoat",shirt:"#4f91c7",bottom:"pants",pants:"#2b3a55",shoeStyle:"sneaker",hat:"none",glasses:"square"},classroomId:"classroom-seed-flint",color:"#4E8A64"},
+  {id:"seed-rivera",role:"teacher",name:"Ms. Rivera",grade:"hs",subject:"History",traits:["calm","thoughtful","wise"],style:"socratic",personality:"Turns history into detective work. Expect big questions and even bigger maps.",voice:{pitch:1.1,rate:0.9,timbre:"soft"},avatar:{age:"adult",build:"slim",skin:"#d9a074",hairStyle:"long",hair:"#3a2a30",top:"blazer",shirt:"#2b3a55",bottom:"flares",pants:"#4a3b3f",shoeStyle:"boot",hat:"none",glasses:"none"},classroomId:"classroom-seed-rivera",color:"#8E7CC3"},
+  {id:"seed-bailey",role:"teacher",name:"Coach Bailey",grade:"g35",subject:"PE",traits:["energetic","encouraging","playful"],style:"coach",personality:"Every game ends with high-fives. Every warm-up has a soundtrack.",voice:{pitch:1.0,rate:1.15,timbre:"deep"},avatar:{age:"adult",build:"sturdy",skin:"#c58a5f",hairStyle:"pony",hair:"#694a38",top:"track",shirt:"#d9564a",bottom:"shorts",pants:"#2b3a55",shoeStyle:"hightop",hat:"visor",glasses:"none"},classroomId:"classroom-seed-bailey",color:"#E8A33D"}
+ ];
+}
+var S=[];
+function load(){try{var v=JSON.parse(localStorage.getItem(KEY)||"null");if(Array.isArray(v)&&v.length){S=v;return}}catch(e){} S=seed();if(!READONLY)persist()}
+function persist(){if(READONLY)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+ try{window.dispatchEvent(new CustomEvent("unify-hq-update",{detail:{key:KEY}}))}catch(e){}}
+
+/* ---- gate ---- */
+function gate(ok){READONLY=!ok;$("gate").classList.add("hide");$("app").classList.remove("hide");$("roNote").classList.toggle("hide",ok);
+ if(!ok)$("tGen").disabled=true;load();roster();view("roster")}
+
+/* ---- views ---- */
+function view(v){$("roster").classList.toggle("hide",v!=="roster");$("gen").classList.toggle("hide",v!=="gen");$("edit").classList.toggle("hide",v!=="edit");
+ $("tRoster").classList.toggle("on",v==="roster");$("tGen").classList.toggle("on",v==="gen");try{speechSynthesis.cancel()}catch(e){}}
+function bandOf(c){return BAND_LABEL[c.grade]||c.grade||""}
+function voiceSummary(c){var v=c.voice||{};return "pitch "+(v.pitch!=null?v.pitch:1)+", rate "+(v.rate!=null?v.rate:1)+", "+(v.timbre||"default")+" voice"}
+function styleLabel(id){var f=STYLES.filter(function(x){return x[0]===id})[0];return f?f[1]:(id||"—")}
+
+function roster(){
+ var g=$("roster");g.innerHTML="";
+ S.forEach(function(c){
+  var d=document.createElement("div");d.className="card";d.style.setProperty("--c",c.color||COLORS[0]);
+  d.innerHTML='<div><span class="tag role'+(c.role==="student"?" student":"")+'">'+esc(c.role==="student"?"Student":"Teacher")+'</span><span class="tag">'+esc(bandOf(c))+'</span>'+(c.subject?'<span class="tag" style="--c:#8E7CC3">'+esc(c.subject)+'</span>':"")+'</div>'
+   +'<h3>'+esc(c.name)+'</h3>'
+   +'<p><b>Style:</b> '+esc(styleLabel(c.style))+'</p>'
+   +'<p><b>Voice:</b> '+esc(voiceSummary(c))+'</p>'
+   +'<div>'+(c.traits||[]).map(function(t){return '<span class="tag" style="--c:#2E9C9A">'+esc(t)+'</span>'}).join("")+'</div>'
+   +(c.personality?'<p class="note">'+esc(c.personality)+'</p>':"")
+   +'<div class="row"></div>';
+  var r=d.querySelector(".row");
+  var ed=document.createElement("button");ed.className="pri sm";ed.textContent=READONLY?"View":"Edit";ed.onclick=function(){edit(c)};r.appendChild(ed);
+  if(!READONLY){
+   var du=document.createElement("button");du.className="sm";du.textContent="Duplicate";du.onclick=function(){var n=JSON.parse(JSON.stringify(c));n.id=rid();n.name=c.name+" (copy)";if(n.role==="teacher")n.classroomId="classroom-"+n.id;S.splice(S.indexOf(c)+1,0,n);persist();roster()};r.appendChild(du);
+   var dl=document.createElement("button");dl.className="sm";dl.textContent="Delete";dl.onclick=function(){if(confirm("Delete "+c.name+"?")){S=S.filter(function(x){return x!==c});persist();roster()}};r.appendChild(dl);
+  }
+  g.appendChild(d)});
+ if(!S.length)g.innerHTML='<div class="panel">No characters yet. Make one with <b>New character</b> below.</div>';
+}
+
+/* ---- generator ---- */
+function gen(){
+ if(READONLY)return;view("gen");var t=$("gen");
+ t.innerHTML='<h2>✨ New character</h2>'
+ +'<div class="two"><div><label>Role</label><select id="gR"><option value="teacher">Teacher</option><option value="student">Student / classmate</option></select></div>'
+ +'<div><label>Grade band</label><select id="gB">'+Object.keys(BAND_LABEL).filter(function(k){return k!=="adult"}).map(function(k){return '<option value="'+k+'">'+BAND_LABEL[k]+'</option>'}).join("")+'</select></div></div>'
+ +'<label>Subject</label><select id="gS">'+SUBJECTS.map(function(s){return '<option>'+s+'</option>'}).join("")+'</select>'
+ +'<div class="row" style="margin-top:14px"><button class="pri" id="gGo">Generate character</button><button id="gCancel">Cancel</button></div>'
+ +'<p class="note">Creates a random name, 3-5 personality traits, a speaking style, voice settings and a look that matches the campus avatar system. You can edit everything afterwards.</p>';
+ $("gCancel").onclick=function(){view("roster")};
+ $("gGo").onclick=function(){var c=mkChar({role:$("gR").value,grade:$("gB").value,subject:$("gS").value});S.unshift(c);persist();edit(c)};
+}
+
+/* ---- editor ---- */
+function swRow(label,pal,cur){
+ return '<label>'+esc(label)+'</label><div class="sws">'+pal.map(function(c){return '<button type="button" class="sw'+(c===cur?" on":"")+'" data-c="'+c+'" style="background:'+c+'" aria-label="'+c+'"></button>'}).join("")+'</div>';
+}
+function edit(c){
+ view("edit");var t=$("edit");c.avatar=c.avatar||mkAvatar(c.grade,c.role);
+ function optRows(list,cur){return list.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===cur?" selected":"")+'>'+x[1]+'</option>'}).join("")}
+ var ro=READONLY?" disabled":"";
+ t.innerHTML=(READONLY?'<div class="ro-badge">Read-only preview</div>':"")
+ +'<h2>'+(READONLY?"View":"Edit")+' — '+esc(c.name)+'</h2>'
+ +'<div class="two"><div><label>Name</label><input id="eN" maxlength="40" value="'+esc(c.name)+'"'+ro+'></div>'
+ +'<div><label>Role</label><select id="eR"'+ro+'><option value="teacher"'+(c.role==="teacher"?" selected":"")+'>Teacher</option><option value="student"'+(c.role==="student"?" selected":"")+'>Student / classmate</option></select></div></div>'
+ +'<div class="two"><div><label>Grade band</label><select id="eB"'+ro+'>'+Object.keys(BAND_LABEL).map(function(k){return '<option value="'+k+'"'+(c.grade===k?" selected":"")+'>'+BAND_LABEL[k]+'</option>'}).join("")+'</select></div>'
+ +'<div><label>Subject</label><select id="eS"'+ro+'>'+SUBJECTS.map(function(s){return '<option'+(c.subject===s?" selected":"")+'>'+s+'</option>'}).join("")+'</select></div></div>'
+ +'<label>Teaching / speaking style</label><select id="eSt"'+ro+'>'+optRows(STYLES,c.style)+'</select>'
+ +'<label>Personality traits (pick 3-5)</label><div class="chips" id="eT">'+TRAITS.map(function(tr){return '<button type="button" class="chip'+((c.traits||[]).indexOf(tr)>=0?" on":"")+'" data-t="'+tr+'"'+ro+'>'+tr+'</button>'}).join("")+'</div>'
+ +'<label>Personality notes</label><textarea id="eP" maxlength="600" placeholder="What are they like in class?"'+ro+'>'+esc(c.personality||"")+'</textarea>'
+ +'<h2 style="margin-top:16px">Voice</h2>'
+ +'<div class="two"><div><label>Pitch <span id="ePv">'+(c.voice.pitch)+'</span></label><input type="range" id="ePi" min="0.5" max="2" step="0.05" value="'+c.voice.pitch+'"'+ro+'></div>'
+ +'<div><label>Rate <span id="eRv">'+(c.voice.rate)+'</span></label><input type="range" id="eRa" min="0.5" max="2" step="0.05" value="'+c.voice.rate+'"'+ro+'></div></div>'
+ +'<label>Timbre</label><select id="eTi"'+ro+'>'+optRows(TIMBRES,c.voice.timbre)+'</select>'
+ +'<div class="vprev"><button type="button" class="sm" id="eVp">▶ Preview voice</button><span class="note">Uses your device speech with the chosen pitch and rate.</span></div>'
+ +'<h2 style="margin-top:16px">Look</h2>'
+ +'<div class="two"><div><label>Age band</label><select id="eA"'+ro+'>'+optRows(OPT.age,c.avatar.age)+'</select></div>'
+ +'<div><label>Build</label><select id="eBu"'+ro+'>'+optRows(OPT.build,c.avatar.build)+'</select></div></div>'
+ +swRow("Skin tone",SKIN_TONES,c.avatar.skin)
+ +'<div class="two"><div><label>Hair style</label><select id="eH"'+ro+'>'+optRows(OPT.hairStyle,c.avatar.hairStyle)+'</select></div>'
+ +'<div><label>Glasses</label><select id="eG"'+ro+'>'+optRows(OPT.glasses,c.avatar.glasses)+'</select></div></div>'
+ +swRow("Hair colour",HAIR_COLORS,c.avatar.hair)
+ +'<div class="two"><div><label>Top / outfit</label><select id="eTp"'+ro+'>'+optRows(OPT.top,c.avatar.top)+'</select></div>'
+ +'<div><label>Bottom</label><select id="eBt"'+ro+'>'+optRows(OPT.bottom,c.avatar.bottom)+'</select></div></div>'
+ +swRow("Top colour",CLOTH_COLORS,c.avatar.shirt)
+ +swRow("Bottom colour",CLOTH_COLORS,c.avatar.pants)
+ +'<div class="two"><div><label>Shoes</label><select id="eSh"'+ro+'>'+optRows(OPT.shoeStyle,c.avatar.shoeStyle)+'</select></div>'
+ +'<div><label>Hat</label><select id="eHa"'+ro+'>'+optRows(OPT.hat,c.avatar.hat)+'</select></div></div>'
+ +'<div class="row" style="margin-top:14px">'+(READONLY?'<button id="eCancel">Back</button>':'<button class="pri" id="eSave">Save character</button><button id="eCancel">Cancel</button><button id="eDup">Duplicate</button><button id="eDel">Delete</button>')+'</div>'
+ +'<div class="msg" id="eMsg"></div>';
+ var sws=t.querySelectorAll(".sws");
+ sws.forEach(function(row,i){if(READONLY)return;row.addEventListener("click",function(e){var b=e.target;if(!b.dataset||!b.dataset.c)return;
+   row.querySelectorAll(".sw").forEach(function(x){x.classList.remove("on")});b.classList.add("on");
+   var v=b.dataset.c;if(i===0)c.avatar.skin=v;else if(i===1)c.avatar.hair=v;else if(i===2)c.avatar.shirt=v;else c.avatar.pants=v})});
+ if(!READONLY)$("eT").addEventListener("click",function(e){var b=e.target;if(!b.dataset||!b.dataset.t)return;
+  var tr=b.dataset.t,i=c.traits.indexOf(tr);
+  if(i>=0)c.traits.splice(i,1);else{if(c.traits.length>=5){$("eMsg").textContent="Five traits is plenty.";return}c.traits.push(tr)}
+  b.classList.toggle("on")});
+ $("ePi").oninput=function(){$("ePv").textContent=$("ePi").value};$("eRa").oninput=function(){$("eRv").textContent=$("eRa").value};
+ $("eVp").onclick=function(){try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance("Hello! I'm "+($("eN").value||c.name)+". I can't wait to learn together.");u.pitch=parseFloat($("ePi").value);u.rate=parseFloat($("eRa").value);speechSynthesis.speak(u)}catch(e){alert("Speech is not available on this device.")}};
+ function pull(){c.name=$("eN").value.trim()||c.name;c.role=$("eR").value;c.grade=$("eB").value;c.subject=$("eS").value;c.style=$("eSt").value;c.personality=$("eP").value.trim();
+  c.voice={pitch:parseFloat($("ePi").value),rate:parseFloat($("eRa").value),timbre:$("eTi").value};
+  c.avatar.age=$("eA").value;c.avatar.build=$("eBu").value;c.avatar.hairStyle=$("eH").value;c.avatar.glasses=$("eG").value;c.avatar.top=$("eTp").value;c.avatar.bottom=$("eBt").value;c.avatar.shoeStyle=$("eSh").value;c.avatar.hat=$("eHa").value;
+  if(c.role==="teacher"&&!c.classroomId)c.classroomId="classroom-"+c.id}
+ if(!READONLY){
+  $("eSave").onclick=function(){pull();persist();$("eMsg").textContent="Saved ✔";setTimeout(function(){view("roster");roster()},400)};
+  $("eDup").onclick=function(){pull();var n=JSON.parse(JSON.stringify(c));n.id=rid();n.name=c.name+" (copy)";if(n.role==="teacher")n.classroomId="classroom-"+n.id;S.push(n);persist();view("roster");roster()};
+  $("eDel").onclick=function(){if(confirm("Delete "+c.name+"?")){S=S.filter(function(x){return x!==c});persist();view("roster");roster()}};
+ }
+ $("eCancel").onclick=function(){view("roster");roster()};
+}
+
+$("tRoster").onclick=function(){view("roster");roster()};
+$("tGen").onclick=gen;
+$("previewBtn").onclick=function(){gate(false)};
+addEventListener("storage",function(e){if(e.key===KEY){try{var v=JSON.parse(e.newValue||"null");if(Array.isArray(v)&&v.length){S=v;if(!$("roster").classList.contains("hide"))roster()}}catch(err){}}});
+if(isAdmin)gate(true);else $("gate").classList.remove("hide");
+})();
+</script>
+</body>
+</html>

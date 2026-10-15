@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Team HQ — Unify Campus Quest</title>
+<style>
+:root{--paper:#EADFCB;--paper2:#F3E7CF;--ink:#4A3B3F;--soft:#8A7A70;--acc:#E07A66;--sage:#4E8A64;--kraft:#C9B28A}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.5 "Fredoka","Trebuchet MS",system-ui,sans-serif;background:var(--paper);color:var(--ink)}
+a{color:var(--acc)}
+.topbar{display:flex;gap:10px;align-items:center;padding:12px 18px;background:var(--paper2);border-bottom:3px solid var(--kraft);position:sticky;top:0;z-index:5}
+.topbar h1{font-size:20px;margin:0;flex:1}
+.btn{background:var(--paper2);color:var(--ink);border:2px solid var(--kraft);border-radius:12px;padding:8px 14px;min-height:40px;text-decoration:none;cursor:pointer;font:inherit;font-size:15px;box-shadow:0 3px 0 var(--kraft)}
+.btn:hover{border-color:var(--acc)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--kraft)}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.card{background:var(--paper2);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:8px;box-shadow:0 3px 0 var(--kraft),0 12px 24px rgba(80,50,40,.3)}
+.card .icon{font-size:32px}
+.card h2{font-size:18px;margin:0}
+.badge{display:inline-block;font-size:11.5px;padding:2px 10px;border-radius:99px;background:var(--paper);border:2px solid var(--kraft);color:var(--soft);vertical-align:middle;margin-left:6px}
+.badge.public{background:#dcecdf;color:var(--sage);border-color:var(--sage)}
+.badge.class{background:#fbe6da;color:var(--acc);border-color:var(--acc)}
+.card p{margin:0;color:var(--soft);font-size:14px;flex:1}
+.status{font-size:13px;color:var(--soft);border-top:2px dashed var(--kraft);padding-top:8px}
+.status b{color:var(--ink)}
+.open{align-self:flex-start;background:var(--acc);color:#fff;border:0;border-radius:12px;padding:9px 18px;min-height:40px;font:inherit;font-size:15px;text-decoration:none;cursor:pointer;box-shadow:0 3px 0 #b85c4c}
+.open:hover{filter:brightness(1.05)}
+.open:active{transform:translateY(2px);box-shadow:0 1px 0 #b85c4c}
+section.panel{background:var(--paper2);border-radius:16px;padding:18px;margin-top:18px;box-shadow:0 3px 0 var(--kraft),0 12px 24px rgba(80,50,40,.3)}
+section.panel h2{margin:0 0 10px;font-size:17px}
+.sync{font-size:13.5px;color:var(--soft)}
+.sync b{color:var(--sage)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px;border-bottom:2px solid var(--kraft);vertical-align:top}
+th{color:var(--soft);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.sev{font-size:11.5px;padding:2px 10px;border-radius:99px;border:2px solid var(--kraft)}
+.sev.high{color:#c0392b;border-color:#c0392b}
+.sev.med{color:#c07f2a;border-color:#c07f2a}
+.sev.low{color:var(--sage);border-color:var(--sage)}
+.pill{font-size:11.5px;padding:2px 10px;border-radius:99px}
+.pill.open{background:#f6dcd2;color:#c0392b}
+.pill.fixed{background:#dcecdf;color:var(--sage)}
+.tgl{background:var(--paper);color:var(--ink);border:2px solid var(--kraft);border-radius:10px;padding:5px 12px;min-height:40px;cursor:pointer;font:inherit;font-size:13px}
+.tgl:hover{border-color:var(--acc)}
+.empty{color:var(--soft);font-style:italic}
+.demo-note{background:#fbe6da;border:2px dashed var(--acc);border-radius:12px;padding:8px 12px;font-size:13.5px;margin-bottom:14px}
+/* gate */
+#gate{position:fixed;inset:0;background:var(--paper);display:flex;align-items:center;justify-content:center;z-index:50}
+#gate .box{background:var(--paper2);border-radius:16px;padding:32px;max-width:400px;text-align:center;box-shadow:0 3px 0 var(--kraft),0 12px 24px rgba(80,50,40,.3)}
+#gate h2{margin:8px 0}
+#gate p{color:var(--soft);font-size:14.5px}
+#gate .links{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+#app{display:none}
+</style>
+</head>
+<body>
+<div id="gate">
+  <div class="box">
+    <div style="font-size:44px">🏫</div>
+    <h2>Staff only</h2>
+    <p>This app lives in the campus HQ. It's for the grown-ups running the academy.</p>
+    <div class="links">
+      <a class="btn" href="index.html">🏫 Back to Campus</a>
+      <a class="btn" href="#" id="preview-link">👀 Preview anyway (read-only demo)</a>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+<header class="topbar">
+  <h1>🤖 Agent Team HQ</h1>
+  <a class="btn" href="index.html">🏫 Campus</a>
+  <a class="btn" href="academy-control.html">🎛️ Academy Control</a>
+</header>
+<main>
+  <div class="demo-note" id="demo-note" style="display:none">👀 Read-only demo mode — changes won't be saved.</div>
+  <div class="sync" id="sync">Sync status: <b>live</b> · last update <span id="sync-at">—</span></div>
+
+  <div class="grid" id="agents" style="margin-top:14px"></div>
+
+  <section class="panel">
+    <h2>🐞 Issues <span class="badge" id="issue-count"></span></h2>
+    <div id="issues-wrap"></div>
+  </section>
+</main>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* ---------- admin gate (exact contract) ---------- */
+const isAdmin=(()=>{try{return sessionStorage.getItem("unify.family.ci")==="parent"||localStorage.getItem("unify.opendoor.adult")==="1";}catch{return false;}})();
+var readOnly=!isAdmin;
+
+/* ---------- storage helpers ---------- */
+function lsGet(k,d){try{var v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function notify(key){try{window.dispatchEvent(new CustomEvent("unify-hq-update",{detail:{key:key}}));}catch(e){}}
+
+/* ---------- gate / demo ---------- */
+var gate=document.getElementById('gate'),app=document.getElementById('app');
+function showApp(){
+  gate.style.display='none';app.style.display='block';
+  if(readOnly)document.getElementById('demo-note').style.display='block';
+  renderAll();
+}
+document.getElementById('preview-link').addEventListener('click',function(e){e.preventDefault();showApp();});
+
+/* ---------- data ---------- */
+function issues(){var v=lsGet('unify.hq.issues',[]);return Array.isArray(v)?v:[];}
+function saveIssues(a){if(readOnly)return;lsSet('unify.hq.issues',a);notify('unify.hq.issues');}
+function countOf(k){
+  var v=lsGet(k,null);
+  if(Array.isArray(v))return v.length;
+  if(v&&typeof v==='object')return Object.keys(v).length;
+  if(typeof v==='number')return v;
+  return 0;
+}
+function staffCount(){return countOf('unify.hq.staff');}
+function lessonsCount(){return countOf('unify.hq.lessons');}
+function roomsCount(){return countOf('unify.hq.rooms');}
+function textbookCount(){
+  var n=0;
+  try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('unify.hq.textbook.')===0)n++;}}catch(e){}
+  return n;
+}
+function openIssues(){return issues().filter(function(i){return i.status!=='fixed';}).length;}
+
+/* ---------- agent cards ---------- */
+var AGENTS=[
+ {icon:'📱',name:'Phone',file:'phone.html',badge:{t:'Student app — public',c:'public'},desc:'The student-facing campus phone: apps, messages, progress and cloud save.',status:function(){return '<b>'+lessonsCount()+'</b> lessons · <b>'+openIssues()+'</b> open issues';}},
+ {icon:'🎛️',name:'Academy Control',file:'academy-control.html',desc:'Control campus room layouts, themes, decorations and file bugs for the agent team.',status:function(){return '<b>'+roomsCount()+'</b> rooms configured';}},
+ {icon:'🧑‍🏫',name:'AI Staff',file:'staff.html',desc:'Manage the AI staff team that teaches and helps around campus.',status:function(){return '<b>'+staffCount()+'</b> staff members';}},
+ {icon:'🎨',name:'Customize Studio',file:'customize.html',desc:'Customize the campus look: colors, characters and branding.',status:function(){return 'Studio ready';}},
+ {icon:'📚',name:'Curriculum Builder',file:'curriculum-builder.html',desc:'Build and edit the lesson curriculum used across the academy.',status:function(){return '<b>'+lessonsCount()+'</b> lesson plans';}},
+ {icon:'📖',name:'Textbook',file:'textbook.html',badge:{t:'Used in class',c:'class'},desc:'The interactive textbook agents use during class sessions.',status:function(){return '<b>'+textbookCount()+'</b> textbook entries';}}
+];
+
+function renderAgents(){
+  var host=document.getElementById('agents');host.innerHTML='';
+  AGENTS.forEach(function(a){
+    var card=document.createElement('div');card.className='card';
+    var badge=a.badge?' <span class="badge '+a.badge.c+'">'+a.badge.t+'</span>':'';
+    card.innerHTML='<div class="icon">'+a.icon+'</div>'+
+      '<h2>'+a.name+badge+'</h2>'+
+      '<p>'+a.desc+'</p>'+
+      '<div class="status">'+a.status()+'</div>';
+    var btn=document.createElement('a');btn.className='open';btn.href=a.file;btn.textContent='Open →';
+    card.appendChild(btn);host.appendChild(card);
+  });
+}
+
+/* ---------- issues panel ---------- */
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function renderIssues(){
+  var list=issues();
+  document.getElementById('issue-count').textContent=openIssues()+' open / '+list.length+' total';
+  var wrap=document.getElementById('issues-wrap');
+  if(!list.length){wrap.innerHTML='<p class="empty">No issues filed yet. File bugs from Academy Control.</p>';return;}
+  var html='<table><thead><tr><th>Status</th><th>Severity</th><th>Page</th><th>Title</th><th>Detail</th><th></th></tr></thead><tbody>';
+  list.slice().sort(function(a,b){return (b.created||0)-(a.created||0);}).forEach(function(i){
+    var st=i.status==='fixed'?'fixed':'open';
+    html+='<tr><td><span class="pill '+st+'">'+st+'</span></td>'+
+      '<td><span class="sev '+(i.severity||'med')+'">'+esc(i.severity||'med')+'</span></td>'+
+      '<td>'+esc(i.page||'—')+'</td><td><b>'+esc(i.title||'(untitled)')+'</b></td>'+
+      '<td>'+esc(i.detail||'')+'</td>'+
+      '<td>'+(readOnly?'':'<button class="tgl" data-id="'+i.id+'">'+(st==='open'?'Mark fixed':'Reopen')+'</button>')+'</td></tr>';
+  });
+  wrap.innerHTML=html+'</tbody></table>';
+  wrap.querySelectorAll('.tgl').forEach(function(b){
+    b.addEventListener('click',function(){
+      var id=b.getAttribute('data-id'),list=issues();
+      list.forEach(function(i){if(String(i.id)===id)i.status=i.status==='fixed'?'open':'fixed';});
+      saveIssues(list);
+    });
+  });
+}
+
+/* ---------- sync ---------- */
+function stamp(){document.getElementById('sync-at').textContent=new Date().toLocaleTimeString();}
+function renderAll(){renderAgents();renderIssues();stamp();}
+window.addEventListener('storage',function(e){
+  if(!e.key||e.key.indexOf('unify.hq.')===0)renderAll();
+});
+window.addEventListener('unify-hq-update',renderAll);
+
+if(isAdmin)showApp();
+})();
+</script>
+</body>
+</html>

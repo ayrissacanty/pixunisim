@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Customize Studio — UNIFY HQ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
+<style>
+:root{--sheet:#EADFCB;--kraft:#F3E7CF;--ink:#4A3B3F;--soft:#8A7A70;--acc:#E07A66;--sage:#4E8A64;--edge:#C9B28A;--ui:"Fredoka","Trebuchet MS",system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:var(--ui);color:var(--ink);background:var(--sheet)}
+body{overflow-y:auto;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(60px + env(safe-area-inset-bottom,0px))}
+.topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;background:var(--kraft);border:1px solid rgba(255,255,255,.75);border-radius:16px;box-shadow:0 3px 0 var(--edge),0 12px 24px rgba(80,50,40,.3);padding:10px 14px}
+.topbar b{font-size:22px;flex:1}
+.sub{color:var(--soft);font-size:15px;margin:8px 2px 12px}
+button,.btn{font:inherit;font-size:15px;color:var(--ink);background:var(--kraft);border:1px solid rgba(255,255,255,.8);border-radius:12px;padding:8px 14px;min-height:44px;cursor:pointer;box-shadow:0 2px 0 var(--edge);touch-action:manipulation;text-decoration:none;display:inline-block}
+button.pri,.btn.pri{background:var(--acc);color:#fff;box-shadow:0 2px 0 #b95a48}
+button.on{background:var(--acc);color:#fff;box-shadow:0 2px 0 #b95a48}
+button.sm{min-height:36px;font-size:13px;padding:4px 10px}
+button:active{transform:translateY(2px);box-shadow:none}
+button:disabled{opacity:.5;cursor:default}
+.card{background:var(--kraft);border:1px solid rgba(255,255,255,.75);border-radius:16px;box-shadow:0 3px 0 var(--edge),0 12px 24px rgba(80,50,40,.3);padding:14px;margin-bottom:14px}
+.card h2{font-size:20px;margin-bottom:4px}
+label{display:block;font-size:14px;font-weight:500;margin:10px 0 3px}
+input,select,textarea{width:100%;font:inherit;font-size:16px;padding:9px 11px;border-radius:11px;border:1px solid var(--edge);background:#fff;color:var(--ink);min-height:44px}
+input[type=range]{padding:0;min-height:32px}
+input[type=color]{padding:2px;min-height:44px}
+textarea{min-height:100px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:640px){.two,.three{grid-template-columns:1fr}}
+.note{font-size:13px;color:var(--soft);margin-top:6px;line-height:1.4}
+.hide{display:none!important}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px}
+.chip{font-size:13px;padding:5px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.8);background:#FFF9F0;color:inherit;cursor:pointer;box-shadow:0 2px 0 var(--edge);min-height:36px}
+.chip.on{background:var(--acc);color:#fff;box-shadow:0 2px 0 #b95a48}
+.sws{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px}
+.sw{width:32px;height:32px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px #6d5a5f,0 2px 0 rgba(0,0,0,.15);cursor:pointer;padding:0;min-height:0}
+.sw.on{box-shadow:0 0 0 3px var(--acc),0 2px 0 rgba(0,0,0,.15)}
+.row{display:flex;gap:6px;flex-wrap:wrap;padding-top:6px}
+.gate{max-width:560px;margin:8vh auto;text-align:center}
+.gate h2{font-size:26px}
+.msg{font-size:13px;color:var(--sage);min-height:18px;margin-top:8px}
+.secnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.slider-val{font-size:12px;color:var(--soft);margin-left:6px}
+.roomwrap{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:760px){.roomwrap{grid-template-columns:1fr}}
+svg.room{width:100%;height:auto;border-radius:12px;border:2px solid var(--edge);background:#fff}
+.stickybar{position:sticky;bottom:10px;display:flex;gap:8px;justify-content:center;z-index:4;margin-top:8px}
+.stickybar button{box-shadow:0 3px 0 var(--edge),0 12px 24px rgba(80,50,40,.35)}
+</style>
+</head>
+<body>
+<div id="gate" class="card gate hide">
+  <h2>🔒 Staff only</h2>
+  <p class="note" style="text-align:center">The Customize Studio is for parents, guardians and school admins. Sign in as the parent on the family check-in screen, then come back.</p>
+  <div class="row" style="justify-content:center;margin-top:14px"><a class="btn pri" href="index.html">🏫 Back to campus</a><button id="previewBtn">Preview anyway (read-only)</button></div>
+</div>
+<div id="app" class="hide">
+<div class="topbar"><b>🎨 Customize Studio</b><a class="btn sm" href="index.html">🏫 Campus</a><a class="btn sm" href="hq.html">🏛 HQ</a><a class="btn sm" href="staff.html">🎓 Staff Studio</a></div>
+<div class="sub">Deep-detail editor for any character, plus their classroom redecorator.<span id="roNote" class="hide"> Read-only preview — nothing is saved.</span></div>
+<div class="card">
+  <label for="who">Character to customize</label>
+  <select id="who"></select>
+</div>
+<div id="editor" class="hide">
+  <div class="secnav" id="secnav"></div>
+  <div class="card" id="sec-identity"><h2>🪪 Identity</h2>
+    <div class="two"><div><label>Full name</label><input id="iName" maxlength="40"></div>
+    <div><label>Nickname</label><input id="iNick" maxlength="24" placeholder="What friends call them"></div></div>
+    <div class="two"><div><label>Pronouns</label><select id="iPro"><option>she/her</option><option>he/him</option><option>they/them</option></select></div>
+    <div><label>Birthday</label><input id="iBday" type="date"></div></div>
+    <div class="two"><div><label>Favorite color</label><input id="iColor" type="color" value="#E07A66"></div>
+    <div><label>Catchphrase</label><input id="iCatch" maxlength="80" placeholder="e.g. &quot;Questions are treasures!&quot;"></div></div>
+  </div>
+  <div class="card hide" id="sec-personality"><h2>💛 Personality</h2>
+    <label>Traits (pick up to 5)</label><div class="chips" id="pTraits"></div>
+    <div class="two">
+      <div><label>Warmth <span class="slider-val" id="vWarmth"></span></label><input type="range" id="pWarmth" min="0" max="10" step="1"></div>
+      <div><label>Strictness <span class="slider-val" id="vStrictness"></span></label><input type="range" id="pStrictness" min="0" max="10" step="1"></div>
+    </div>
+    <div class="two">
+      <div><label>Energy <span class="slider-val" id="vEnergy"></span></label><input type="range" id="pEnergy" min="0" max="10" step="1"></div>
+      <div><label>Humor <span class="slider-val" id="vHumor"></span></label><input type="range" id="pHumor" min="0" max="10" step="1"></div>
+    </div>
+    <div class="two"><div><label>Likes</label><input id="pLikes" maxlength="160" placeholder="rainy days, chalk dust, riddles"></div>
+    <div><label>Dislikes</label><input id="pDislikes" maxlength="160" placeholder="squeaky markers, rushed mornings"></div></div>
+    <label>Backstory</label><textarea id="pBack" maxlength="1200" placeholder="Where did they come from? What do they love about school?"></textarea>
+  </div>
+  <div class="card hide" id="sec-voice"><h2>🔊 Voice</h2>
+    <div class="two"><div><label>Pitch <span class="slider-val" id="vPitch"></span></label><input type="range" id="vPi" min="0.5" max="2" step="0.05"></div>
+    <div><label>Rate <span class="slider-val" id="vRate"></span></label><input type="range" id="vRa" min="0.5" max="2" step="0.05"></div></div>
+    <label>Timbre</label><select id="vTi"><option value="default">Default</option><option value="warm">Warm</option><option value="bright">Bright</option><option value="deep">Deep</option><option value="soft">Soft</option></select>
+    <div class="row"><button type="button" class="sm" id="vPrev">▶ Preview voice</button><span class="note">Speaks their catchphrase (or a hello) with these settings.</span></div>
+  </div>
+  <div class="card hide" id="sec-look"><h2>🧍 Look</h2>
+    <div class="two"><div><label>Grade band (age)</label><select id="lAge"></select></div>
+    <div><label>Build</label><select id="lBuild"></select></div></div>
+    <div id="lSkin"></div>
+    <div class="two"><div><label>Face shape</label><select id="lFace"></select></div>
+    <div><label>Eyes</label><select id="lEyes"></select></div></div>
+    <div id="lEyeColor"></div>
+    <div class="two"><div><label>Hair style</label><select id="lHair"></select></div>
+    <div><label>Hair texture</label><select id="lHtex"></select></div></div>
+    <div id="lHairColor"></div>
+    <div id="lHairHi"></div>
+    <div class="two"><div><label>Highlight style</label><select id="lHl"></select></div>
+    <div><label>Extras</label><select id="lExtra"></select></div></div>
+    <h2 style="margin-top:14px">👕 Outfit</h2>
+    <div class="two"><div><label>Top</label><select id="lTop"></select></div>
+    <div><label>Bottom</label><select id="lBottom"></select></div></div>
+    <div id="lTopColor"></div><div id="lBottomColor"></div>
+    <div class="three"><div><label>Shoes</label><select id="lShoes"></select></div>
+    <div><label>Hat</label><select id="lHat"></select></div>
+    <div><label>Glasses</label><select id="lGlasses"></select></div></div>
+    <div id="lShoeColor"></div>
+  </div>
+  <div class="card hide" id="sec-class"><h2>🏫 Classroom assignment</h2>
+    <div class="two"><div><label>Grade band taught / enrolled</label><select id="cGrade"></select></div>
+    <div><label>Subject</label><select id="cSubject"></select></div></div>
+    <label>Classroom id</label><input id="cRoom" maxlength="60" placeholder="classroom-...">
+    <p class="note">This character's room is stored in <b>unify.hq.rooms</b> under this key. Teachers get their own classroom automatically; students can be assigned to any room.</p>
+  </div>
+  <div class="card hide" id="sec-room"><h2>🪑 Reconfigure / redecorate their classroom</h2>
+    <div class="roomwrap">
+      <div>
+        <label>Theme</label><select id="rTheme">
+          <option value="classic">Classic schoolhouse</option><option value="nature">Nature nook</option><option value="space">Space lab</option><option value="art">Art studio</option><option value="cozy">Cozy library</option><option value="sports">Sports hall</option>
+        </select>
+        <div class="two"><div><label>Wall color</label><input type="color" id="rWall" value="#F3E7CF"></div>
+        <div><label>Floor</label><select id="rFloor"><option value="wood">Wood planks</option><option value="checker">Checker tile</option><option value="carpet">Carpet</option><option value="terrazzo">Terrazzo</option></select></div></div>
+        <label>Desk layout</label><div class="chips" id="rLayout">
+          <button type="button" class="chip" data-l="rows">Rows</button><button type="button" class="chip" data-l="clusters">Clusters</button><button type="button" class="chip" data-l="circle">Circle</button><button type="button" class="chip" data-l="ushape">U-shape</button>
+        </div>
+        <label>Decorations</label><div class="chips" id="rProps"></div>
+        <div class="row"><button class="pri" id="rSaveRoom">Save room</button></div>
+        <div class="msg" id="rMsg"></div>
+      </div>
+      <div><label>Top-down preview</label><svg class="room" id="rSvg" viewBox="0 0 320 220" role="img" aria-label="Classroom layout preview"></svg></div>
+    </div>
+  </div>
+  <div class="stickybar"><button class="pri" id="saveAll">💾 Save character</button><button id="cancelAll">Cancel</button></div>
+  <div class="msg" id="allMsg" style="text-align:center"></div>
+</div>
+</div>
+<script>
+(function(){
+"use strict";
+var $=function(i){return document.getElementById(i)};
+var KEY="unify.hq.staff",RKEY="unify.hq.rooms";
+var esc=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
+const isAdmin=(()=>{try{return sessionStorage.getItem("unify.family.ci")==="parent"||localStorage.getItem("unify.opendoor.adult")==="1";}catch{return false;}})();
+var READONLY=!isAdmin;
+
+/* ---- option lists mirrored from src/hall3d/avatar.ts (keep in sync!) ---- */
+var SKIN_TONES=["#fde7d3","#fbdcc4","#f5cfa8","#f0c29b","#e3ad7f","#d9a074","#c58a5f","#a86f4f","#8d5a3e","#7a4a36","#5e3a2b","#4a2e24"];
+var HAIR_COLORS=["#d62f3a","#f08a24","#f5c542","#3fb8af","#7b4fbf","#ff5fa2","#ffffff","#2b2b33","#3a2a30","#5a3a35","#694a38","#9a653d","#b5563e","#c9773e","#e0b04e","#f1d98a","#d9d4cc","#8c8c96","#4F91C7","#b8a8da","#e8789a","#5e9c72","#e07a66"];
+var HIGHLIGHT_COLORS=["#f1d98a","#e0b04e","#c9773e","#b5563e","#d62f3a","#ff5fa2","#e8789a","#b8a8da","#7b4fbf","#4F91C7","#3fb8af","#5e9c72","#d9d4cc","#ffffff","#2b2b33","#694a38"];
+var EYE_COLORS=["#3a2a30","#5a3a2a","#8a6a3a","#c98a3a","#4f8a5e","#4f91c7","#7a8794","#8173ae","#2f6d4f","#a8b8c8","#c62f3a","#b04aa0"];
+var CLOTH_COLORS=["#4f91c7","#326c9e","#8fc9e8","#88b89a","#5e9c72","#a9dcc0","#eab94e","#f8d977","#f6b294","#f28f7e","#d9564a","#eaa5b2","#b8a8da","#8173ae","#c98569","#9a653d","#fff6ea","#9da7aa","#4a3b3f","#2b3a55"];
+var SHOE_COLORS=["#fbf6ee","#313a3f","#d9564a","#4f91c7","#eab94e","#88b89a","#9a653d","#b8a8da"];
+var OPT={
+ hairStyle:[["fade","Skin fade"],["sidecut","Side shave"],["balding","Balding on top"],["receding","Receding"],["flattop","Flat top"],["pompadour","Pompadour"],["quiff","Quiff"],["hime","Hime cut"],["bantuknots","Bantu knots"],["highpony","High ponytail"],["mullet","Mullet"],["bald","Shaved bald"],["mohawk","Mohawk"],["bowl","Bowl cut"],["slick","Slicked back"],["cornrows","Cornrows"],["locs","Locs"],["shag","Shaggy"],["halfup","Half up"],["crop","Short crop"],["buzz","Buzz cut"],["undercut","Undercut"],["spiky","Spiky"],["messy","Messy"],["sidebang","Side bangs"],["curtains","Curtains"],["pixie","Pixie"],["bob","Bob"],["long","Long"],["wavy","Wavy long"],["curly","Curly puffs"],["afro","Afro"],["pony","Ponytail"],["pigtails","Pigtails"],["twinbuns","Twin buns"],["bun","Bun"],["topknot","Top knot"],["braids","Braids"]],
+ glasses:[["none","None"],["round","Round"],["square","Square"],["cat","Cat-eye"],["half","Half-rim"],["sun","Sunglasses"]],
+ hat:[["none","None"],["bandana","Bandana"],["visor","Visor"],["sunhat","Sun hat"],["cap","Cap"],["beanie","Beanie"],["bucket","Bucket hat"],["beret","Beret"],["headband","Headband"],["bow","Bow"],["flower","Flower"],["crown","Crown"],["headphones","Headphones"],["catears","Cat ears"]],
+ top:[["henley","Henley"],["flannel","Flannel shirt"],["sailor","Sailor top"],["vneck","V-neck jumper"],["cableknit","Cable-knit jumper"],["argyle","Argyle jumper"],["fairisle","Fair Isle jumper"],["cowl","Cowl-neck jumper"],["chunky","Chunky jumper"],["ziphoodie","Zip hoodie"],["varsity","Varsity jacket"],["denim","Denim jacket"],["puffer","Puffer jacket"],["raincoat","Raincoat"],["labcoat","Lab coat"],["apron","Apron"],["polo","Polo"],["turtleneck","Turtleneck"],["cardigan","Cardigan"],["track","Track jacket"],["longsleeve","Long sleeve"],["buttonup","Button-up shirt"],["croptop","Crop top"],["tee","T-shirt"],["hoodie","Hoodie"],["sweater","Sweater"],["jersey","Jersey"],["blazer","Blazer"],["dress","Dress"],["overalls","Overalls"],["vest","Vest"],["tank","Tank top"]],
+ bottom:[["flares","Flared pants"],["minikirt","Mini skirt"],["jeans","Jeans"],["pleated","Pleated skirt"],["tutu","Tutu"],["kilt","Kilt"],["bike","Bike shorts"],["leggings","Leggings"],["cargo","Cargo pants"],["capri","Capris"],["pants","Pants"],["joggers","Joggers"],["shorts","Shorts"],["skirt","Skirt"]],
+ shoeStyle:[["hightop","High-tops"],["loafer","Loafers"],["rainboot","Rain boots"],["slipper","Slippers"],["skate","Skate shoes"],["sneaker","Sneakers"],["boot","Boots"],["sandal","Sandals"],["plain","Plain shoes"]],
+ build:[["slim","Slim"],["regular","Regular"],["sturdy","Sturdy"]],
+ age:[["k2","Grades K-2"],["g35","Grades 3-5"],["g68","Grades 6-8"],["hs","High school"],["adult","Adult (teacher)"]],
+ faceShape:[["oval","Oval"],["round","Round"],["long","Long"],["square","Square"],["heart","Heart"]],
+ eyeShape:[["wink","Wink"],["cute","Big sparkly"],["tired","Tired"],["round","Round"],["oval","Oval"],["wide","Wide"],["sleepy","Sleepy"],["happy","Happy"],["lash","Lashes"]],
+ htex:[["straight","Straight"],["wavy","Wavy"],["curly","Curly"],["coily","Coily"],["braided","Braided"],["silky","Silky and shiny"],["frizzy","Frizzy"],["fluffy","Fluffy"]],
+ hl:[["streak","Streak"],["stripes","Stripes"],["frontpiece","Front piece"],["tips","Dipped tips"],["ombre","Ombre"],["split","Half and half"],["roots","Colored roots"],["underlayer","Hidden layer"],["rainbow","Rainbow"]],
+ extra:[["none","None"],["halo","Halo"],["horns","Devil horns"],["bunny","Bunny ears"],["antlers","Antlers"],["unicorn","Unicorn horn"],["antennae","Bee antennae"],["tiara","Tiara"],["flowercrown","Flower crown"],["sparkles","Sparkles"],["angelwings","Angel wings"],["butterfly","Butterfly wings"],["cape","Cape"],["foxtail","Fox tail"],["sash","Sash"],["medal","Medal"],["stethoscope","Stethoscope"],["toolbelt","Tool belt"],["mask","Face mask"],["eyepatch","Eye patch"],["bird","Shoulder bird"]]
+};
+var TRAITS=["warm","strict","funny","patient","energetic","calm","curious","encouraging","organized","creative","gentle","playful","thoughtful","bold","kind","focused","silly","wise","adventurous","caring"];
+var SUBJECTS=["English","Math","Science","History","Art","Music","PE","Reading","Geography","Drama","Computers","Homeroom"];
+var PROPS=[["plants","🪴 Plants"],["bookshelf","📚 Bookshelf"],["rug","🟦 Rug"],["posters","🖼 Posters"],["globe","🌐 Globe"],["aquarium","🐠 Aquarium"],["readingcorner","🛋 Reading corner"],["whiteboard","⬜ Whiteboard"]];
+var BAND_LABEL={k2:"Grades K-2",g35:"Grades 3-5",g68:"Grades 6-8",hs:"High school",adult:"Adult"};
+
+/* ---- storage ---- */
+var S=[],ROOMS={};
+function load(){try{var v=JSON.parse(localStorage.getItem(KEY)||"null");if(Array.isArray(v))S=v}catch(e){}
+ try{ROOMS=JSON.parse(localStorage.getItem(RKEY)||"null")||{}}catch(e){ROOMS={}}}
+function persistStaff(){if(READONLY)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+ try{window.dispatchEvent(new CustomEvent("unify-hq-update",{detail:{key:KEY}}))}catch(e){}}
+function persistRooms(){if(READONLY)return;try{localStorage.setItem(RKEY,JSON.stringify(ROOMS))}catch(e){}
+ try{window.dispatchEvent(new CustomEvent("unify-hq-update",{detail:{key:RKEY}}))}catch(e){}}
+
+/* ---- state ---- */
+var cur=null,sec="identity";
+var SECS=[["identity","🪪 Identity"],["personality","💛 Personality"],["voice","🔊 Voice"],["look","🧍 Look"],["class","🏫 Classroom"],["room","🪑 Room decor"]];
+
+function fill(id,list,cur_){$(id).innerHTML=list.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===cur_?" selected":"")+'>'+x[1]+'</option>'}).join("")}
+function swRow(host,pal,cur_,fn){
+ var h=$(host);h.innerHTML='<div class="sws">'+pal.map(function(c){return '<button type="button" class="sw'+(c===cur_?" on":"")+'" data-c="'+c+'" style="background:'+c+'" aria-label="'+c+'"></button>'}).join("")+'</div>';
+ h.querySelector(".sws").addEventListener("click",function(e){var b=e.target;if(!b.dataset||!b.dataset.c)return;h.querySelectorAll(".sw").forEach(function(x){x.classList.remove("on")});b.classList.add("on");fn(b.dataset.c)});
+}
+
+function pickList(){
+ var w=$("who");w.innerHTML="";
+ if(!S.length){w.innerHTML="<option value=''>(no characters yet — make some in AI Staff Studio)</option>";$("editor").classList.add("hide");return}
+ S.forEach(function(c,i){var o=document.createElement("option");o.value=String(i);o.textContent=c.name+" — "+(c.role==="student"?"Student":"Teacher")+(c.subject?" · "+c.subject:"");w.appendChild(o)});
+}
+
+function renderLook(){
+ var a=cur.avatar;
+ fill("lAge",OPT.age,a.age||"adult");fill("lBuild",OPT.build,a.build||"regular");
+ swRow("lSkin",SKIN_TONES,a.skin||SKIN_TONES[3],function(v){a.skin=v});
+ fill("lFace",OPT.faceShape,a.faceShape||"oval");fill("lEyes",OPT.eyeShape,a.eyeShape||"round");
+ swRow("lEyeColor",EYE_COLORS,a.eyeColor||EYE_COLORS[0],function(v){a.eyeColor=v});
+ fill("lHair",OPT.hairStyle,a.hairStyle||"bun");fill("lHtex",OPT.htex,a.htex||"straight");
+ swRow("lHairColor",HAIR_COLORS,a.hair||HAIR_COLORS[9],function(v){a.hair=v});
+ swRow("lHairHi",HIGHLIGHT_COLORS,a.hair2||"",function(v){a.hair2=v});
+ fill("lHl",OPT.hl,a.hl||"streak");fill("lExtra",OPT.extra,a.extra||"none");
+ fill("lTop",OPT.top,a.top||"sweater");fill("lBottom",OPT.bottom,a.bottom||"pants");
+ swRow("lTopColor",CLOTH_COLORS,a.shirt||CLOTH_COLORS[0],function(v){a.shirt=v});
+ swRow("lBottomColor",CLOTH_COLORS,a.pants||CLOTH_COLORS[1],function(v){a.pants=v});
+ fill("lShoes",OPT.shoeStyle,a.shoeStyle||"sneaker");fill("lHat",OPT.hat,a.hat||"none");fill("lGlasses",OPT.glasses,a.glasses||"none");
+ swRow("lShoeColor",SHOE_COLORS,a.shoes||SHOE_COLORS[0],function(v){a.shoes=v});
+}
+
+function renderTraits(){
+ var t=$("pTraits");t.innerHTML=TRAITS.map(function(tr){return '<button type="button" class="chip'+((cur.traits||[]).indexOf(tr)>=0?" on":"")+'" data-t="'+tr+'">'+tr+'</button>'}).join("");
+ if(READONLY)return;
+ t.onclick=function(e){var b=e.target;if(!b.dataset||!b.dataset.t)return;var tr=b.dataset.t,i=cur.traits.indexOf(tr);
+  if(i>=0)cur.traits.splice(i,1);else{if(cur.traits.length>=5)return;cur.traits.push(tr)}b.classList.toggle("on")};
+}
+
+function roomKey(){var k=($("cRoom").value||"").trim();if(!k)k="classroom-"+cur.id;return k}
+function room(){var k=roomKey();if(!ROOMS[k])ROOMS[k]={theme:"classic",props:["bookshelf","whiteboard"],wallColor:"#F3E7CF",floorStyle:"wood",deskLayout:"rows"};return ROOMS[k]}
+function renderRoom(){
+ var r=room();$("rTheme").value=r.theme||"classic";$("rWall").value=r.wallColor||"#F3E7CF";$("rFloor").value=r.floorStyle||"wood";
+ $("rLayout").querySelectorAll(".chip").forEach(function(b){b.classList.toggle("on",b.dataset.l===(r.deskLayout||"rows"))});
+ var p=$("rProps");p.innerHTML=PROPS.map(function(x){return '<button type="button" class="chip'+((r.props||[]).indexOf(x[0])>=0?" on":"")+'" data-p="'+x[0]+'">'+x[1]+'</button>'}).join("");
+ drawRoom();
+}
+function drawRoom(){
+ var r=room(),svg=$("rSvg"),W=320,H=220,w=16,Hh=14;
+ var wall=r.wallColor||"#F3E7CF";
+ var floorFill={wood:"#C99B66",checker:"#D9CFC0",carpet:"#8FA8C8",terrazzo:"#CFC8BC"}[r.floorStyle||"wood"]||"#C99B66";
+ var s='<rect x="0" y="0" width="'+W+'" height="'+H+'" rx="8" fill="'+wall+'"/>'
+  +'<rect x="10" y="10" width="'+(W-20)+'" height="'+(H-20)+'" rx="6" fill="'+floorFill+'" stroke="#8A7A70" stroke-width="2"/>';
+ if(r.floorStyle==="checker"){for(var cy=0;cy<9;cy++)for(var cx=0;cx<13;cx++)if((cx+cy)%2===0)s+='<rect x="'+(12+cx*23)+'" y="'+(12+cy*22)+'" width="23" height="22" fill="#B8AE9E" opacity=".55"/>';}
+ if(r.floorStyle==="wood"){for(var wy=0;wy<9;wy++)s+='<line x1="12" y1="'+(14+wy*22)+'" x2="'+(W-12)+'" y2="'+(14+wy*22)+'" stroke="#B98350" stroke-width="1" opacity=".6"/>';}
+ /* teacher desk at top */
+ s+='<rect x="'+(W/2-30)+'" y="18" width="60" height="16" rx="3" fill="#7a4f2a"/><text x="'+(W/2)+'" y="30" font-size="9" fill="#fff" text-anchor="middle">teacher</text>';
+ var dsks=[],i,x,y;
+ if(r.deskLayout==="clusters"){var cl=[[70,80],[240,80],[70,160],[240,160],[155,120],[155,45]];for(i=0;i<12;i++){var g=cl[i%cl.length];dsks.push([g[0]+((i/cl.length|0)%2)*22-11,g[1]+((i/cl.length|0)>1?18:0)])}}
+ else if(r.deskLayout==="circle"){for(i=0;i<12;i++){var an=-Math.PI/2+i*Math.PI*2/12;dsks.push([160+Math.cos(an)*92,115+Math.sin(an)*62])}}
+ else if(r.deskLayout==="ushape"){for(i=0;i<12;i++){var t=i/11;x=40+t*240;y=i<4?60:i>7?170:(i%2?100:170);dsks.push([x,i>=4&&i<=7?(60+(i-4)*36.6):(i<4?60:170)])}}
+ else{for(i=0;i<12;i++)dsks.push([60+(i%4)*66,60+((i/4)|0)*50])}
+ dsks.forEach(function(d){s+='<rect x="'+(d[0]-w/2)+'" y="'+(d[1]-Hh/2)+'" width="'+w+'" height="'+Hh+'" rx="2" fill="#9b6a3a" stroke="#6d4423"/>'});
+ var P=r.props||[];
+ if(P.indexOf("plants")>=0){s+='<circle cx="24" cy="26" r="7" fill="#5E9C72"/><circle cx="296" cy="26" r="7" fill="#5E9C72"/>';}
+ if(P.indexOf("bookshelf")>=0)s+='<rect x="14" y="90" width="10" height="70" rx="2" fill="#7a4f2a"/><line x1="15" y1="113" x2="23" y2="113" stroke="#EADFCB"/><line x1="15" y1="136" x2="23" y2="136" stroke="#EADFCB"/>';
+ if(P.indexOf("rug")>=0)s+='<ellipse cx="160" cy="115" rx="70" ry="45" fill="#E07A66" opacity=".25"/>';
+ if(P.indexOf("posters")>=0)s+='<rect x="40" y="2" width="24" height="10" fill="#6AA9F0"/><rect x="80" y="2" width="24" height="10" fill="#C2456B"/><rect x="120" y="2" width="24" height="10" fill="#7BB662"/>';
+ if(P.indexOf("globe")>=0)s+='<circle cx="296" cy="196" r="9" fill="#4f91c7"/><ellipse cx="296" cy="196" rx="9" ry="3.5" fill="none" stroke="#fff" stroke-width="1"/>';
+ if(P.indexOf("aquarium")>=0)s+='<rect x="270" y="60" width="34" height="18" rx="2" fill="#8fc9e8" stroke="#4f91c7"/><circle cx="284" cy="69" r="2.4" fill="#f08a24"/>';
+ if(P.indexOf("readingcorner")>=0)s+='<rect x="20" y="180" width="34" height="24" rx="8" fill="#b8a8da"/><text x="37" y="195" font-size="9" text-anchor="middle" fill="#4A3B3F">📚</text>';
+ if(P.indexOf("whiteboard")>=0)s+='<rect x="120" y="2" width="80" height="12" rx="2" fill="#fff" stroke="#8A7A70"/>';
+ svg.innerHTML=s;
+}
+
+function showSec(n){if(!cur)return;sec=n;SECS.forEach(function(x){$("sec-"+x[0]).classList.toggle("hide",x[0]!==n)});
+ $("secnav").querySelectorAll("button").forEach(function(b){b.classList.toggle("on",b.dataset.s===n)});
+ if(n==="room")renderRoom();try{speechSynthesis.cancel()}catch(e){}}
+
+function open(i){
+ cur=S[i];if(!cur){$("editor").classList.add("hide");return}
+ cur.avatar=cur.avatar||{};cur.traits=cur.traits||[];cur.voice=cur.voice||{pitch:1,rate:1,timbre:"default"};cur.identity=cur.identity||{};cur.sliders=cur.sliders||{warmth:5,strictness:5,energy:5,humor:5};
+ if(cur.role==="teacher"&&!cur.classroomId)cur.classroomId="classroom-"+cur.id;
+ $("editor").classList.remove("hide");
+ $("iName").value=cur.name||"";$("iNick").value=cur.identity.nickname||"";$("iPro").value=cur.identity.pronouns||"they/them";
+ $("iBday").value=cur.identity.birthday||"";$("iColor").value=cur.identity.favColor||"#E07A66";$("iCatch").value=cur.identity.catchphrase||"";
+ renderTraits();
+ ["warmth","strictness","energy","humor"].forEach(function(k){var id="p"+k.charAt(0).toUpperCase()+k.slice(1);$(id).value=cur.sliders[k];$("v"+k.charAt(0).toUpperCase()+k.slice(1)).textContent=cur.sliders[k]});
+ $("pLikes").value=cur.likes||"";$("pDislikes").value=cur.dislikes||"";$("pBack").value=cur.backstory||"";
+ $("vPi").value=cur.voice.pitch;$("vRa").value=cur.voice.rate;$("vTi").value=cur.voice.timbre||"default";
+ $("vPitch").textContent=cur.voice.pitch;$("vRate").textContent=cur.voice.rate;
+ renderLook();
+ fill("cGrade",OPT.age,cur.grade||"g35");
+ $("cSubject").innerHTML=SUBJECTS.map(function(s){return '<option'+(cur.subject===s?" selected":"")+'>'+s+'</option>'}).join("");
+ $("cRoom").value=cur.classroomId||("classroom-"+cur.id);
+ showSec(sec);
+}
+
+function pull(){
+ cur.name=$("iName").value.trim()||cur.name;
+ cur.identity={nickname:$("iNick").value.trim(),pronouns:$("iPro").value,birthday:$("iBday").value,favColor:$("iColor").value,catchphrase:$("iCatch").value.trim()};
+ ["warmth","strictness","energy","humor"].forEach(function(k){cur.sliders[k]=parseInt($("p"+k.charAt(0).toUpperCase()+k.slice(1)).value,10)||0});
+ cur.likes=$("pLikes").value.trim();cur.dislikes=$("pDislikes").value.trim();cur.backstory=$("pBack").value.trim();
+ cur.voice={pitch:parseFloat($("vPi").value),rate:parseFloat($("vRa").value),timbre:$("vTi").value};
+ var a=cur.avatar;
+ a.age=$("lAge").value;a.build=$("lBuild").value;a.faceShape=$("lFace").value;a.eyeShape=$("lEyes").value;a.hairStyle=$("lHair").value;a.htex=$("lHtex").value;a.hl=$("lHl").value;a.extra=$("lExtra").value;
+ a.top=$("lTop").value;a.bottom=$("lBottom").value;a.shoeStyle=$("lShoes").value;a.hat=$("lHat").value;a.glasses=$("lGlasses").value;
+ cur.grade=$("cGrade").value;cur.subject=$("cSubject").value;cur.classroomId=($("cRoom").value||"").trim()||("classroom-"+cur.id);
+}
+
+/* wire static controls */
+var nav=$("secnav");SECS.forEach(function(x){var b=document.createElement("button");b.className="sm";b.dataset.s=x[0];b.textContent=x[1];b.onclick=function(){showSec(x[0])};nav.appendChild(b)});
+["Warmth","Strictness","Energy","Humor"].forEach(function(k){$("p"+k).oninput=function(){$("v"+k).textContent=$("p"+k).value}});
+$("vPi").oninput=function(){$("vPitch").textContent=$("vPi").value};$("vRa").oninput=function(){$("vRate").textContent=$("vRa").value};
+$("vPrev").onclick=function(){try{speechSynthesis.cancel();var txt=($("iCatch").value.trim())||("Hello! I'm "+($("iName").value||"your teacher")+". Let's make today great.");var u=new SpeechSynthesisUtterance(txt);u.pitch=parseFloat($("vPi").value);u.rate=parseFloat($("vRa").value);speechSynthesis.speak(u)}catch(e){alert("Speech is not available on this device.")}};
+$("rLayout").onclick=function(e){if(!cur)return;var b=e.target;if(!b.dataset||!b.dataset.l)return;room().deskLayout=b.dataset.l;$("rLayout").querySelectorAll(".chip").forEach(function(x){x.classList.toggle("on",x===b)});drawRoom()};
+$("rProps").onclick=function(e){if(!cur)return;var b=e.target;if(!b.dataset||!b.dataset.p)return;var r=room(),i=r.props.indexOf(b.dataset.p);if(i>=0)r.props.splice(i,1);else r.props.push(b.dataset.p);b.classList.toggle("on");drawRoom()};
+$("rTheme").onchange=function(){if(cur)room().theme=$("rTheme").value};
+$("rWall").oninput=function(){if(!cur)return;room().wallColor=$("rWall").value;drawRoom()};
+$("rFloor").onchange=function(){if(!cur)return;room().floorStyle=$("rFloor").value;drawRoom()};
+$("rSaveRoom").onclick=function(){if(!cur)return;if(READONLY){$("rMsg").textContent="Read-only preview — sign in as an admin to save.";return}var k=roomKey();ROOMS[k]=room();cur.classroomId=k;persistRooms();persistStaff();$("rMsg").textContent="Room saved to "+k+" ✔"};
+$("cRoom").onchange=function(){if(cur)cur.classroomId=$("cRoom").value.trim()};
+$("saveAll").onclick=function(){if(!cur)return;if(READONLY){$("allMsg").textContent="Read-only preview — sign in as an admin to save.";return}pull();persistStaff();$("allMsg").textContent="Saved ✔";setTimeout(function(){$("allMsg").textContent=""},1500)};
+$("cancelAll").onclick=function(){if(!cur)return;var i=+$("who").value;open(i)};
+$("who").onchange=function(){open(+$("who").value)};
+$("previewBtn").onclick=function(){gate(false)};
+
+function gate(ok){READONLY=!ok;$("gate").classList.add("hide");$("app").classList.remove("hide");$("roNote").classList.toggle("hide",ok);
+ load();pickList();if(S.length){$("who").value="0";open(0)}}
+
+addEventListener("storage",function(e){
+ if(e.key===KEY){try{var v=JSON.parse(e.newValue||"null");if(Array.isArray(v)){S=v;var sel=+$("who").value||0;pickList();if(S.length){$("who").value=String(Math.min(sel,S.length-1));if(!$("editor").classList.contains("hide"))open(Math.min(sel,S.length-1))}}}catch(err){}}
+ if(e.key===RKEY){try{ROOMS=JSON.parse(e.newValue||"null")||{};if(sec==="room"&&cur)renderRoom()}catch(err){}}
+});
+if(isAdmin)gate(true);else $("gate").classList.remove("hide");
+})();
+</script>
+</body>
+</html>
