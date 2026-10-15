@@ -27,6 +27,9 @@ import { Safety } from "../src/game/safety";
 import { Events } from "../src/game/events";
 import { Gfx } from "../src/hall3d/mood";
 import { isPixar } from "../src/shared/look";
+import { applyTeacherOverrides, onHqChange } from "../src/shared/hq";
+applyTeacherOverrides();   // HQ admin teacher overrides (identity/personality/voice), before sprites are baked
+onHqChange();              // reload when the owner changes HQ data (same tab or another tab)
 const $ = (id: string) => document.getElementById(id)!;
 const hall = new HallScene($("game")); (window as any).__hall = hall;
 hall.onToast = (m) => { const t = $("toast"); t.textContent = m; t.classList.toggle("show", !!m); clearTimeout((hall as any)._tt); if (m) (hall as any)._tt = setTimeout(() => t.classList.remove("show"), 3500); };

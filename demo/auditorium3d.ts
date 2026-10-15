@@ -1,6 +1,9 @@
 import { Auditorium3D, PRINCIPALS } from "../src/aud3d/Auditorium3D";
 import { runShow, showOfDay, isShowtime, type Show } from "../src/aud3d/shows";
 import { runAssembly, prayerOn, setPrayer, assemblyDay, markAssemblyDone } from "../src/aud3d/assembly";
+import { applyTeacherOverrides, onHqChange } from "../src/shared/hq";
+applyTeacherOverrides();   // HQ admin teacher overrides (identity/personality/voice)
+onHqChange();              // reload when the owner changes HQ data (same tab or another tab)
 const $ = (id: string) => document.getElementById(id)!;
 const A = new Auditorium3D($("game")); (window as any).__aud = A;
 let sound = true, cancelled = false, running = false, newsFrame: HTMLIFrameElement | null = null;

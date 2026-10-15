@@ -22,6 +22,7 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import { ACTIONS, POSE_KEYS, POSE_IX, GAITS, GAIT_BY_PERSONALITY, FIDGETS, bakeActions, frameAt } from "./actions";
 
 import { INTERIOR_SCALE as IS, CHAR_K, scaleScene } from "../shared/scale";
+import { hqRoom, hqRoomWall, hqShade, HQ_THEME_LOCKERS } from "../shared/hq";
 const UNIT = 1.75 / 45;                                              // one drawing unit of the chibi art in world units
 const g2w = (gx: number, gy: number) => new THREE.Vector3(gx - W / 2, 0, gy - H / 2);
 const STYLES = ["crop", "pony", "bun", "curly", "bob", "long", "crop", "pony", "curly", "bob"];
@@ -150,7 +151,8 @@ export class HallScene {
 
   /* ------------------------------------------------------------ the campus: floors, outer walls, blocks, lockers, doors, plaza */
   private buildCampus() {
-    const S = this.scene, cap = this.plain("#F7ECD6"), outer = this.plain("#D8C6A4");
+    const hqWall = hqRoomWall("hallway");   // HQ admin hallway override (optional): wall colour (or a theme default)
+    const S = this.scene, cap = this.plain(hqWall ?? "#F7ECD6"), outer = this.plain(hqWall ? hqShade(hqWall, -0.18) : "#D8C6A4");
     // soft diorama shadow on the ground
     const under = new THREE.Mesh(new THREE.PlaneGeometry(W + 7, H + 7), new THREE.MeshBasicMaterial({ map: this.tex("dio", () => T.cardShadowTex()), transparent: true, opacity: 0.7, depthWrite: false }));
     under.rotation.x = -Math.PI / 2; under.position.set(0.4, -0.02, 0.4); S.add(under);
@@ -228,7 +230,8 @@ export class HallScene {
 
     // locker runs: one long box each, the four locker colours repeating on the front face
     LOCKERS.forEach((l, i) => {
-      const r = l.rect, len = l.face === "N" || l.face === "S" ? r.w : r.h, front = Mood.tinted(this.std(this.rep("lockers", () => T.lockerStripTex(LOCKER_COL), len / LOCKER_COL.length)), "accent", 0.16), side = this.plain("#9db8c8"), top = this.plain("#FFF6E6");
+      const hqL = hqRoom("hallway"), lockCols = HQ_THEME_LOCKERS[String(hqL?.theme ?? "").toLowerCase()] ?? LOCKER_COL;   // HQ theme recolours the lockers
+      const r = l.rect, len = l.face === "N" || l.face === "S" ? r.w : r.h, front = Mood.tinted(this.std(this.rep("lockers", () => T.lockerStripTex(lockCols), len / lockCols.length)), "accent", 0.16), side = this.plain("#9db8c8"), top = this.plain("#FFF6E6");
       const mats = [side, side, top, side, side, side]; mats[{ E: 0, W: 1, S: 4, N: 5 }[l.face]] = front; this.lockMats.push(front);
       this.box(r.w, 2.3, r.h, mats, r.x + r.w / 2 - W / 2, 1.15, r.y + r.h / 2 - H / 2, { occlude: true });
       void i;

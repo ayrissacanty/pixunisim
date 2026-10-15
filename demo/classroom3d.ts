@@ -18,6 +18,13 @@ import { openLab as openLabUI } from "../src/class3d/labs";
 import { voice } from "../src/class3d/voice";
 import { STAFF, ROSTER } from "../src/hall3d/roster";
 import type { Subject } from "../src/game/types";
+import { applyTeacherOverrides, installHqLessonPack, onHqChange } from "../src/shared/hq";
+
+/* ---- HQ admin bridge: teacher identity/personality/voice + the assigned lesson, before anything reads the roster/curriculum ---- */
+applyTeacherOverrides();
+const hqPack = installHqLessonPack();
+if (hqPack) { try { Packs.add(JSON.stringify(hqPack)); } catch (e) { console.warn("[hq] lesson pack rejected:", e); } }
+onHqChange();   // live updates: reload when the owner changes HQ data (same tab or another tab)
 
 const $ = (id: string) => document.getElementById(id)!;
 const params = new URLSearchParams(location.search);

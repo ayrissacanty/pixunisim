@@ -24,6 +24,9 @@ import { openHomework } from "../src/dorm/page/homework";
 import { openComputer, unreadMail, inShell } from "../src/dorm/page/computer";
 import { openStylePanel, type Gfx, type TimeOpt } from "../src/dorm/page/stylepanel";
 import { makeBubble, makeEmote, disposeSprite } from "../src/dorm/page/bubble";
+import { applyHqDormTheme, onHqChange } from "../src/shared/hq";
+applyHqDormTheme();   // HQ admin: write unify.hq.rooms.dorm through to the saved dorm theme BEFORE the layout is read below
+onHqChange();         // reload when the owner changes HQ data (same tab or another tab)
 
 /* ------------------------------------------------------------------ page chrome */
 const st = document.createElement("style"); st.textContent = PAGE_CSS; document.head.appendChild(st);

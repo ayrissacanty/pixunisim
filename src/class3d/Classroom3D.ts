@@ -23,6 +23,7 @@ import { Mood, Gfx } from "../hall3d/mood";
 import { buildClassExtras } from "./extras";
 import { isPixar } from "../shared/look";
 import { INTERIOR_SCALE as IS, scaleScene } from "../shared/scale";
+import { hqRoom, hqRoomWall, hqShade, hqPlaceProps } from "../shared/hq";
 import { setupPixarClass, type ClassPx } from "./pixarClass";
 import type { Char3DEx } from "../dorm/char3d";
 
@@ -101,8 +102,10 @@ export class Classroom3D {
 
   /* ------------------------------------------------------------ room shell */
   private buildShell() {
-    const S = this.scene, wid = X1 - X0, dep = Z1 - Z0, cap = this.plain("#F7ECD6"), outer = this.plain("#D8C6A4");
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(wid, dep), Mood.tinted(this.std(this.rep("wood", () => CT.floorWood(), wid / 4, dep / 4)), "floor", 0.7)); floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, (Z0 + Z1) / 2); floor.receiveShadow = true; S.add(floor);
+    const hq = hqRoom("classroom3d"), hqWall = hqRoomWall("classroom3d");   // HQ admin room overrides (optional)
+    const S = this.scene, wid = X1 - X0, dep = Z1 - Z0, cap = this.plain(hqWall ?? "#F7ECD6"), outer = this.plain(hqWall ? hqShade(hqWall, -0.18) : "#D8C6A4");
+    const floorTex = ["carpet", "grass"].includes(String(hq?.floorStyle ?? "").toLowerCase()) ? () => CT.carpet() : () => CT.floorWood();
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(wid, dep), Mood.tinted(this.std(this.rep("wood", floorTex, wid / 4, dep / 4)), "floor", 0.7)); floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, (Z0 + Z1) / 2); floor.receiveShadow = true; S.add(floor);
     const ceil = new THREE.Mesh(new THREE.PlaneGeometry(wid, dep), new THREE.MeshStandardMaterial({ map: this.rep("ceil", () => CT.ceiling(), wid / 3, dep / 3), roughness: 1 })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, WALL, (Z0 + Z1) / 2); S.add(ceil);
     const wall = (len: number, cx: number, cz: number, horiz: boolean, innerIdx: number, key: string) => { const inner = Mood.tinted(this.std(this.rep(key, () => HT.wallTex(), len / 4, 1)), "wash", 1), mats = [outer, outer, cap, outer, outer, outer]; mats[innerIdx] = inner; this.box(horiz ? len : 0.3, WALL, horiz ? 0.3 : len, mats, cx, WALL / 2, cz, { outline: false, shadow: false }); };
     wall(wid + 0.6, 0, Z0 - 0.15, true, 4, "wallF"); wall(wid + 0.6, 0, Z1 + 0.15, true, 5, "wallB"); wall(dep, X0 - 0.15, (Z0 + Z1) / 2, false, 0, "wallL"); wall(dep, X1 + 0.15, (Z0 + Z1) / 2, false, 1, "wallR");
@@ -193,6 +196,8 @@ export class Classroom3D {
     const door = this.card(this.T("door", () => HT.doorTex("#8173AE")), 1.5, 2.6, X1 - 1.6, 1.3, Z1 - 0.12, Math.PI, S as any); void door; this.card(this.T("exit", () => HT.signTex("EXIT", "#E07A66")), 1.0, 0.25, X1 - 1.6, 2.8, Z1 - 0.12, Math.PI, S as any);
     const rug = new THREE.Mesh(new THREE.CircleGeometry(1.6, 32), this.std(this.rep("rug2", () => CT.carpet(), 2, 2))); rug.rotation.x = -Math.PI / 2; rug.position.set(X0 + 2.0, rowH(5) + 0.012, Z1 - 1.4); S.add(rug); [["#E07A66", -0.5, 0.3], ["#4F91C7", 0.5, -0.3], ["#88B89A", 0.2, 0.8]].forEach(([c, dx, dz]: any) => { const b = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 12), this.plain(c)); b.scale.set(1, 0.6, 1); b.position.set(X0 + 2.0 + dx, rowH(5) + 0.2, Z1 - 1.4 + dz); b.castShadow = true; S.add(b); });
     for (const [x, z] of [[X0 + 0.8, Z0 + 1.0], [X1 - 0.8, Z1 - 0.8], [X0 + 0.8, Z1 - 0.8]]) this.plant(x, rowH(z > 4 ? 5 : 0) + (z < -7 ? STAGE_H : 0), z);
+    // HQ admin decorations (unify.hq.rooms.classroom3d.props): emoji sprites along the back wall
+    hqPlaceProps(S, "classroom3d", [[-6, 2.4, Z1 - 0.55], [-3, 2.4, Z1 - 0.55], [3, 2.4, Z1 - 0.55], [6, 2.4, Z1 - 0.55], [-1.5, 2.6, Z1 - 0.55], [1.5, 2.6, Z1 - 0.55], [-7.5, 2.2, Z1 - 0.55], [7.5, 2.2, Z1 - 0.55]], 1.3);
     void G;
   }
 

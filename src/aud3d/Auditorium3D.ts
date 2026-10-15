@@ -16,6 +16,7 @@ import { isPixar } from "../shared/look";
 import { setupPixarAud, type AudPx } from "./pixarAud";
 
 import { INTERIOR_SCALE as IS, CHAR_K, scaleScene } from "../shared/scale";
+import { hqRoom, hqColor, hqShade, hqPlaceProps } from "../shared/hq";
 const UNIT = 1.75 / 45;
 export const ROWS = 18, PER_SIDE = 12, SEAT_W = 0.95, ROW_D = 1.55, RISE = 0.2, AUD_Z0 = -18;
 const rngSeed = (n: number) => { let x = (n * 2654435761) >>> 0; x ^= x >>> 15; return (x % 10000) / 10000; };
@@ -46,7 +47,9 @@ export class Auditorium3D {
 
   constructor(host: HTMLElement) {
     this.host = host; const r = this.renderer = new THREE.WebGLRenderer({ antialias: true }); r.setPixelRatio(dprCap()); r.outputColorSpace = THREE.SRGBColorSpace; r.shadowMap.enabled = false;
-    scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#171528"); this.scene.fog = new THREE.Fog("#171528", 60 * IS, 150 * IS);
+    scaleScene(this.scene); host.appendChild(r.domElement);
+    const hqBg = hqColor(hqRoom("auditorium3d")?.wallColor), bg = hqBg ? hqShade(hqBg, -0.55) : "#171528";   // HQ admin override tints the hall from its wall colour
+    this.scene.background = new THREE.Color(bg); this.scene.fog = new THREE.Fog(bg, 60 * IS, 150 * IS);
     vignette(host, 0.3); this.buildRoom(); this.buildStage(); this.buildSeats(); this.buildScreen(); this.buildPeople(); this.bind();
     this.fx = buildAudExtras(this.scene, { hemi: this.hemi, dl: this.dl, spots: [this.spotL, this.spotR], bg: this.scene.background as THREE.Color, fog: this.scene.fog as THREE.Fog, baseMesh: this.baseMesh, backMesh: this.backMesh, seatCount: this.seats.length });
     if (isPixar()) this.px = setupPixarAud(this, { hemi: this.hemi, dl: this.dl, spotL: this.spotL, spotR: this.spotR });
@@ -58,7 +61,8 @@ export class Auditorium3D {
   private buildRoom() {
     const S = this.scene, wood = canvasTex(512, 512, (c) => { for (let i = 0; i < 16; i++) { c.fillStyle = i % 2 ? "#a8723f" : "#b57c46"; c.fillRect(0, i * 32, 512, 32); c.fillStyle = "rgba(60,30,10,.25)"; c.fillRect(0, i * 32, 512, 2); for (let k = 0; k < 14; k++) { c.fillStyle = `rgba(70,40,15,${0.04 + Math.random() * 0.06})`; c.fillRect(Math.random() * 512, i * 32 + 4, 40 + Math.random() * 120, 2); } } }, [10, 14]);
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(70, 90), new THREE.MeshStandardMaterial({ map: wood, roughness: 0.8 })); floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, -5); S.add(floor);
-    const wallTex = canvasTex(256, 256, (c) => { c.fillStyle = "#2d2a52"; c.fillRect(0, 0, 256, 256); for (let i = 0; i < 4; i++) { c.fillStyle = "#38346a"; c.fillRect(i * 64 + 6, 8, 52, 240); c.strokeStyle = "#c9a44e"; c.lineWidth = 2; c.strokeRect(i * 64 + 6, 8, 52, 240); } }, [14, 1]);
+    const hqWallC = hqColor(hqRoom("auditorium3d")?.wallColor), wallBase = hqWallC ?? "#2d2a52", wallPanel = hqWallC ? hqShade(hqWallC, 0.09) : "#38346a";
+    const wallTex = canvasTex(256, 256, (c) => { c.fillStyle = wallBase; c.fillRect(0, 0, 256, 256); for (let i = 0; i < 4; i++) { c.fillStyle = wallPanel; c.fillRect(i * 64 + 6, 8, 52, 240); c.strokeStyle = "#c9a44e"; c.lineWidth = 2; c.strokeRect(i * 64 + 6, 8, 52, 240); } }, [14, 1]);
     const wm = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.95 });
     const side = (x: number, rot: number) => { const w = new THREE.Mesh(new THREE.PlaneGeometry(95, 17), wm); w.position.set(x, 8.5, -5); w.rotation.y = rot; S.add(w); const base = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3, 95), new THREE.MeshStandardMaterial({ color: "#6b4a2a" })); base.position.set(x - Math.sign(x) * 0.2, 1.5, -5); S.add(base); };
     side(-35, Math.PI / 2); side(35, -Math.PI / 2);
@@ -77,6 +81,8 @@ export class Auditorium3D {
     const door = new THREE.Mesh(new THREE.BoxGeometry(4.2, 5.4, 0.3), new THREE.MeshStandardMaterial({ color: "#6b4a2a" })); door.position.set(-24, 2.7, 39.8); S.add(door);
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(5, 1), new THREE.MeshBasicMaterial({ map: canvasTex(512, 100, (c) => { c.fillStyle = "#e8433a"; c.fillRect(0, 0, 512, 100); c.fillStyle = "#fff"; c.font = "700 54px sans-serif"; c.textAlign = "center"; c.fillText("▲ UP TO SCHOOL", 256, 70); }) })); sign.position.set(-24, 6.2, 39.6); sign.rotation.y = Math.PI; S.add(sign);
     for (let i = 0; i < 6; i++) { const st = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.28, 1.1 + i * 0.0), new THREE.MeshStandardMaterial({ color: "#c9a36b" })); st.position.set(-24, 0.14 + i * 0.28, 38.4 - i * 0.0); void st; }
+    // HQ admin decorations (unify.hq.rooms.auditorium3d.props): emoji sprites along the back wall
+    hqPlaceProps(S, "auditorium3d", [[-28, 6, 39.2], [-14, 6.5, 39.2], [14, 6.5, 39.2], [28, 6, 39.2], [-7, 7, 39.2], [7, 7, 39.2]], 3.2);
   }
 
   /* ---------------------------------------------------------------- the stage */

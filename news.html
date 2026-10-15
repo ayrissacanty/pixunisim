@@ -165,9 +165,9 @@ const NATIONAL=["Schools across the country are expanding hands-on science and c
 const WORLD_SAMPLE=['Communities in several countries are planting school gardens to teach students where food comes from.','Students around the world are joining online exchange programs to practice new languages.'];
 const NAT_FOLLOW=["That's a trend we love to see, especially with our own robotics and garden teams.","Great to see students getting behind the camera. We might know a few."];
 const GREET=["Good morning","Good afternoon","Good evening","Hello everyone","Welcome back"];
-const WELCOME2=["And I'm Marcus Reed. Here's what's happening around Unify Academy and beyond.","I'm Marcus Reed. Plenty to cover today, from the field to the forecast.","Marcus Reed here. Let's get right into it."];
+const WELCOME2=()=>{const n=(typeof anchors!=='undefined'&&anchors.A2.name)||'Marcus Reed';return [`And I'm ${n}. Here's what's happening around Unify Academy and beyond.`,`I'm ${n}. Plenty to cover today, from the field to the forecast.`,`${n} here. Let's get right into it.`];};
 const ROUNDUP=["We'll head out to the field first, then check the sky, then look at the national picture.","Two reports from local campuses, the weather, and a look at the wider world. Stay with us."];
-const TOSS_WX=["Marcus has the forecast. Let's see what the sky is doing.","Time for the weather. Marcus, take it away.","Let's find out if we need jackets. Marcus?"];
+const TOSS_WX=()=>{const f=((typeof anchors!=='undefined'&&anchors.A2.name)||'Marcus Reed').split(' ')[0];return [`${f} has the forecast. Let's see what the sky is doing.`,`Time for the weather. ${f}, take it away.`,`Let's find out if we need jackets. ${f}?`];};
 const WXTYPES={
  sun:{label:'Sunny',lines:["clear and bright, topping out at {t} degrees","plenty of sunshine and {t} degrees"]},
  partly:{label:'Partly cloudy',lines:["a mix of sun and cloud around {t} degrees","clouds coming and going with {t} degrees"]},
@@ -327,6 +327,23 @@ const anchors={
  A1:new Anchor({name:'Maya Chen',x:DESK_A1.x,y:DESK_A1.y,skin:'#DFAE87',hair:'#694A38',hairStyle:'wavy',blazer:C.coral,shirt:C.warmWhite,bottom:C.char,lip:C.pink}),
  A2:new Anchor({name:'Marcus Reed',x:DESK_A2.x,y:DESK_A2.y,skin:'#744735',hair:'#28292B',hairStyle:'short',blazer:C.deep,shirt:C.warmWhite,tie:C.gold,glasses:true,bottom:C.char,lip:'#563428'})};
 
+/* ---- HQ admin overrides (unify.hq.*): rename the anchors and tint the studio wall. Fully optional; defaults unchanged. ---- */
+let hqWall=null;
+try{
+ const hs=JSON.parse(localStorage.getItem('unify.hq.staff')||'[]');
+ if(Array.isArray(hs)){
+  const named=hs.filter(s=>s&&s.name);
+  const byName=k=>named.find(s=>String(s.name).toLowerCase()===(k==='A1'?'maya chen':'marcus reed'));
+  const byRole=named.filter(s=>/^(anchor|news)/i.test(String(s.role||s.subject||'')));
+  const o1=byRole[0]||byName('A1'),o2=byRole[1]||byName('A2');
+  if(o1&&o1.name)anchors.A1.name=String(o1.name).slice(0,40);
+  if(o2&&o2.name&&o2!==o1)anchors.A2.name=String(o2.name).slice(0,40);
+ }
+ const hr=JSON.parse(localStorage.getItem('unify.hq.rooms')||'{}');
+ const nr=hr&&typeof hr==='object'?hr.news:null;
+ if(nr&&/^#[0-9a-fA-F]{6}$/.test(String(nr.wallColor||'')))hqWall=String(nr.wallColor);
+}catch(e){/* no HQ data or private mode: keep the defaults */}
+
 /* ============================================================
    Weather icons, map
    ============================================================ */
@@ -367,7 +384,7 @@ function drawMap(c,x,y,w,h,hi,t){
    ============================================================ */
 function drawStudioBG(c,t){
  // paper-cut studio: cream striped wall, scalloped garland, sage wainscot, kraft frames, blue paper screens
- let g=c.createLinearGradient(0,0,0,330);g.addColorStop(0,'#FBF1DD');g.addColorStop(1,'#EAF1E8');c.fillStyle=g;c.fillRect(0,0,W,330);
+ let g=c.createLinearGradient(0,0,0,330);g.addColorStop(0,hqWall||'#FBF1DD');g.addColorStop(1,'#EAF1E8');c.fillStyle=g;c.fillRect(0,0,W,330);
  for(let x=0;x<W;x+=24){c.fillStyle='rgba(255,255,255,.5)';c.fillRect(x,30,10,236);c.fillStyle='rgba(110,120,110,.08)';c.fillRect(x+10,30,2,236);}
  c.fillStyle=C.warmWhite;c.fillRect(0,0,W,30);
  const gc=[C.coral,C.gold,C.powder,C.lav];for(let i=0;i<W/28+1;i++){c.beginPath();c.arc(14+i*28,30,15,0,Math.PI);c.fillStyle=gc[i%4];c.fill();c.strokeStyle=C.char;c.lineWidth=1.6;c.stroke();}
@@ -500,31 +517,32 @@ const TIER_TAG={local:'LOCAL',national:'NATIONAL',world:'WORLD',learn:'CLASSROOM
 
 function buildShow(){
  const S=[],A=anchors;known.clear();
+ const A1N=A.A1.name,A2N=A.A2.name,A1F=A1N.split(' ')[0],A2F=A2N.split(' ')[0];   // names may be overridden by the HQ admin (unify.hq.staff)
  if(LIVE){
   WX=LIVE.weather.slice(0,4).map((w,i)=>({name:w.name,fx:SPOTS[i].fx,fy:SPOTS[i].fy,type:w.type,t:w.temp,label:w.label,rain:w.rainChance,wind:w.windMph}));
   const L=LIVE.local,N=LIVE.national,Wd=LIVE.world,ed=LIVE.edition==='am'?'morning':'evening',greet=ed==='morning'?'Good morning':'Good evening';
   S.push({tag:'TOP STORIES',type:'studio',beats:[
-   {who:'A1',text:`${greet}, I'm Maya Chen, and this is the ${ed} edition of Unify News for ${LIVE.localDate}.`,lower:{title:'Maya Chen',sub:'Anchor'},cam:'A1',do:()=>{A.A1.waveT=1.5;}},
-   {who:'A2',text:`And I'm Marcus Reed. We have ${LIVE.stories.length} reports for you: ${L.length} from ${LIVE.place.split(',')[0]}, ${N.length} from across the country, and ${Wd.length} from around the world${(LIVE.learn||[]).length?`, plus ${LIVE.learn.length} for the classroom`:''}.`,lower:{title:'Marcus Reed',sub:'Anchor and weather'},cam:'A2'},
+   {who:'A1',text:`${greet}, I'm ${A1N}, and this is the ${ed} edition of Unify News for ${LIVE.localDate}.`,lower:{title:A1N,sub:'Anchor'},cam:'A1',do:()=>{A.A1.waveT=1.5;}},
+   {who:'A2',text:`And I'm ${A2N}. We have ${LIVE.stories.length} reports for you: ${L.length} from ${LIVE.place.split(',')[0]}, ${N.length} from across the country, and ${Wd.length} from around the world${(LIVE.learn||[]).length?`, plus ${LIVE.learn.length} for the classroom`:''}.`,lower:{title:A2N,sub:'Anchor and weather'},cam:'A2'},
    {who:'A1',text:L.length?"We'll start close to home, then check the sky, then widen out to the nation and the world.":"We'll check the sky, then look at the nation and the world.",cam:'wide'}]});
   L.forEach((s,i)=>S.push(...storySegs(s,i,'LOCAL')));
  }else{
   WX=makeWeather();const clips=shuffle(CLIPS);
   S.push({tag:'TOP STORIES',type:'studio',beats:[
-   {who:'A1',text:`${tod()}, I'm Maya Chen.`,lower:{title:'Maya Chen',sub:'Anchor'},cam:'A1',do:()=>{A.A1.waveT=1.5;}},
-   {who:'A2',text:pick(WELCOME2),lower:{title:'Marcus Reed',sub:'Anchor and weather'},cam:'A2'},
+   {who:'A1',text:`${tod()}, I'm ${A1N}.`,lower:{title:A1N,sub:'Anchor'},cam:'A1',do:()=>{A.A1.waveT=1.5;}},
+   {who:'A2',text:pick(WELCOME2()),lower:{title:A2N,sub:'Anchor and weather'},cam:'A2'},
    {who:'A1',text:pick(ROUNDUP),cam:'wide'}]});
   clips.forEach((c,i)=>{const lead=i%2?'A2':'A1';
    S.push({tag:'LOCAL',type:'studio',beats:[{who:lead,text:c.intro,lower:{title:c.title,sub:c.place},cam:lead}]});
    S.push({tag:'FIELD REPORT',type:'clip',clip:{...c,topic:c.scene},beats:c.vo.map(t=>({who:'VO',text:t}))});});
  }
  const wb=[];
- wb.push({who:'A1',text:pick(TOSS_WX),cam:'wide',waitWalk:true,do:()=>{A.A2.goTo(PATH_OUT);}});
- wb.push({who:'A2',text:"Thanks, Maya. Let's take a look at the map.",cam:'wx',lower:{title:'Marcus Reed',sub:'Weather'}});
+ wb.push({who:'A1',text:pick(TOSS_WX()),cam:'wide',waitWalk:true,do:()=>{A.A2.goTo(PATH_OUT);}});
+ wb.push({who:'A2',text:`Thanks, ${A1F}. Let's take a look at the map.`,cam:'wx',lower:{title:A2N,sub:'Weather'}});
  WX.forEach((s,i)=>{const ADJ={rain:'rainy',snow:'snowy',storms:'stormy'},lb=s.label.toLowerCase(),ln=LIVE?`looking ${ADJ[lb]||lb}, with a high of ${s.t} degrees${s.rain>=40?' and about a '+s.rain+' percent chance of rain':''}`:pick(WXTYPES[s.type].lines).replace('{t}',s.t);
   wb.push({who:'A2',text:LIVE?`${s.name} is ${ln}.`:`${SPOTINTRO[i].replace('{n}',s.name)} ${ln}.`,cam:'wx',point:i,lower:{title:`${s.name}  ${s.t}°`,sub:s.label}});});
- wb.push({who:'A2',text:"That's the forecast. Back to you, Maya.",cam:'wx',point:null,do:()=>{A.A2.goTo(PATH_BACK);}});
- wb.push({who:'A1',text:"Thanks, Marcus. Keep an umbrella handy if you're heading out.",cam:'A1',waitWalk:true});
+ wb.push({who:'A2',text:`That's the forecast. Back to you, ${A1F}.`,cam:'wx',point:null,do:()=>{A.A2.goTo(PATH_BACK);}});
+ wb.push({who:'A1',text:`Thanks, ${A2F}. Keep an umbrella handy if you're heading out.`,cam:'A1',waitWalk:true});
  S.push({tag:'WEATHER',type:'studio',beats:wb});
  if(LIVE){
   if(LIVE.national.length)S.push({tag:'NATIONAL',type:'studio',beats:[{who:'A1',text:`Now to the national picture: ${LIVE.national.length} stories.`,cam:'A1',lower:{title:'Around the country',sub:LIVE.editionLabel}}]});
@@ -536,11 +554,11 @@ function buildShow(){
    LR.forEach((s,i)=>S.push(...storySegs(s,i,'CLASSROOM')));}
  }else{
   S.push({tag:'NATIONAL',type:'studio',beats:[{who:'A1',text:`Now nationally. ${pick(NATIONAL)}`,cam:'A1',lower:{title:'Around the country',sub:'Sample headline'}},{who:'A2',text:pick(NAT_FOLLOW),cam:'A2'}]});
-  S.push({tag:'WORLD',type:'studio',beats:[{who:'A2',text:`And around the world. ${pick(WORLD_SAMPLE)}`,cam:'A2',lower:{title:'Around the world',sub:'Sample headline'}},{who:'A1',text:"Thanks, Marcus. That's a wide view of the day.",cam:'A1'}]});
+  S.push({tag:'WORLD',type:'studio',beats:[{who:'A2',text:`And around the world. ${pick(WORLD_SAMPLE)}`,cam:'A2',lower:{title:'Around the world',sub:'Sample headline'}},{who:'A1',text:`Thanks, ${A2F}. That's a wide view of the day.`,cam:'A1'}]});
  }
  S.push({tag:'SIGN OFF',type:'studio',beats:[
   {who:'A2',text:"That's the news for now. Thanks for watching.",cam:'A2'},
-  {who:'A1',text:"I'm Maya Chen. See you next time on Unify News.",cam:'wide',do:()=>{A.A1.waveT=1.6;}}]});
+  {who:'A1',text:`I'm ${A1N}. See you next time on Unify News.`,cam:'wide',do:()=>{A.A1.waveT=1.6;}}]});
  const heads=S.filter(x=>x.type==='clip').map(x=>x.clip.title);
  window.__ticker=`${LIVE?LIVE.editionLabel.toUpperCase()+'  •  ':''}${heads.slice(0,30).join('  •  ')}  •  WEATHER  ${WX.map(s=>s.name+' '+s.t+'°').join('  ')}  •  `;
  window.__tickW=0;return S;
