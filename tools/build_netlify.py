@@ -74,6 +74,8 @@ SUPPORT = [
     "curriculum-seed-3.js",
     "curriculum-seed-4.js",
     "curriculum-seed-5.js",
+    "curriculum-seed-6.js",
+    "curriculum-seed-7.js",
     "academy-presence.js",
     "phone-config.js",
     "supabase-client.js",
