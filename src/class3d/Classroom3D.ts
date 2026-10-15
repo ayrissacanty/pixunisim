@@ -23,13 +23,45 @@ import { Mood, Gfx } from "../hall3d/mood";
 import { buildClassExtras } from "./extras";
 import { isPixar } from "../shared/look";
 import { INTERIOR_SCALE as IS, scaleScene } from "../shared/scale";
-import { hqRoom, hqRoomWall, hqShade, hqPlaceProps } from "../shared/hq";
 import { setupPixarClass, type ClassPx } from "./pixarClass";
+import { hqRoom } from "../shared/hq";
 import type { Char3DEx } from "../dorm/char3d";
 
 export const X0 = -9, X1 = 9, Z0 = -9.5, Z1 = 9.5, WALL = 5.4, STAGE_H = 0.3, STAGE_Z = -6.3;
 export const ROWS = 6, COLS = 8, ROW_DZ = 1.95, ROW_Z0 = -3.6, XS = [-7.6, -5.7, -3.8, -1.9, 1.9, 3.8, 5.7, 7.6];
 const rowH = (r: number) => 0.14 * r, rowZ = (r: number) => ROW_Z0 + r * ROW_DZ;
+export type DeskLayout = "rows" | "clusters" | "circle" | "u-shape";
+/** one desk anchor: (x,z) at floor height y, rotY 0 = facing the board (-z). The chair sits at local +z 0.3, the desk top at local -z 0.38. */
+export interface DeskSpot { x: number; y: number; z: number; rotY: number }
+/** desk/seat arrangement for n seats. "rows" (default/unknown) is exactly the classic stepped grid facing the board;
+ *  "clusters" = groups of 4 desks facing each other, "circle" = one ring around the room centre facing inward,
+ *  "u-shape" = a horseshoe along the sides and back, open toward the board, facing the room centre. */
+export function seatPositions(layout: string | null | undefined, n: number): DeskSpot[] {
+  const out: DeskSpot[] = [];
+  if (layout === "clusters") {
+    outer: for (const cz of [-3.6, 0.1, 3.8]) for (const cx of [-6.4, -2.15, 2.15, 6.4]) {
+      for (const [dx, dz, rotY] of [[-0.78, -0.62, 0], [0.78, -0.62, 0], [-0.78, 0.62, Math.PI], [0.78, 0.62, Math.PI]] as const) {
+        const x = cx + dx, z = cz + dz; out.push({ x, y: groundY(z), z, rotY });
+        if (out.length >= n) break outer;
+      }
+    }
+  } else if (layout === "circle") {
+    const cz = 0.9, R = Math.min(5.6, 3.1 + n * 0.055);
+    for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2, x = Math.sin(a) * R, z = cz + Math.cos(a) * R; out.push({ x, y: groundY(z), z, rotY: a }); }
+  } else if (layout === "u-shape") {
+    // horseshoe open toward the board: down the left side, across the back, up the right side — everyone faces the room centre
+    const seg = [{ x: -6.4, z: -3.4, dx: 0, dz: 1, len: 9.8, rotY: -Math.PI / 2 }, { x: -6.4, z: 6.8, dx: 1, dz: 0, len: 12.8, rotY: 0 }, { x: 6.4, z: 6.4, dx: 0, dz: -1, len: 9.8, rotY: Math.PI / 2 }];
+    const total = seg.reduce((s, g) => s + g.len, 0);
+    for (let i = 0; i < n; i++) {
+      let d = ((i + 0.5) / n) * total, g = seg[0];
+      for (const s of seg) { if (d <= s.len) { g = s; break; } d -= s.len; }
+      const x = g.x + g.dx * d, z = g.z + g.dz * d; out.push({ x, y: groundY(z), z, rotY: g.rotY });
+    }
+  } else {
+    for (let r = 0; r < ROWS && out.length < n; r++) for (let c = 0; c < COLS && out.length < n; c++) out.push({ x: XS[c], y: rowH(r), z: rowZ(r), rotY: 0 });
+  }
+  return out;
+}
 const sstep = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 /** floor height at depth z (stage at the front, stepped rows behind) */
 export function groundY(z: number) {
@@ -44,7 +76,7 @@ export const SPOTS: Record<string, { x: number; z: number; face?: [number, numbe
   boardL: { x: -6.2, z: -8.4, face: [0, -1] }, boardR: { x: 6.2, z: -8.4, face: [0, -1] }, demo: { x: 3.6, z: -5.2, face: [0, 1] }, aisleC: { x: 0, z: -2.4, face: [0, 1] }, aisleL: { x: -8.35, z: 0.2 }, aisleR: { x: 8.35, z: 0.2 },
   mid: { x: 0, z: 1.0, face: [0, 1] }, midL: { x: -4.7, z: 1.1 }, midR: { x: 4.7, z: 1.1 }, back: { x: 0, z: 7.8, face: [0, -1] },
 };
-export interface Seat { c3?: Char3DEx; r: number; c: number; x: number; z: number; y: number; bb: Billboard; def: NpcDef | null; hand: 0 | 1 | 2; handT: number; act: number; actT: number; player: boolean }
+export interface Seat { c3?: Char3DEx; r: number; c: number; x: number; z: number; y: number; rotY?: number; bb: Billboard; def: NpcDef | null; hand: 0 | 1 | 2; handT: number; act: number; actT: number; player: boolean }
 interface TeacherState { bb: Billboard; pos: THREE.Vector3; path: { x: number; z: number }[]; face: THREE.Vector3; speed: number; talking: boolean; mode: "idle" | "point" | "write" | "present" | "hold"; res: (() => void) | null; walkPh: number; faceTo: THREE.Vector3 | null; moving: boolean; def: NpcDef; persona: Persona; emo: { e: Emotion; g: string | null; until: number } | null; idle: string; sig: string | null; base: THREE.Vector3; gest: string | null; gestUntil: number; gestT: number; wrongs: number }
 
 export class Classroom3D {
@@ -61,11 +93,21 @@ export class Classroom3D {
   private boardMats: THREE.MeshBasicMaterial[] = []; private t = 0; private last = performance.now(); private raycaster = new THREE.Raycaster(); private hoverT = 0; private tex = new Map<string, THREE.Texture>();
   private fx!: { tick(t: number): void }; private tod = Mood.realTod(); private todT = 0; private todParam = Mood.queryTod();
   private px: ClassPx | null = null; private desks!: THREE.InstancedMesh; private pointer = { x: 0, y: 0, down: false, sx: 0, sy: 0, st: 0 };
+  private deskLayout: DeskLayout = "rows"; private deskSpots: DeskSpot[] = [];
+  /** HQ desk layout for this room: the per-teacher room ("classroom-<facultyId>") first, then the generic "classroom3d"; default "rows" */
+  private resolveDeskLayout() {
+    const tid = TEACHER_BY_SUBJECT[this.subject]?.faculty;
+    const cfg = (tid ? hqRoom(`classroom-${tid}`) : null) ?? hqRoom("classroom3d");
+    const l = String(cfg?.deskLayout ?? "").trim().toLowerCase();
+    this.deskLayout = l === "clusters" || l === "circle" || l === "u-shape" ? l : "rows";
+  }
+  /** rotate a local (dx,dz) offset by rotY (three.js rotation.y convention) */
+  private rot2(rot: number, dx: number, dz: number): [number, number] { const s = Math.sin(rot), c = Math.cos(rot); return [dx * c + dz * s, dz * c - dx * s]; }
 
   constructor(public host: HTMLElement) {
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false }); r.setPixelRatio(dprCap()); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
     scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB");
-    this.buildLights(); this.buildShell(); this.buildFront(); this.buildSeats(); this.buildStaticDecor(); this.buildDetails(); this.fx = buildClassExtras(this.scene, { X0, X1, Z0, Z1, WALL, groundY, rowH, rowZ, ROWS, XS, ceilPanels: [0, 1, 2].flatMap((i) => [0, 1, 2, 3].map((j) => [-5.5 + i * 5.5, -6 + j * 4.6] as [number, number])) }); this.scene.add(this.decor, this.demo); this.buildNav(); this.buildTeacher(TEACHER_BY_SUBJECT.math);
+    this.resolveDeskLayout(); this.buildLights(); this.buildShell(); this.buildFront(); this.buildSeats(); this.buildStaticDecor(); this.buildDetails(); this.fx = buildClassExtras(this.scene, { X0, X1, Z0, Z1, WALL, groundY, rowH, rowZ, ROWS, XS, ceilPanels: [0, 1, 2].flatMap((i) => [0, 1, 2, 3].map((j) => [-5.5 + i * 5.5, -6 + j * 4.6] as [number, number])) }); this.scene.add(this.decor, this.demo); this.buildNav(); this.buildTeacher(TEACHER_BY_SUBJECT.math);
     if (isPixar()) { this.px = setupPixarClass(this, { X0, X1, Z0, Z1, WALL, STAGE_H, groundY, rowH, rowZ }, this.lights as any); this.px.refresh(this.scene); this.px.syncTeacher(); }
     this.bindInput(r.domElement); addEventListener("resize", () => this.resize()); this.resize(); this.snapCamera(); requestAnimationFrame(this.frame);
   }
@@ -102,10 +144,8 @@ export class Classroom3D {
 
   /* ------------------------------------------------------------ room shell */
   private buildShell() {
-    const hq = hqRoom("classroom3d"), hqWall = hqRoomWall("classroom3d");   // HQ admin room overrides (optional)
-    const S = this.scene, wid = X1 - X0, dep = Z1 - Z0, cap = this.plain(hqWall ?? "#F7ECD6"), outer = this.plain(hqWall ? hqShade(hqWall, -0.18) : "#D8C6A4");
-    const floorTex = ["carpet", "grass"].includes(String(hq?.floorStyle ?? "").toLowerCase()) ? () => CT.carpet() : () => CT.floorWood();
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(wid, dep), Mood.tinted(this.std(this.rep("wood", floorTex, wid / 4, dep / 4)), "floor", 0.7)); floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, (Z0 + Z1) / 2); floor.receiveShadow = true; S.add(floor);
+    const S = this.scene, wid = X1 - X0, dep = Z1 - Z0, cap = this.plain("#F7ECD6"), outer = this.plain("#D8C6A4");
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(wid, dep), Mood.tinted(this.std(this.rep("wood", () => CT.floorWood(), wid / 4, dep / 4)), "floor", 0.7)); floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, (Z0 + Z1) / 2); floor.receiveShadow = true; S.add(floor);
     const ceil = new THREE.Mesh(new THREE.PlaneGeometry(wid, dep), new THREE.MeshStandardMaterial({ map: this.rep("ceil", () => CT.ceiling(), wid / 3, dep / 3), roughness: 1 })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, WALL, (Z0 + Z1) / 2); S.add(ceil);
     const wall = (len: number, cx: number, cz: number, horiz: boolean, innerIdx: number, key: string) => { const inner = Mood.tinted(this.std(this.rep(key, () => HT.wallTex(), len / 4, 1)), "wash", 1), mats = [outer, outer, cap, outer, outer, outer]; mats[innerIdx] = inner; this.box(horiz ? len : 0.3, WALL, horiz ? 0.3 : len, mats, cx, WALL / 2, cz, { outline: false, shadow: false }); };
     wall(wid + 0.6, 0, Z0 - 0.15, true, 4, "wallF"); wall(wid + 0.6, 0, Z1 + 0.15, true, 5, "wallB"); wall(dep, X0 - 0.15, (Z0 + Z1) / 2, false, 0, "wallL"); wall(dep, X1 + 0.15, (Z0 + Z1) / 2, false, 1, "wallR");
@@ -145,13 +185,18 @@ export class Classroom3D {
   private buildSeats() {
     const n = ROWS * COLS, pxl = isPixar(), deskG = pxl ? new RoundedBoxGeometry(1.34, 0.1, 0.7, 4, 0.045) : new RoundedBoxGeometry(1.3, 0.07, 0.66, 2, 0.025), legG = pxl ? new RoundedBoxGeometry(1.2, 0.74, 0.1, 3, 0.04) : new THREE.BoxGeometry(1.2, 0.74, 0.06), chairG = pxl ? new RoundedBoxGeometry(0.66, 0.1, 0.58, 4, 0.05) : new RoundedBoxGeometry(0.62, 0.07, 0.55, 2, 0.028), backG = pxl ? new RoundedBoxGeometry(0.66, 0.52, 0.1, 4, 0.05) : new RoundedBoxGeometry(0.62, 0.5, 0.06, 2, 0.028);
     const desks = this.desks = new THREE.InstancedMesh(deskG, this.std(CT.deskTop("#D9A86B")), n), legs = new THREE.InstancedMesh(legG, this.plain("#9A653D"), n), seatM = new THREE.InstancedMesh(chairG, this.plain("#4F91C7"), n), backM = new THREE.InstancedMesh(backG, this.plain("#4F91C7"), n);
-    const m4 = new THREE.Matrix4(), cols = ["#4F91C7", "#E07A66", "#88B89A", "#EAB94E"]; let i = 0;
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++, i++) {
-      const x = XS[c], z = rowZ(r), y = rowH(r), col = new THREE.Color(cols[(r + c) % 4]);
-      m4.makeTranslation(x, y + 0.77, z - 0.38); desks.setMatrixAt(i, m4); m4.makeTranslation(x, y + 0.38, z - 0.62); legs.setMatrixAt(i, m4);
-      m4.makeTranslation(x, y + 0.42, z + 0.3); seatM.setMatrixAt(i, m4); seatM.setColorAt(i, col); m4.makeTranslation(x, y + 0.7, z + 0.58); backM.setMatrixAt(i, m4); backM.setColorAt(i, col);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), eu = new THREE.Euler(), pv = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), cols = ["#4F91C7", "#E07A66", "#88B89A", "#EAB94E"];
+    const spots = this.deskSpots = seatPositions(this.deskLayout, n);
+    const put = (m: THREE.InstancedMesh, i: number, sp: DeskSpot, dx: number, dy: number, dz: number) => {
+      const [ox, oz] = this.rot2(sp.rotY, dx, dz); eu.set(0, sp.rotY, 0); q.setFromEuler(eu); m4.compose(pv.set(sp.x + ox, sp.y + dy, sp.z + oz), q, one); m.setMatrixAt(i, m4);
+    };
+    for (let i = 0; i < n; i++) {
+      const sp = spots[i], r = Math.floor(i / COLS), c = i % COLS, col = new THREE.Color(cols[(r + c) % 4]);
+      put(desks, i, sp, 0, 0.77, -0.38); put(legs, i, sp, 0, 0.38, -0.62);
+      put(seatM, i, sp, 0, 0.42, 0.3); seatM.setColorAt(i, col); put(backM, i, sp, 0, 0.7, 0.58); backM.setColorAt(i, col);
       const bb = makeBillboard(this.scene, { id: i, skin: "#f0c29b", hair: "#3a2a30", style: "crop", shirt: "#4f91c7" } as any, SEAT_POSES, this.blobTex); bb.sprite.visible = false; bb.blob.visible = false;
-      this.seats.push({ r, c, x, z: z + 0.3, y: y + 0.44, bb, def: null, hand: 0, handT: 0, act: 0, actT: Math.random() * 4, player: false });
+      const [sx, sz] = this.rot2(sp.rotY, 0, 0.3); bb.facing.set(-Math.sin(sp.rotY), 0, -Math.cos(sp.rotY));
+      this.seats.push({ r, c, x: sp.x + sx, z: sp.z + sz, y: sp.y + 0.44, rotY: sp.rotY, bb, def: null, hand: 0, handT: 0, act: 0, actT: Math.random() * 4, player: false });
     }
     for (const m of [desks, legs, seatM, backM]) { m.castShadow = true; m.receiveShadow = true; this.scene.add(m); }
     this.playerSeat = this.seats[3 * COLS + 3]; this.playerSeat.player = true;
@@ -167,7 +212,7 @@ export class Classroom3D {
     }
     this.px?.syncSeats();
   }
-  private mkSeatBB(s: Seat, look: any) { const bb = makeBillboard(this.scene, look, SEAT_POSES, this.blobTex); bb.sprite.position.set(s.x, s.y, s.z); bb.blob.position.set(s.x, s.y - 0.38, s.z + 0.05); bb.blob.scale.set(0.9, 0.9, 1); return bb; }
+  private mkSeatBB(s: Seat, look: any) { const bb = makeBillboard(this.scene, look, SEAT_POSES, this.blobTex); bb.sprite.position.set(s.x, s.y, s.z); bb.blob.position.set(s.x, s.y - 0.38, s.z + 0.05); bb.blob.scale.set(0.9, 0.9, 1); if (s.rotY) bb.facing.set(-Math.sin(s.rotY), 0, -Math.cos(s.rotY)); return bb; }
   private disposeBB(b: Billboard) { this.scene.remove(b.sprite, b.blob); b.tex.dispose(); b.mat.dispose(); (b.blob.material as THREE.Material).dispose(); }
   rebuildPlayer() { const s = this.playerSeat; this.pBeam.setColor(Social.profile.avatar.shirt); this.disposeBB(s.bb); s.bb = this.mkSeatBB(s, { ...toLook(Social.profile.avatar, 11), tag: false }); this.px?.syncSeats(); }
   setHand(npcId: number, up: boolean) { const s = this.seats.find((x) => x.def?.id === npcId); if (s) { s.hand = up ? 1 : 0; s.handT = 0; } }
@@ -196,8 +241,6 @@ export class Classroom3D {
     const door = this.card(this.T("door", () => HT.doorTex("#8173AE")), 1.5, 2.6, X1 - 1.6, 1.3, Z1 - 0.12, Math.PI, S as any); void door; this.card(this.T("exit", () => HT.signTex("EXIT", "#E07A66")), 1.0, 0.25, X1 - 1.6, 2.8, Z1 - 0.12, Math.PI, S as any);
     const rug = new THREE.Mesh(new THREE.CircleGeometry(1.6, 32), this.std(this.rep("rug2", () => CT.carpet(), 2, 2))); rug.rotation.x = -Math.PI / 2; rug.position.set(X0 + 2.0, rowH(5) + 0.012, Z1 - 1.4); S.add(rug); [["#E07A66", -0.5, 0.3], ["#4F91C7", 0.5, -0.3], ["#88B89A", 0.2, 0.8]].forEach(([c, dx, dz]: any) => { const b = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 12), this.plain(c)); b.scale.set(1, 0.6, 1); b.position.set(X0 + 2.0 + dx, rowH(5) + 0.2, Z1 - 1.4 + dz); b.castShadow = true; S.add(b); });
     for (const [x, z] of [[X0 + 0.8, Z0 + 1.0], [X1 - 0.8, Z1 - 0.8], [X0 + 0.8, Z1 - 0.8]]) this.plant(x, rowH(z > 4 ? 5 : 0) + (z < -7 ? STAGE_H : 0), z);
-    // HQ admin decorations (unify.hq.rooms.classroom3d.props): emoji sprites along the back wall
-    hqPlaceProps(S, "classroom3d", [[-6, 2.4, Z1 - 0.55], [-3, 2.4, Z1 - 0.55], [3, 2.4, Z1 - 0.55], [6, 2.4, Z1 - 0.55], [-1.5, 2.6, Z1 - 0.55], [1.5, 2.6, Z1 - 0.55], [-7.5, 2.2, Z1 - 0.55], [7.5, 2.2, Z1 - 0.55]], 1.3);
     void G;
   }
 
@@ -263,13 +306,15 @@ export class Classroom3D {
     // per-desk detail (instanced): chair legs, book box, notebook, pencil, water bottle
     const n = ROWS * COLS, nb = new THREE.InstancedMesh(new THREE.BoxGeometry(0.3, 0.02, 0.38), this.plain("#ffffff"), n), pc = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.012, 0.012, 0.19, 5), this.plain("#EAB94E"), n), bt = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.035, 0.035, 0.16, 8), this.plain("#8FC9E8"), n), bk = new THREE.InstancedMesh(new THREE.BoxGeometry(1.0, 0.16, 0.34), this.plain("#C9B28A"), n), lg = new THREE.InstancedMesh(new THREE.BoxGeometry(0.045, 0.4, 0.045), this.plain("#6b5a5f"), n * 4);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), sc = new THREE.Vector3(1, 1, 1), cols = ["#F28F7E", "#8FC9E8", "#EAB94E", "#A9DCC0", "#B8A8DA", "#fff6ea"]; let i = 0, li = 0;
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++, i++) {
-      const x = XS[c], z = rowZ(r), y = rowH(r), j = (i * 7919) % 13 / 13;
-      e.set(0, (j - 0.5) * 0.5, 0); q.setFromEuler(e); m4.compose(p.set(x - 0.25 + j * 0.1, y + 0.825, z - 0.38 + (j - .5) * .1), q, sc); nb.setMatrixAt(i, m4); nb.setColorAt(i, new THREE.Color(cols[i % 6]));
-      e.set(0, 0, Math.PI / 2); q.setFromEuler(e); e.set(0, 1.0 + j, Math.PI / 2); q.setFromEuler(e); m4.compose(p.set(x + 0.1, y + 0.83, z - 0.4), q, sc); pc.setMatrixAt(i, m4);
-      q.identity(); m4.compose(p.set(x + 0.5, y + 0.9, z - 0.55), q, i % 3 === 0 ? sc : new THREE.Vector3(0.001, 0.001, 0.001)); bt.setMatrixAt(i, m4); bt.setColorAt(i, new THREE.Color(cols[(i + 2) % 6]));
-      m4.compose(p.set(x, y + 0.6, z - 0.62), q, sc); bk.setMatrixAt(i, m4);
-      for (const [lx, lz] of [[-0.26, 0.05], [0.26, 0.05], [-0.26, 0.5], [0.26, 0.5]]) { m4.compose(p.set(x + lx, y + 0.2, z + lz), q, sc); lg.setMatrixAt(li++, m4); }
+    for (const sp of this.deskSpots) {
+      const { y } = sp, rot = sp.rotY, j = (i * 7919) % 13 / 13;
+      const at = (dx: number, dz: number): [number, number] => { const [ox, oz] = this.rot2(rot, dx, dz); return [sp.x + ox, sp.z + oz]; };
+      e.set(0, rot + (j - 0.5) * 0.5, 0); q.setFromEuler(e); { const [nx2, nz2] = at(-0.25 + j * 0.1, -0.38 + (j - .5) * .1); m4.compose(p.set(nx2, y + 0.825, nz2), q, sc); } nb.setMatrixAt(i, m4); nb.setColorAt(i, new THREE.Color(cols[i % 6]));
+      e.set(0, rot + 1.0 + j, Math.PI / 2); q.setFromEuler(e); { const [px2, pz2] = at(0.1, -0.4); m4.compose(p.set(px2, y + 0.83, pz2), q, sc); } pc.setMatrixAt(i, m4);
+      e.set(0, rot, 0); q.setFromEuler(e); { const [bx2, bz2] = at(0.5, -0.55); m4.compose(p.set(bx2, y + 0.9, bz2), q, i % 3 === 0 ? sc : new THREE.Vector3(0.001, 0.001, 0.001)); } bt.setMatrixAt(i, m4); bt.setColorAt(i, new THREE.Color(cols[(i + 2) % 6]));
+      { const [kx, kz] = at(0, -0.62); m4.compose(p.set(kx, y + 0.6, kz), q, sc); } bk.setMatrixAt(i, m4);
+      for (const [lx, lz] of [[-0.26, 0.05], [0.26, 0.05], [-0.26, 0.5], [0.26, 0.5]]) { const [gx, gz] = at(lx, lz); m4.compose(p.set(gx, y + 0.2, gz), q, sc); lg.setMatrixAt(li++, m4); }
+      i++;
     }
     for (const m of [nb, pc, bt, bk, lg]) { m.castShadow = false; m.receiveShadow = true; S.add(m); }
   }
@@ -330,7 +375,9 @@ export class Classroom3D {
   /* ------------------------------------------------------------ teacher: fluid walking on a nav grid */
   private buildNav() {
     const c = this.cell, nx = this.nx = Math.ceil((X1 - X0) / c), nz = this.nz = Math.ceil((Z1 - Z0) / c), blocked: number[][] = [];
-    const pad = 0.12; for (let r = 0; r < ROWS; r++) for (let k = 0; k < COLS; k++) { const x = XS[k], z = rowZ(r); blocked.push([x - 0.68 - pad, z - 0.76 - pad, x + 0.68 + pad, z + 0.62 + pad]); }
+    const pad = 0.12;
+    if (this.deskLayout === "rows") for (let r = 0; r < ROWS; r++) for (let k = 0; k < COLS; k++) { const x = XS[k], z = rowZ(r); blocked.push([x - 0.68 - pad, z - 0.76 - pad, x + 0.68 + pad, z + 0.62 + pad]); }
+    else for (const sp of this.deskSpots) blocked.push([sp.x - 0.8 - pad, sp.z - 0.85 - pad, sp.x + 0.8 + pad, sp.z + 0.85 + pad]);   // rotated layouts: conservative box around each desk+chair
     blocked.push([-4.1, -8.5, -1.9, -7.2], [3.0, -7.3, 4.2, -6.0], [X0, -7.9, X0 + 1.0, -4.4], [7.7, -9.2, 8.7, -8.0], [X0, 8.1, X0 + 3.4, Z1], [X1 - 2.6, 8.4, X1, Z1], [X0, 8.5, X1, Z1 - 0.2]);
     blocked[blocked.length - 1] = [X0, 9.0, X1, Z1];
     this.nav = Array.from({ length: nz }, (_, j) => Array.from({ length: nx }, (_, i) => { const x = X0 + (i + 0.5) * c, z = Z0 + (j + 0.5) * c; if (x < X0 + 0.3 || x > X1 - 0.3 || z < Z0 + 0.4 || z > Z1 - 0.3) return "#"; return blocked.some((b) => x > b[0] && x < b[2] && z > b[1] && z < b[3]) ? "#" : "."; }).join(""));
@@ -409,7 +456,7 @@ export class Classroom3D {
       case "screen": { const k = sstep(0, 1, this.screenK); p.set(0, 3.1 - k * 0.15, 2.8 - k * 4.8); l.set(0, 3.05, Z0); fov = 50 - k * 10; break; }
       case "bulletin": p.set(X1 - 5.2, 2.75, -4.9); l.set(X1, 2.75, -4.9); fov = 40; break;
       case "demo": p.set(3.6, 2.25, -2.5); l.set(3.6, 1.8, -6.6); fov = 46; break;
-      case "seat": { const s = this.playerSeat; p.set(s.x, s.y + 1.12 / IS, s.z + 0.06); l.set(s.x + Math.sin(this.yaw) * 5, 2.45 + Math.tan(this.pitch) * 6, s.z - Math.cos(this.yaw) * 6); fov = 62; break; }
+      case "seat": { const s = this.playerSeat, a = this.yaw + (s.rotY ?? 0); p.set(s.x, s.y + 1.12 / IS, s.z + 0.06); l.set(s.x + Math.sin(a) * 5, 2.45 + Math.tan(this.pitch) * 6, s.z - Math.cos(a) * 6); fov = 62; break; }
       case "free": { const f = this.free; p.set(Math.sin(f.yaw) * Math.cos(f.pitch) * f.dist, 2 + Math.sin(f.pitch) * f.dist, -1.5 + Math.cos(f.yaw) * Math.cos(f.pitch) * f.dist); p.z = Math.min(p.z, Z1 - 0.5); p.y = Math.min(p.y, WALL - 0.45); l.set(0, 2.1, -1.5); fov = 56; break; }
     }
     // keep the boards / projector fully in frame whatever the window shape: widen the vertical fov when the window is narrow

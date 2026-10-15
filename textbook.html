@@ -107,6 +107,13 @@ body.notemode .pg,body.notemode .face{cursor:crosshair}
 /* teacher strip */
 .teacher{position:fixed;left:0;right:0;bottom:0;background:var(--kraft);border-top:2px solid var(--edge);padding:8px 14px;text-align:center;font-size:12.5px;color:var(--soft);z-index:40}
 .teacher b{color:var(--ink)}
+/* library panel */
+#libpanel{display:none;position:fixed;top:110px;left:50%;transform:translateX(-50%);z-index:60;width:min(92vw,520px);max-height:64vh;overflow-y:auto;background:var(--kraft);border:2px solid var(--edge);border-radius:12px;box-shadow:0 12px 30px rgba(60,40,20,.4);padding:10px 12px}
+#libpanel.open{display:block}
+#libpanel h4{font:600 11px var(--ui);letter-spacing:1px;text-transform:uppercase;color:var(--acc2);margin:8px 0 4px}
+.libitem{display:block;width:100%;text-align:left;font:13px var(--ui);color:var(--ink);background:#fff8;border:1px solid var(--edge);border-radius:8px;padding:5px 9px;margin:3px 0;cursor:pointer}
+.libitem:hover{background:#fff}
+.libitem.cur{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
 @media(max-width:760px){.bookwrap{width:96vw}.pg{padding:16px 16px 30px;font-size:12px}}
 </style>
 </head>
@@ -119,6 +126,7 @@ body.notemode .pg,body.notemode .face{cursor:crosshair}
   <button class="tool" id="btnPrev">← Prev page</button>
   <button class="tool" id="btnNext">Next page →</button>
   <button class="tool" id="btnDogEar">📑 Dog-ear this page</button>
+  <button class="tool" id="btnLibrary">📚 Library</button>
   <button class="tool" id="btnNote">✏️ Note mode: off</button>
   <span class="lesson-tag" id="lessonTag"></span>
 </div>
@@ -132,7 +140,13 @@ body.notemode .pg,body.notemode .face{cursor:crosshair}
   <button class="hg" data-c="green" title="green"></button>
   <button class="hp" data-c="pink" title="pink"></button>
 </div>
+<div id="libpanel" role="menu" aria-label="Chapter library"></div>
 <div class="teacher">🍎 <b>Teacher note:</b> Your teacher explains this in their own words in class — the book and the lesson are companions, not copies.</div>
+<script src="curriculum-seed-1.js"></script>
+<script src="curriculum-seed-2.js"></script>
+<script src="curriculum-seed-3.js"></script>
+<script src="curriculum-seed-4.js"></script>
+<script src="curriculum-seed-5.js"></script>
 <script>
 "use strict";
 /* ---------- sample fallback lesson ---------- */
@@ -163,13 +177,15 @@ function loadLessons(){try{const raw=localStorage.getItem(LS_LESSONS);if(!raw)re
  if(d&&Array.isArray(d.lessons))return d.lessons;
  if(d&&typeof d==="object")return Object.keys(d).map(k=>{const v=d[k];return v&&typeof v==="object"&&!v.id?Object.assign({id:k},v):v;}).filter(v=>v&&typeof v==="object");
  return[];}catch(e){return[];}}
-function pickLesson(){const ls=loadLessons();
+function seedLessons(){try{const s=window.UNIFY_CURRICULUM_SEED;return s&&Array.isArray(s.lessons)?s.lessons:[];}catch(e){return[];}}
+function isAssigned(l){return l&&(l.assigned||l.status==="assigned"||l.assignedAt);}
+function stampOf(l){return String(l.assignedAt||l.updatedAt||l.date||l.created||"");}
+function mostRecentAssigned(list){const a=list.filter(isAssigned);if(!a.length)return null;a.sort((x,y)=>stampOf(y).localeCompare(stampOf(x)));return a[0];}
+function pickLesson(){const ls=loadLessons(),seed=seedLessons();
  const q=new URLSearchParams(location.search).get("lesson");
- if(q){const f=ls.find(l=>String(l.id)===q||String(l.lessonId)===q);if(f)return f;}
- const assigned=ls.filter(l=>l.assigned||l.status==="assigned"||l.assignedAt);
- if(assigned.length){assigned.sort((a,b)=>String(b.assignedAt||b.updatedAt||b.date||"").localeCompare(String(a.assignedAt||a.updatedAt||a.date||"")));return assigned[0];}
- if(ls.length)return ls[ls.length-1];
- return SAMPLE;}
+ if(q){const f=ls.find(l=>String(l.id)===q||String(l.lessonId)===q);if(f)return f;
+  const g=seed.find(l=>String(l.id)===q||String(l.lessonId)===q);if(g)return g;}
+ return mostRecentAssigned(ls)||mostRecentAssigned(seed)||SAMPLE;}
 const lesson=pickLesson();
 const lessonId=String(lesson.id||lesson.lessonId||lesson.title||"sample");
 const TB_KEY=TB_PREFIX+lessonId;
@@ -180,8 +196,10 @@ function save(){localStorage.setItem(TB_KEY,JSON.stringify(state));window.dispat
 window.addEventListener("storage",e=>{if(e.key===TB_KEY){state=loadState();renderAll();}if(e.key===LS_LESSONS)location.reload();});
 /* ---------- normalize lesson into chapter pages ---------- */
 function asArr(x){if(!x)return[];return Array.isArray(x)?x:[x];}
-function parasOf(s){return asArr(s.paragraphs||s.text||s.body||s.content).map(String);}
-function vocabOf(s){return asArr(s.vocab||s.vocabulary).map(v=>typeof v==="string"?{term:v,definition:""}:{term:v.term||v.word||"",definition:v.definition||v.meaning||""});}
+function parasOf(s){return asArr(s.paragraphs||s.text||s.body||s.content||s.activity).map(String);}
+function vocabOf(s){return asArr(s.vocab||s.vocabulary).map(v=>typeof v==="string"?{term:v,definition:""}:{term:v.term||v.word||"",definition:v.definition||v.def||v.meaning||""});}
+function mediaOf(s){const m=s.media||s.mediaHint||s.imageHint||"";return typeof m==="string"?m:(m&&(m.text||m.description))||"";}
+function mediaEmoji(m){m=String(m).toLowerCase();if(m.startsWith("video"))return"🎬";if(m.startsWith("model"))return"🧩";if(m.startsWith("map"))return"🗺️";if(m.startsWith("audio")||m.startsWith("song"))return"🎵";return"🖼️";}
 function factOf(s){const f=s.fact||s.didYouKnow||s.funFact;return typeof f==="string"?f:(f&&(f.text||f.fact))||"";}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function buildPages(){
@@ -195,12 +213,15 @@ function buildPages(){
   <p><i>Open the book, ${esc(title)} awaits. Turn the page with the corners or the buttons below.</i></p>`});
  const intro=lesson.intro||lesson.introduction||lesson.summary||"";
  if(intro)pages.push({html:`<h2>Introduction</h2>${asArr(intro).map(p=>`<p>${esc(p)}</p>`).join("")}`});
- asArr(lesson.sections||lesson.parts).forEach(s=>{
-  let h=`<h2>${esc(s.heading||s.title||"Section")}</h2>`;
+ const objs=asArr(lesson.objectives).map(String);
+ if(objs.length)pages.push({html:`<h2>What You'll Learn</h2><div class="qlist"><ol>${objs.map(o=>`<li>${esc(o)}</li>`).join("")}</ol></div>`});
+ asArr(lesson.sections||lesson.parts||lesson.segments).forEach(s=>{
+  let h=`<h2>${esc(s.heading||s.title||s.name||"Section")}</h2>`;
   const f=factOf(s);
   if(f)h+=`<aside class="factbox"><b>Did you know?</b>${esc(f)}</aside>`;
   h+=parasOf(s).map(p=>`<p>${esc(p)}</p>`).join("");
-  if(s.emoji||s.image||s.caption)h+=`<figure class="imgpanel"><span class="emo">${esc(s.emoji||"🖼️")}</span><figcaption>${esc(s.caption||s.imageCaption||"Illustration")}</figcaption></figure>`;
+  const media=mediaOf(s);
+  if(s.emoji||s.image||s.caption||media)h+=`<figure class="imgpanel"><span class="emo">${esc(s.emoji||mediaEmoji(media))}</span><figcaption>${esc(s.caption||s.imageCaption||media||"Illustration")}</figcaption></figure>`;
   const vb=vocabOf(s);
   if(vb.length)h+=`<aside class="vocabbox"><h3>Vocabulary</h3>${vb.map(v=>`<p><b>${esc(v.term)}</b> — ${esc(v.definition)}</p>`).join("")}</aside>`;
   pages.push({html:h});
@@ -214,6 +235,9 @@ function buildPages(){
  // quiz
  const quiz=asArr(lesson.quiz||lesson.quizQuestions).map(qq=>({q:qq.q||qq.question||"",choices:asArr(qq.choices||qq.options),answer:qq.answer}));
  if(quiz.length)pages.push({html:`<h2>Chapter Quiz</h2>`+quiz.map((qq,i)=>`<div class="quizq" data-quiz="${i}"><p><b>${i+1}.</b> ${esc(qq.q)}</p>${qq.choices.map((c,j)=>`<button class="opt" data-j="${j}">${esc(c)}</button>`).join("")}</div>`).join("")+`<p style="font-size:11px;color:var(--soft)">Tap an answer to mark it — your choices stay in the book.</p>`});
+ // homework / extra credit
+ const hw=lesson.homework,ec=lesson.extraCredit;
+ if(hw||ec)pages.push({html:`<h2>Take It Home</h2>`+(hw?`<p><b>Homework:</b> ${esc(hw)}</p>`:"")+(ec?`<p><b>Extra credit:</b> ${esc(ec)}</p>`:"")});
  if(pages.length%2)pages.push({html:`<div style="text-align:center;margin-top:60px;color:var(--soft);font-size:40px">🦉</div><p style="text-align:center;color:var(--soft)"><i>End of the chapter.</i></p>`});
  return pages;
 }
@@ -389,6 +413,46 @@ function renderNotes(){
   });
  });
 }
+/* ---------- chapter library ---------- */
+const btnLibrary=document.getElementById("btnLibrary");
+const libPanel=document.getElementById("libpanel");
+function bandOf(l){return String(l.gradeBand||l.grade||l.band||"All grades");}
+function libItems(){const seen={},out=[];
+ loadLessons().concat(seedLessons()).forEach(l=>{
+  if(!l||typeof l!=="object")return;
+  const id=String(l.id||l.lessonId||l.title||l.name||"");
+  if(!id||seen[id])return;seen[id]=1;out.push(l);
+ });
+ return out;
+}
+function renderLibrary(){
+ const items=libItems().sort((a,b)=>bandOf(a).localeCompare(bandOf(b))||String(a.subject||a.unit||"").localeCompare(String(b.subject||b.unit||""))||String(a.title||a.name||"").localeCompare(String(b.title||b.name||"")));
+ let h="",lastBand=null;
+ items.forEach(l=>{
+  const b=bandOf(l);
+  if(b!==lastBand){if(lastBand!==null)h+="</div>";h+=`<div class="libgroup"><h4>Grade ${esc(b)}</h4>`;lastBand=b;}
+  const id=String(l.id||l.lessonId||l.title||l.name);
+  h+=`<button class="libitem${id===lessonId?" cur":""}" data-id="${esc(id)}">${esc(b)} · ${esc(l.subject||l.unit||"Lesson")} — ${esc(l.title||l.name||id)}${isAssigned(l)?" ⭐":""}</button>`;
+ });
+ if(lastBand!==null)h+="</div>";
+ libPanel.innerHTML=h||"<p style='padding:6px'>No chapters found yet.</p>";
+}
+btnLibrary.onclick=()=>{
+ const open=libPanel.classList.toggle("open");
+ btnLibrary.classList.toggle("on",open);
+ if(open)renderLibrary();
+};
+libPanel.addEventListener("click",e=>{
+ const b=e.target.closest(".libitem");if(!b)return;
+ const id=b.dataset.id;
+ try{const u=new URL(location.href);u.searchParams.set("lesson",id);history.replaceState(null,"",u);}catch(e){}
+ location.reload();
+});
+document.addEventListener("click",e=>{
+ if(!libPanel.classList.contains("open"))return;
+ if(e.target.closest("#libpanel,#btnLibrary"))return;
+ libPanel.classList.remove("open");btnLibrary.classList.remove("on");
+});
 /* ---------- boot ---------- */
 function renderAll(){renderBook();}
 document.getElementById("lessonTag").textContent="📕 "+(lesson.title||lesson.name||lessonId)+(lesson===SAMPLE?" (sample chapter)":"");
