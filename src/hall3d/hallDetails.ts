@@ -1,6 +1,6 @@
 /** Hallway interior detail + live bulletin boards. Everything repeated is merged or instanced (about 40 extra draw calls), colours follow Mood, glow pools and instanced props drop out in low graphics. */
 import * as THREE from "three";
-import { W, H, BLOCKS, DOORS, ENTRANCE, NEWS, PROPS, LOCKERS } from "./campus";
+import { W, H, BLOCKS, DOORS, ENTRANCE, NEWS, OPEN, PROPS, LOCKERS } from "./campus";
 import { aoStrips } from "../shared/polish";
 import { QuadBatch, BoxBatch, posterAtlas, atlasUV, rugPattern, checkerTex, glowTex, starTex, bannerStripeTex, tex } from "./decor";
 import { Mood, Gfx } from "./mood";
@@ -28,12 +28,11 @@ export function buildHallDetails(S: THREE.Scene, inp: HallIn) {
   const cellFor = (i: number) => [4, 0, 5, 8, 1, 6, 2, 9, 7, 3, 11][i % 11];
   type Spot = { x: number; z: number; rot: number; k: number };
   const spots: Spot[] = []; let pi = 0;
-  for (let k = 0; k < 8; k++) {                                                                      // outer walls: x or z = 7 + 6k, between the windows
-    const g = 7 + 6 * k;
-    if (Math.abs(g - 28) > 3.4 && Math.abs(g - 19) > 1.4) spots.push({ x: gx(g), z: -H / 2, rot: 0, k });                                      // north (newsroom door, boards and clock keep clear)
-    if (g < ENTRANCE.gap.x0 - 1.5 || g > ENTRANCE.gap.x1 + 1.5) spots.push({ x: gx(g), z: H / 2, rot: Math.PI, k });                                // south (entrance)
+  for (let g = 8; g < W - 6; g += 7) {
+    if (Math.abs(g - NEWS.cx) > 4) spots.push({ x: gx(g), z: -H / 2, rot: 0, k: g });
+    if (g < ENTRANCE.gap.x0 - 1.5 || g > ENTRANCE.gap.x1 + 1.5) spots.push({ x: gx(g), z: H / 2, rot: Math.PI, k: g });
   }
-  for (let k = 0; k < 6; k++) { const g = 8 + 6 * k; if (Math.abs(g - 22) > 2.4) spots.push({ x: -W / 2, z: gz(g), rot: Math.PI / 2, k }); spots.push({ x: W / 2, z: gz(g), rot: -Math.PI / 2, k }); }
+  for (let g = 8; g < H - 6; g += 7) { if (Math.abs(g - OPEN.cy) > 2.6) { spots.push({ x: -W / 2, z: gz(g), rot: Math.PI / 2, k: g }); spots.push({ x: W / 2, z: gz(g), rot: -Math.PI / 2, k: g }); } }
   const sconces: { x: number; y: number; z: number; rot: number }[] = [], bann: { x: number; z: number; rot: number }[] = [];
   spots.forEach((s, i) => {
     put(s.x, 3.0, s.z, s.rot, s.x === gx(19) && s.rot === Math.PI ? 10 : cellFor(pi++));
@@ -85,7 +84,7 @@ export function buildHallDetails(S: THREE.Scene, inp: HallIn) {
   /* ---- rugs and floor patterns ---- */
   const flat = (m: THREE.Material, w: number, d: number, x: number, z: number, y = 0.02, geo?: THREE.BufferGeometry) => { const g = geo ?? new THREE.PlaneGeometry(w, d); if (!geo) g.rotateX(-Math.PI / 2); const me = new THREE.Mesh(g, m); me.position.set(x, y, z); me.receiveShadow = true; G.add(me); return me; };
   const rugM = (a: string, b: string, c: string, rx: number, ry: number) => { const t = rugPattern(a, b, c); t.repeat.set(rx, ry); return Mood.tinted(std({ map: t, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), "accent", 0.35); };
-  flat(rugM("#F3D9A8", "#C2456B", "#8FC9E8", 3, 2), 12, 7, gx(14), gz(22)); flat(rugM("#CDE8DA", "#4F91C7", "#EAB94E", 3, 2), 12, 7, gx(42), gz(22));
+  flat(rugM("#F3D9A8", "#C2456B", "#8FC9E8", 2, 2), 8, 6, gx(30), gz(36)); flat(rugM("#CDE8DA", "#4F91C7", "#EAB94E", 2, 2), 8, 6, gx(58), gz(36));
   const ringT = tex(512, 512, (c) => { c.translate(256, 256); const R = 256; for (const [r, col] of [[1, "#8E7CC3"], [0.95, "#F7ECD6"], [0.88, "#EAB94E"], [0.8, "#F28F7E"], [0.72, "#F7ECD6"], [0.52, "#88B89A"]] as const) { c.fillStyle = col; c.beginPath(); c.arc(0, 0, R * r, 0, 7); c.fill(); } for (let i = 0; i < 16; i++) { c.save(); c.rotate(i * Math.PI / 8); c.fillStyle = i % 2 ? "#4F91C7" : "#fff"; c.beginPath(); c.moveTo(R * 0.56, 0); c.lineTo(R * 0.67, -14); c.lineTo(R * 0.78, 0); c.lineTo(R * 0.67, 14); c.closePath(); c.fill(); c.restore(); } });
   const fc = PROPS.find((p) => p.kind === "fountain")!;
   flat(Mood.tinted(std({ map: ringT, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), "accent", 0.2), 0, 0, gx(fc.x), gz(fc.y), 0.02, new THREE.CircleGeometry(4.7, 48).rotateX(-Math.PI / 2));
@@ -94,7 +93,7 @@ export function buildHallDetails(S: THREE.Scene, inp: HallIn) {
   /* ---- plants (instanced pots + foliage), bench cushions in accent colours ---- */
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), col = new THREE.Color();
   const set = (im: THREE.InstancedMesh, i: number, x: number, y: number, z: number, ry = 0, s: [number, number, number] = [1, 1, 1]) => { q.setFromEuler(e.set(0, ry, 0)); im.setMatrixAt(i, m4.compose(v.set(x, y, z), q, sc.set(s[0], s[1], s[2]))); };
-  const pl: [number, number][] = [[1.5, 1.5], [W - 1.5, 1.5], [1.5, H - 1.5], [W - 1.5, H - 1.5], [22.8, H - 1.4], [33.2, H - 1.4], [23.2, 1.5], [32.8, 1.5], [1.4, 19.4], [1.4, 24.6], [W - 1.4, 19.4], [W - 1.4, 24.6]];
+  const pl: [number, number][] = [[1.5, 1.5], [W - 1.5, 1.5], [1.5, H - 1.5], [W - 1.5, H - 1.5], [ENTRANCE.gap.x0 - 1.4, H - 1.4], [ENTRANCE.gap.x1 + 1.4, H - 1.4], [NEWS.cx - 6, 1.5], [NEWS.cx + 6, 1.5], [1.4, OPEN.cy - 4], [1.4, OPEN.cy + 4], [W - 1.4, OPEN.cy - 4], [W - 1.4, OPEN.cy + 4]];
   const pots = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.34, 0.26, 0.5, 10), std({}), pl.length), leaf = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.46, 0), std({ flatShading: true }), pl.length), leaf2 = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.3, 0), std({ flatShading: true }), pl.length);
   const greens = ["#5E9C72", "#88B89A", "#3F7655", "#6DB085"], potCols = (i: number) => (i % 2 ? Mood.accent2 : Mood.accent);
   pl.forEach(([x, z], i) => { set(pots, i, gx(x), 0.25, gz(z), 0); set(leaf, i, gx(x), 0.98, gz(z), i, [1, 1.25, 1]); set(leaf2, i, gx(x) + 0.22, 1.5, gz(z) - 0.1, i * 2, [1, 1.1, 1]); leaf.setColorAt(i, col.set(greens[i % 4])); leaf2.setColorAt(i, col.set(greens[(i + 1) % 4])); });
@@ -141,9 +140,9 @@ export function buildHallDetails(S: THREE.Scene, inp: HallIn) {
     const draw = (d: FeedData | null) => { drawBoardCanvas(cv, heading, notes(d)); t.needsUpdate = true; }; Feed.on(draw); draw(Feed.data); return g;
   };
   const posts = (d: FeedData | null) => sortedPosts(d);
-  mkBoard(2.3, 1.53, 768, 512, gx(24.6), 3.1, -H / 2 + 0.12, 0, "TODAY & SOON", (d) => eventNotes((d?.events ?? []).slice().sort((a, b) => (b.live ? 1 : 0) - (a.live ? 1 : 0)).slice(0, 6)));
-  mkBoard(2.3, 1.53, 768, 512, gx(31.4), 3.1, -H / 2 + 0.12, 0, "SCHOOL NEWS", (d) => { const rest = posts(d).slice(6, 12), b = bannerText(d?.settings); return rest.length ? postNotes(rest) : b ? [{ icon: "📣", title: b, sub: "From the office", theme: "sun", accent: "#E8A33D", pinned: true }] : []; });
-  const pbX = gx(28), pbZ = gz(30.8);
+  mkBoard(2.3, 1.53, 768, 512, gx(NEWS.cx - 3.6), 3.1, -H / 2 + 0.12, 0, "TODAY & SOON", (d) => eventNotes((d?.events ?? []).slice().sort((a, b) => (b.live ? 1 : 0) - (a.live ? 1 : 0)).slice(0, 6)));
+  mkBoard(2.3, 1.53, 768, 512, gx(NEWS.cx + 3.6), 3.1, -H / 2 + 0.12, 0, "SCHOOL NEWS", (d) => { const rest = posts(d).slice(6, 12), b = bannerText(d?.settings); return rest.length ? postNotes(rest) : b ? [{ icon: "📣", title: b, sub: "From the office", theme: "sun", accent: "#E8A33D", pinned: true }] : []; });
+  const bb = PROPS.find((p) => p.kind === "bboard")!, pbX = gx(bb.x), pbZ = gz(bb.y);
   { const g = mkBoard(2.7, 1.8, 960, 640, pbX, 1.75, pbZ, 0, "UNIFY BULLETIN", (d) => postNotes(posts(d).slice(0, 6)), true);
     const post = new BoxBatch(); for (const sx of [-1.4, 1.4]) post.box(sx, 1.3, 0, 0.14, 2.6, 0.14, "#9A653D"); post.box(0, 1.75, 0, 2.8, 1.9, 0.08, "#8a5a33").box(0, 2.78, 0.0, 3.1, 0.14, 0.44, "#E07A66");
     const pm = post.mesh(Mood.tinted(std({ vertexColors: true }), "accent", 0.0)); pm.position.set(pbX, 0, pbZ); G.add(pm); void g; }

@@ -481,7 +481,7 @@ function start() {
     if (u && activeKid) { try { KIDS = await B.kids(u.uid); if (!KIDS.some((k) => k.id === activeKid)) { clearLocal(null); lset({ mode: "family" }); activeKid = null; } else if (await pull(u.uid, activeKid, false) && !sessionStorage.getItem("unify.family.reloaded")) { sessionStorage.setItem("unify.family.reloaded", "1"); location.reload(); return; } } catch { /* offline: keep playing */ } }
     if (!u && activeKid) activeKid = null;                                  // signed out elsewhere: stop syncing, keep playing locally
     void refreshClassmates();
-    paintBtn(); if (u && !role()) { void checkin(); return; } if (!u && lget().mode === "family") { open(); return; } if (!lget().mode && !root.classList.contains("show")) open();
+    paintBtn(); if (u && !role()) { void checkin(); return; } if (!u && lget().mode === "family") { open(); return; } if (!lget().mode) lset({ mode: "guest" });
   });
   setInterval(() => { if (document.visibilityState === "visible" && activeKid) void pushNow(); }, 15000);
   setInterval(() => { if (document.visibilityState === "visible") void refreshClassmates(); }, 60000);

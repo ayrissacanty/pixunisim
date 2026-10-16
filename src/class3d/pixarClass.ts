@@ -21,9 +21,9 @@ export function setupPixarClass(r: Classroom3D, G: ClassGeo, L: ClassLights): Cl
   const { scene, camera, renderer } = r, style = getStyle("pixar");
   const look = usePixarLook(renderer, scene, camera, { exposure: 0.88, bloom: 0.18, radius: 0.6, threshold: 1.25, env: 0.12 });
   scene.fog = new THREE.Fog(0xe8c9a0, 40, 110);
-  /* lights: warm key from the windows, cool teal fill from the right, magenta/gold rim from behind the stage */
+  /* lights: warm key from the windows, cool teal fill from the right, one warm rim */
   L.sun.position.set(-13, 8.5, 4.5); L.sun.shadow.radius = 7; L.sun.shadow.mapSize.set(Math.min(L.sun.shadow.mapSize.x, 2048), Math.min(L.sun.shadow.mapSize.y, 2048));
-  const fill = new THREE.DirectionalLight(0x8fd2ff, 0.3); fill.position.set(10, 6, 9); const rim = new THREE.DirectionalLight(0xff8fd0, 0.7); rim.position.set(-4, 6, -14); const warmPt = new THREE.PointLight(0xffb066, 9 * IS * IS, 12 * IS, 1.6); warmPt.position.set(0, 3.6, -6.5);
+  const fill = new THREE.DirectionalLight(0x8fd2ff, 0.28); fill.position.set(10, 6, 9); const rim = new THREE.DirectionalLight(0xffe0b0, 0.32); rim.position.set(-4, 6, -14); const warmPt = new THREE.PointLight(0xffb066, 9 * IS * IS, 12 * IS, 1.6); warmPt.position.set(0, 3.6, -6.5);
   scene.add(fill, rim, warmPt);
   const hemiSky = new THREE.Color(0xcfe8ff), hemiGnd = new THREE.Color(0xffc98a), sunC = new THREE.Color(0xffcf94);
 
@@ -33,7 +33,7 @@ export function setupPixarClass(r: Classroom3D, G: ClassGeo, L: ClassLights): Cl
   const shafts = [-6.2, -2.6, 1.0, 4.6, 7.8].map((z) => { const a = new THREE.Vector3(G.X0 + 0.3, 4.15, z - 0.9), b = new THREE.Vector3(G.X0 + 0.3, 4.15, z + 0.9), m = lightShaft(a, b, dir, 11, 0xffd9a0, 0.1, 1.5); P.add(m); return m.material as THREE.MeshBasicMaterial; });
   const dust = dustMotes({ x0: G.X0 + 1, x1: G.X1 - 1, y0: 0.4, y1: 4.6, z0: G.Z0 + 1, z1: G.Z1 - 1 }, 150, "#fff0c8", 0.07, 0.6); P.add(dust.points);
   const lampM = new THREE.MeshStandardMaterial({ color: "#fff1d6", emissive: new THREE.Color("#ffb454"), emissiveIntensity: 3.2, roughness: 0.4 });
-  const lampCols = [0xffb454, 0xff7fb0, 0x6fd6e0, 0xffd45a];
+  const lampCols = [0xffb454, 0xff8a62, 0x8fd6c8, 0xffd45a];
   [[-4, -5.2], [4, -5.2], [-4, 0.5], [4, 0.5], [-4, 5.5], [4, 5.5]].forEach(([x, z], i) => {
     const m = lampM.clone(); m.emissive.set(lampCols[i % 4]); const g = new THREE.Group(), s = new THREE.Mesh(new THREE.SphereGeometry(0.28, 20, 14), m); s.scale.y = 1.15; g.add(s);
     const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1, 6), new THREE.MeshStandardMaterial({ color: "#6b4a3a" })); cord.position.y = 0.64; cord.scale.y = 0.9; g.add(cord);

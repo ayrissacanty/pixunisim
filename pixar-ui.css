@@ -19,19 +19,12 @@ html[data-look="pixar"][data-theme] {
   color-scheme: light;
 }
 
-html[data-look="pixar"] { background: linear-gradient(170deg, #FFE3B8 0%, #FFD0B0 48%, #D9CBF5 100%) fixed; }
+html[data-look="pixar"] { background: linear-gradient(170deg, #FFF1DE 0%, #FFD7B0 55%, #F3C49A 100%) fixed; }
 html[data-look="pixar"] body { font-family: var(--ui); font-weight: 500; color: var(--ink); background-color: transparent; }
 html[data-look="pixar"] body.embedded { background: transparent; }
 html[data-look="pixar"] h1, html[data-look="pixar"] h2, html[data-look="pixar"] h3, html[data-look="pixar"] .brand { font-weight: 700; letter-spacing: .2px; }
 html[data-look="pixar"] h1, html[data-look="pixar"] .brand { text-shadow: 0 2px 0 rgba(255, 255, 255, .75), 0 5px 12px var(--px-ind); }
 html[data-look="pixar"] b, html[data-look="pixar"] strong { font-weight: 700; }
-
-/* subtle star-sparkle accents */
-html[data-look="pixar"] h1::after, html[data-look="pixar"] .brand::after {
-  content: "\2726"; display: inline-block; margin-left: .35em; font-size: .6em; vertical-align: .55em; color: #F2A93B;
-  text-shadow: 0 0 8px rgba(255, 200, 90, .9); animation: px-twinkle 3.2s ease-in-out infinite;
-}
-@keyframes px-twinkle { 0%, 100% { opacity: .55; transform: scale(.8) rotate(0deg); } 50% { opacity: 1; transform: scale(1.15) rotate(18deg); } }
 
 /* nav bars: pill rail */
 html[data-look="pixar"] .tabs { background: transparent; }

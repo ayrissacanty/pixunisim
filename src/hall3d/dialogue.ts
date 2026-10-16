@@ -249,7 +249,7 @@ export class Convo {
   }
   private lightChoose(id: string): Reply {
     const n = this.npc, r = this.r;
-    if (id === "lt_help") return this.reply(pick(r, ["The classrooms are around the plaza: Math and ELA up top, Science and History down below. The stairs down to the auditorium are by the Newsroom wire. Ask a teacher if you're unsure.", "Check the bulletin board by the front door for class times. And the lockers are along the walls, find the one with your name.", "If you're stuck on schoolwork, your teacher is the best help. I can tell you where the room is, though!"]), { delta: 0, options: this.menu() });
+    if (id === "lt_help") return this.reply(pick(r, ["The classrooms are around the plaza: Math and ELA up top, Science and History down below. The library is up the stairs by the fountain. Ask a teacher if you're unsure.", "Check the bulletin board by the front door for class times. And the lockers are along the walls, find the one with your name.", "If you're stuck on schoolwork, your teacher is the best help. The library upstairs is a quiet place to read."]), { delta: 0, options: this.menu() });
     if (id === "lt_hi") return this.reply(pick(r, ["Thanks! That was kind. You too!", "Aw, thank you. Have a great day!", "That made my day. Thanks!"]), { delta: 0, mood: "happy", options: this.menu() });
     const t = trendOfBand(bandOf(n.age), n.id); return this.reply(`In my grade, a lot of kids are into ${t}. It's a thing right now.`, { delta: 0, options: this.menu() });
   }

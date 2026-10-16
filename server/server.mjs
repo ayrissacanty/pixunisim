@@ -234,7 +234,7 @@ function mockResponse(url) {
 //   /api/broadcast     -> live weather + local/national/world stories
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, '..');
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.css': 'text/css', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.css': 'text/css', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json', '.md': 'text/markdown; charset=utf-8' };
 function resolveStatic(pathname) {
   let p = decodeURIComponent(pathname);
   if (p === '/') p = '/index.html';
@@ -270,4 +270,4 @@ http.createServer(async (req, res) => {
     res.writeHead(200, { 'content-type': MIME[path.extname(file)], 'cache-control': file.endsWith('.png') ? 'public, max-age=3600' : 'no-cache' });
     res.end(body);
   } catch { res.writeHead(404); res.end('not found'); }
-}).listen(PORT, () => console.log(`UNIFY academy on http://localhost:${PORT}  (feed: /api/broadcast?city=Atlanta&grade=6)`));
+}).listen(PORT, '0.0.0.0', () => console.log(`UNIFY academy on http://0.0.0.0:${PORT}  (feed: /api/broadcast?city=Atlanta&grade=6)`));

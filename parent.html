@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>UNIFY Parent View</title>
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
 <style>
 :root{--sheet:#EADFCB;--kraft:#F3E7CF;--edge:#C9B28A;--ink:#4A3B3F;--soft:#8A7A70;--acc:#E07A66;--blue:#4F91C7;--ui:"Fredoka","Trebuchet MS",system-ui,sans-serif}
 *{box-sizing:border-box}body{margin:0;background:var(--sheet);color:var(--ink);font:16px/1.4 var(--ui);padding:max(16px,env(safe-area-inset-top)) 16px 32px}
@@ -26,25 +26,42 @@ main{max-width:640px;margin:0 auto}h1{font-size:24px;margin:0 0 2px}h2{font-size
 <script src="supabase-config.js"></script>
 <script src="supabase-client.js"></script>
 <script type="module">
-const $=document.getElementById('m'),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $=document.getElementById('m'),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
 const hm=m=>{const h=Math.floor(m/60)%24,mm=m%60;return`${h%12||12}:${String(mm).padStart(2,'0')} ${h<12?'AM':'PM'}`;};
-const SC={math:'#4F91C7',ela:'#88B89A',science:'#5E9C72',history:'#C98569'};
+const SC={math:'#4F91C7',ela:'#88B89A',science:'#5E9C72',history:'#C98569',careers:'#E8A33D',life:'#7CB6A0'};
+const SUBJ=[{k:'math',n:'Math',t:'Mr. Tanaka',c:'#4F91C7'},{k:'ela',n:'ELA',t:'Ms. Ayrissa',c:'#88B89A'},{k:'science',n:'Science',t:'Ms. Okafor',c:'#5E9C72'},{k:'history',n:'History',t:"Mr. O'Brien",c:'#C98569'},{k:'careers',n:'CarryingCareers',t:'Mr. Haddad',c:'#E8A33D'},{k:'life',n:'Life Lessons',t:'Dr. Larsen',c:'#7CB6A0'}];
 const fail=t=>{$.innerHTML=`<h1>UNIFY Parent View</h1><div class="err">${esc(t)}</div>`;};
+const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}};
+function paint(d,local){
+  const hw=[...(d.homework||[])].sort((a,b)=>Number(a.done)-Number(b.done)||(a.due||0)-(b.due||0)),dt=t=>new Date(t).toLocaleString(undefined,{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  $.innerHTML=`<h1>${esc(d.name||'Student')}</h1><p class="sub">${local?'On this device. ':''}Updated ${esc(dt(d.updated))}. Read only: homework, today's schedule and the next two weeks.</p>
+  <h2>Homework</h2>${hw.length?hw.map(h=>`<div class="card" style="border-left-color:${SC[h.s]||'#C9B28A'}"><b class="${h.done?'done':''}">${esc(h.text)}</b><small>${h.done?'Done':(h.due<Date.now()?'Overdue · ':'Due ')+esc(dt(h.due))}</small></div>`).join(''):'<p class="sub">Nothing assigned yet. When class ends, the homework shows up here and on the phone.</p>'}
+  <h2>Today's schedule</h2>${(d.schedule||[]).map(s=>`<div class="card" style="border-left-color:${esc(s.c||'#C9B28A')}"><b>${esc(s.n)}</b><small>${hm(s.s)} – ${hm(s.e)}${s.sub?' · '+esc(s.sub):''}</small></div>`).join('')||'<p class="sub">No classes picked yet.</p>'}
+  <h2>Coming up</h2>${d.events&&d.events.length?d.events.sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||''))).map(e=>`<div class="card" style="border-left-color:${SC[e.s]||'#C9B28A'}"><b>${esc(e.title)}</b><small>${esc(new Date(e.date+'T12:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}))}${e.time?' · '+hm(+e.time.slice(0,2)*60+ +e.time.slice(3)):''}</small></div>`).join(''):'<p class="sub">No events in the next two weeks.</p>'}
+  <p class="note">${local?'This page reads homework saved on this device. Messages stay on the phone.':'Messages and anything else on the phone are never shared. Your child can stop sharing at any time from Settings.'}</p>`;
+}
+function localSnap(){
+  const settings=read('flip.settings')||{}, social=read('unify.social.v1'), prog=read('unify.progress.v1')||{};
+  const name=(settings.name&&settings.name!=='You')?settings.name:(social&&social.profile&&social.profile.name)||'Student';
+  const rawHw=read('flip.homework');
+  const HW=(Array.isArray(rawHw)?rawHw:[]).filter(h=>h&&typeof h.text==='string').map(h=>({s:h.s||'',text:h.text,due:h.due||0,done:!!h.done}));
+  const n=new Date(),key=ymd(n),day=(prog.days||{})[key]||{};
+  const pk=Object.keys(day).map(x=>({k:x.replace('-extra',''),x:x.indexOf('-extra')>0,min:day[x].min})).sort((a,b)=>a.min-b.min);
+  const schedule=pk.length?pk.map(p=>{const sj=SUBJ.find(x=>x.k===p.k)||SUBJ[0];return{n:(p.x?'Extra lesson: ':'Class: ')+sj.n,s:p.min,e:p.min+50,sub:sj.t+' · '+sj.n,c:sj.c};}):[{n:"Walk into a class to start today's lesson",s:9*60,e:9*60+50,sub:'Homework is assigned when the lesson ends',c:'#C9B28A'}];
+  const today=key,lim=ymd(new Date(Date.now()+14*864e5));
+  const rawEv=read('flip.events');
+  const events=(Array.isArray(rawEv)?rawEv:[]).filter(e=>e&&e.date>=today&&e.date<=lim).map(e=>({title:e.title,date:e.date,time:e.time||'',s:e.s||''}));
+  return{name,updated:Date.now(),homework:HW,schedule,events};
+}
 const code=(new URLSearchParams(location.search).get('code')||'').trim().toUpperCase();
-if(!/^[A-Z0-9]{8,16}$/.test(code))fail('This link is missing its code. Ask your child to share it again from Settings on their phone.');
+if(!code){paint(localSnap(),true);addEventListener('storage',e=>{if(!e.key||e.key==='flip.homework'||e.key==='flip.events'||e.key==='unify.progress.v1'||e.key==='flip.settings')paint(localSnap(),true);});}
+else if(!/^[A-Z0-9]{8,16}$/.test(code))fail('This link is missing its code. Ask your child to share it again from Settings on their phone.');
 else try{
  let shareJson=null;
  if(window.__SUPABASE){const r=await fetch(window.__SUPABASE.url+'/rest/v1/rpc/get_share',{method:'POST',headers:{apikey:window.__SUPABASE.key,Authorization:'Bearer '+window.__SUPABASE.key,'Content-Type':'application/json'},body:JSON.stringify({p_code:code})});if(!r.ok)throw new Error('share lookup failed');const rows=await r.json();shareJson=rows&&rows[0]?rows[0].data:null;}
-
  if(!shareJson)fail('This link has stopped working. Ask your child to share it again from Settings on their phone.');
- else{
-  const d=JSON.parse(shareJson),hw=[...d.homework].sort((a,b)=>a.done-b.done||a.due-b.due),dt=t=>new Date(t).toLocaleString(undefined,{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
-  $.innerHTML=`<h1>${esc(d.name)}</h1><p class="sub">Updated ${esc(dt(d.updated))}. Read only: homework, today's schedule and the next two weeks.</p>
-  <h2>Homework</h2>${hw.length?hw.map(h=>`<div class="card" style="border-left-color:${SC[h.s]||'#C9B28A'}"><b class="${h.done?'done':''}">${esc(h.text)}</b><small>${h.done?'Done':(h.due<Date.now()?'Overdue · ':'Due ')+esc(dt(h.due))}</small></div>`).join(''):'<p class="sub">Nothing assigned right now.</p>'}
-  <h2>Today's schedule</h2>${d.schedule.map(s=>`<div class="card" style="border-left-color:${esc(s.c||'#C9B28A')}"><b>${esc(s.n)}</b><small>${hm(s.s)} – ${hm(s.e)}${s.sub?' · '+esc(s.sub):''}</small></div>`).join('')}
-  <h2>Coming up</h2>${d.events.length?d.events.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).map(e=>`<div class="card" style="border-left-color:${SC[e.s]||'#C9B28A'}"><b>${esc(e.title)}</b><small>${esc(new Date(e.date+'T12:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}))}${e.time?' · '+hm(+e.time.slice(0,2)*60+ +e.time.slice(3)):''}</small></div>`).join(''):'<p class="sub">No events in the next two weeks.</p>'}
-  <p class="note">Messages and anything else on the phone are never shared. Your child can stop sharing at any time from Settings.</p>`;
- }
+ else paint(JSON.parse(shareJson),false);
 }catch(e){fail('Could not load this page. Check your connection and try again.');}
 </script>
 <script type="module">

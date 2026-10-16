@@ -3,7 +3,7 @@ import * as THREE from "three";
 
 export const smallScreen = () => { try { return Math.min(innerWidth, innerHeight) < 700 || /Mobi|Android/i.test(navigator.userAgent); } catch { return false; } };
 /** pixel ratio cap: 2 on desktop, 1.5 on phones */
-export const dprCap = () => Math.min(devicePixelRatio || 1, smallScreen() ? 1.5 : 2);
+export const dprCap = () => Math.min(devicePixelRatio || 1, smallScreen() ? 1.25 : 2);
 /** shadow map edge: 1024 on small screens */
 export const shadowSize = (max = 2048) => (smallScreen() ? Math.min(1024, max) : max);
 

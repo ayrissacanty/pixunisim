@@ -16,7 +16,7 @@ import type { AvatarSpec } from "./avatar";
 import type { Person, Stu } from "./HallScene";
 import { Mood, Gfx } from "./mood";
 import { smallScreen, dprCap } from "../shared/polish";
-import { W, H } from "./campus";
+import { W, H, PROPS } from "./campus";
 
 const KEY = new THREE.Color("#ffc878"), TEAL = new THREE.Color("#a9dff0"), PEACH = new THREE.Color("#f4a77a"), HAZE = new THREE.Color("#f3d2bb"), NIGHT_HAZE = new THREE.Color("#2b2650");
 const hash = (a: number, b: number) => { const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return n - Math.floor(n); };
@@ -72,7 +72,7 @@ export class PixarCrowd {
     e.yaw = lerpAngle(e.yaw, e.ty, 1 - Math.exp(-dt * 11));
     const act = p.act ? ACT[p.act.name] : undefined, anim: Anim = seated ? "sit" : p.moving ? "walk" : act ?? (p.speaking || p.talking ? "talk" : "idle");
     c.play(anim); c.speak(!!p.speaking); const st = p.moving ? Math.min(1.7, Math.max(0.75, (isP ? 4.3 : (p as Stu).speed ?? 2.4) / 2.4)) : 1; c.update(dt * st);
-    c.root.position.set(p.pos.x, seated ? 0.46 - c.seatHeight * CHAR_K : 0, p.pos.z); c.root.rotation.y = e.yaw;
+    c.root.position.set(p.pos.x, (seated ? 0.46 - c.seatHeight * CHAR_K : 0) + p.pos.y, p.pos.z); c.root.rotation.y = e.yaw;
     const f = (p as Stu).fade ?? 1; c.root.scale.setScalar(Math.max(0.02, f) * CHAR_K);
     c.root.visible = isP ? x.shown : !(x.first && this.tmp.set(p.pos.x, 0, p.pos.z).distanceTo(this.camLocal.copy(x.camera.position).divideScalar(IS)) < 1.1 / IS);
     void anim;
@@ -89,7 +89,7 @@ export class PixarHall {
     this.skyCv.width = 4; this.skyCv.height = 128; this.skyTex = new THREE.CanvasTexture(this.skyCv); this.skyTex.colorSpace = THREE.SRGBColorSpace; scene.background = this.skyTex;
     this.fog = scene.fog = new THREE.Fog(HAZE.getHex(), 55 * IS, 210 * IS);
     sun.color.copy(KEY); sun.intensity = 1.7; hemi.color.copy(TEAL); hemi.groundColor.copy(PEACH); hemi.intensity = 0.42;
-    this.rim1 = new THREE.DirectionalLight("#5fd0ff", 1.1); this.rim1.position.set(-12, 9, -15); this.rim2 = new THREE.DirectionalLight("#ff8fc0", 0.7); this.rim2.position.set(14, 7, -12);
+    this.rim1 = new THREE.DirectionalLight("#9fd4ea", 0.55); this.rim1.position.set(-12, 9, -15); this.rim2 = new THREE.DirectionalLight("#ffe2b8", 0.35); this.rim2.position.set(14, 7, -12);
     this.warm = new THREE.PointLight("#ff9a5a", 5 * IS * IS, 9 * IS, 2); this.cool = new THREE.PointLight("#6fc6ff", 3 * IS * IS, 10 * IS, 2);
     scene.add(this.rim1, this.rim2, this.warm, this.cool); this.crowd = new PixarCrowd(scene); this.paintSky(); Mood.onChange(() => this.paintSky());
     this.resize(r.domElement.clientWidth || innerWidth, r.domElement.clientHeight || innerHeight);
@@ -104,7 +104,7 @@ export class PixarHall {
     const n = Mood.night; void t;
     this.sun.color.copy(KEY).lerp(Mood.sun, 0.18 + 0.6 * n); this.sun.intensity = 1.7 * Mood.sunK;
     this.hemi.color.copy(TEAL).lerp(Mood.hemiSky, 0.12 + 0.4 * n); this.hemi.groundColor.copy(PEACH).lerp(Mood.hemiGnd, 0.15); this.hemi.intensity = 0.42 * Mood.hemiK;
-    this.rim1.intensity = 1.1 * (1 - 0.5 * n); this.rim2.intensity = 0.7 * (1 - 0.5 * n); this.scene.environmentIntensity = 0.18 * (1 - 0.6 * n);
+    this.rim1.intensity = 0.55 * (1 - 0.45 * n); this.rim2.intensity = 0.35 * (1 - 0.45 * n); this.scene.environmentIntensity = 0.18 * (1 - 0.6 * n);
     this.warm.position.set(player.x + 1.6, 0.7, player.z + 1.2); this.cool.position.set(player.x - 2.4, 3.2, player.z - 2.6);
     if (this.shafts) (this.shafts.material as THREE.MeshBasicMaterial).color.setScalar((1 - n) * 0.35);
   }
@@ -116,7 +116,7 @@ export class PixarHall {
       if (!this.composer) {
         const pr = this.r.getPixelRatio(), small = smallScreen(), rt = new THREE.WebGLRenderTarget(this.w * pr, this.h * pr, { type: THREE.HalfFloatType, samples: small ? 0 : 4 });
         const cp = this.composer = new EffectComposer(this.r, rt); cp.setPixelRatio(pr); cp.setSize(this.w, this.h);
-        cp.addPass(new RenderPass(this.scene, this.cam)); this.bloom = new UnrealBloomPass(new THREE.Vector2(this.w / 2, this.h / 2), small ? 0.2 : 0.3, 0.5, 1.1); cp.addPass(this.bloom);   // bloom runs at half resolution
+        cp.addPass(new RenderPass(this.scene, this.cam)); if (!small) { this.bloom = new UnrealBloomPass(new THREE.Vector2(this.w / 2, this.h / 2), 0.22, 0.45, 1.15); cp.addPass(this.bloom); }   // phones skip bloom
         cp.addPass(new ShaderPass(GRADE)); cp.addPass(new OutputPass());
         if (small) { const fx = new ShaderPass(FXAAShader); fx.uniforms.resolution.value.set(1 / (this.w * pr), 1 / (this.h * pr)); cp.addPass(fx); }
       }
@@ -169,16 +169,17 @@ export class PixarHall {
     const S = this.scene, m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color(), bulbs: [number, number, number][] = [];
     const run = (x0: number, z0: number, x1: number, z1: number) => { const len = Math.hypot(x1 - x0, z1 - z0), k = Math.floor(len / 1.1); for (let i = 0; i <= k; i++) { const u = i / k; bulbs.push([x0 + (x1 - x0) * u, 3.62 - Math.sin(u * Math.PI * (len / 6)) * 0.12, z0 + (z1 - z0) * u]); } };
     const a = W / 2 - 0.5, b = H / 2 - 0.5; run(-a, -b, a, -b); run(-a, -b, -a, b); run(a, -b, a, b);
-    for (let i = 0; i < 28; i++) { const t = (i / 28) * Math.PI * 2; bulbs.push([Math.cos(t) * 5.6, 4.4, Math.sin(t) * 5.6]); }
-    const cols = ["#ffb35a", "#ff7aa8", "#7fe0ff", "#ffe27a", "#b9a0ff"], bm = new THREE.InstancedMesh(new THREE.SphereGeometry(0.1, 10, 8), new THREE.MeshBasicMaterial({ toneMapped: false }), bulbs.length);
+    const fc = PROPS.find((p) => p.kind === "fountain")!, fx = fc.x - W / 2, fz = fc.y - H / 2;
+    for (let i = 0; i < 28; i++) { const t = (i / 28) * Math.PI * 2; bulbs.push([fx + Math.cos(t) * 5.6, 4.4, fz + Math.sin(t) * 5.6]); }
+    const cols = ["#ffb35a", "#ffd27a", "#7fe0ff", "#ffe27a", "#fff1c9"], bm = new THREE.InstancedMesh(new THREE.SphereGeometry(0.1, 10, 8), new THREE.MeshBasicMaterial({ toneMapped: false }), bulbs.length);
     bulbs.forEach((p, i) => { bm.setMatrixAt(i, m4.compose(new THREE.Vector3(...p), q, new THREE.Vector3(1, 1.25, 1))); bm.setColorAt(i, c.set(cols[i % 5]).multiplyScalar(2.4)); }); S.add(bm);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(5.6, 0.014, 4, 80), new THREE.MeshBasicMaterial({ color: "#5a3d2a" })); ring.rotation.x = Math.PI / 2; ring.position.y = 4.4; S.add(ring);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(5.6, 0.014, 4, 80), new THREE.MeshBasicMaterial({ color: "#5a3d2a" })); ring.rotation.x = Math.PI / 2; ring.position.set(fx, 4.4, fz); S.add(ring);
     const spots: { x: number; z: number; s: number }[] = [];
     for (let i = 0; i < 70; i++) { const x = (hash(i, 21) - 0.5) * 52; if (Math.abs(x) < 6.5) continue; spots.push({ x, z: H / 2 + 1.5 + hash(i, 22) * 2.4, s: 0.55 + hash(i, 23) * 0.55 }); }
     const bush = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 3), new THREE.MeshStandardMaterial({ roughness: 0.7 }), spots.length), fl = new THREE.InstancedMesh(new THREE.SphereGeometry(0.11, 8, 6), new THREE.MeshStandardMaterial({ roughness: 0.5, emissive: "#ffffff", emissiveIntensity: 0.18 }), spots.length * 3);
-    const greens = ["#4fb06c", "#6cc57f", "#3f9a62", "#7bd18a"], fc = ["#ff6f91", "#ffd23f", "#ffffff", "#b58cff", "#ff9a3c"];
+    const greens = ["#4fb06c", "#6cc57f", "#3f9a62", "#7bd18a"], petal = ["#ff8a6a", "#ffd23f", "#ffffff", "#fff1c9", "#ff9a3c"];
     spots.forEach((p, i) => { bush.setMatrixAt(i, m4.compose(new THREE.Vector3(p.x, p.s * 0.75, p.z), q, new THREE.Vector3(p.s, p.s * 0.85, p.s))); bush.setColorAt(i, c.set(greens[i % 4]));
-      for (let k = 0; k < 3; k++) { const an = hash(i, 30 + k) * 6.28, r = p.s * (0.55 + 0.3 * hash(i, 40 + k)); fl.setMatrixAt(i * 3 + k, m4.compose(new THREE.Vector3(p.x + Math.cos(an) * r * 0.7, p.s * (0.95 + 0.3 * hash(i, 50 + k)), p.z + Math.sin(an) * r * 0.7 + 0.35 * p.s), q, new THREE.Vector3(1, 1, 1))); fl.setColorAt(i * 3 + k, c.set(fc[(i + k) % 5])); } });
+      for (let k = 0; k < 3; k++) { const an = hash(i, 30 + k) * 6.28, r = p.s * (0.55 + 0.3 * hash(i, 40 + k)); fl.setMatrixAt(i * 3 + k, m4.compose(new THREE.Vector3(p.x + Math.cos(an) * r * 0.7, p.s * (0.95 + 0.3 * hash(i, 50 + k)), p.z + Math.sin(an) * r * 0.7 + 0.35 * p.s), q, new THREE.Vector3(1, 1, 1))); fl.setColorAt(i * 3 + k, c.set(petal[(i + k) % 5])); } });
     bush.castShadow = true; bush.receiveShadow = true; S.add(bush, fl);
   }
 }

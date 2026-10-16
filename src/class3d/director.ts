@@ -85,7 +85,7 @@ export class Director {
     this.ui.labReady(lesson.lab); await this.say(t, `${lesson.lab.title}: ${lesson.lab.intro} Click the 3D model or the Try it button.`, R.auto ? "demo" : undefined, 2500); }
     // 8. wrap up
     R.setTeacherMode("idle"); await this.go(t, "center", [0, 1]); if (R.auto) R.setMode("wide"); const wr = R.react("wrap"); await this.say(t, `${wr ? wr + " " : ""}${lesson.wrap} Homework: ${lesson.homework}`, undefined, 1500);
-    if (parent !== window) parent.postMessage({ type: "unify:event", kind: "homework", subject: lesson.subject, text: lesson.homework }, "*");
+    if (parent !== window) parent.postMessage({ type: "unify:event", kind: "homework", subject: lesson.subject, id: lesson.id, title: lesson.title, text: `${lesson.title}: ${lesson.homework}` }, "*");
     Social.edit(this.T.id, (mm) => { mm.topics.push("lesson:" + lesson.id); if (mm.topics.length > 24) mm.topics.shift(); });
     this.running = false; this.ui.step("Class dismissed. Ask questions or try the lab", n, n); this.ui.done?.(lesson);
   }

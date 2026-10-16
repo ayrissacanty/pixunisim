@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#E07A66"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Flip Phone"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src="phone-config.js"></script><script src="supabase-config.js"></script><script src="supabase-client.js"></script><script>if(window.PHONE_CONFIG&&PHONE_CONFIG.networkLocalOnly)window.__PHONE_NET_LOCAL=true;</script><script src="phone-net.js"></script><link rel="manifest" href="phone.webmanifest"><link rel="icon" href="phone-icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
 <style>
 /* UNIFY Flip Phone: a 2D clamshell that opens two ways (flip-up or side-swivel). Same paper-cut palette as the rest of the academy. */
 :root{--sheet:#EADFCB;--kraft:#F3E7CF;--edge:#C9B28A;--ink:#4A3B3F;--soft:#8A7A70;--acc:#E07A66;--acc2:#b95a48;--blue:#4F91C7;--lcd:#EEF2E2;--lcd2:#DDE5CC;--ok:#6BAF7B;
@@ -587,7 +587,7 @@ const evLast={};const cool=(k,ms)=>{const n=Date.now();if(evLast[k]&&n-evLast[k]
 const tomorrowAt=(h,m)=>{const d=new Date();d.setDate(d.getDate()+1);d.setHours(h,m,0,0);return d;};
 const teacherFor=s=>CONTACTS.find(c=>c.k==='teacher'&&c.s===s);
 function onEvent(m){const SN={math:'Math',ela:'ELA',science:'Science',history:'History',careers:'CarryingCareers',life:'Life Lessons'};
- if(m.kind==='homework'&&m.subject){const t=(m.text||(PD&&PD.LESSONS[m.subject]&&PD.LESSONS[m.subject].homework)||'').trim();if(!t||!cool('hw-'+m.subject,3*60e3))return;const c=teacherFor(m.subject)||cById('mom'),sub=SN[m.subject]||'Class',due=tomorrowAt(7,30);
+ if(m.kind==='homework'&&m.subject){const t=(m.text||(PD&&PD.LESSONS[m.subject]&&PD.LESSONS[m.subject].homework)||'').trim();if(!t||!cool('hw-'+(m.id||m.subject),90e3))return;const c=teacherFor(m.subject)||cById('mom'),sub=SN[m.subject]||'Class',due=tomorrowAt(7,30);
   incoming(c.id,`Homework: ${t} Due tomorrow morning.`,c.n);addHomework({s:m.subject,text:t,due:due.getTime()});addReminder(`${sub} homework: ${t}`,due.getTime());addEvent({title:`${sub} homework due`,date:ymd(due),time:'07:30',s:m.subject});toast('📝 Homework saved to Homework, Reminders and Calendar');}}
 /* ---------------------------------------------------------------- host hooks (game / shell) */
 addEventListener('message',e=>{const m=e.data;if(!m||typeof m!=='object')return;

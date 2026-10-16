@@ -1,6 +1,7 @@
 import { Classroom3D, type CamMode } from "../src/class3d/Classroom3D";
 import { Director } from "../src/class3d/director";
 import { ALL_LESSONS, CURRICULUM, type LessonDef } from "../src/class3d/curriculum";
+import { bandLessons } from "../src/class3d/gradeband";
 import { Progress, SUBJECT_NAME } from "../src/game/progress";
 import { openTimes } from "../src/game/timesui";
 import { Placement, runPlacement } from "../src/game/placement";
@@ -63,7 +64,8 @@ const ui = {
   done(l: LessonDef) {
     if (l.elective) { Progress.completeExtra(l.subject as Subject, l.id); this.caption("Class", `Elective lesson done: ${l.title}. Open More, then Textbook, to read more, or Electives to pick another.`, 10000); return; }
     if (l.extra) { Progress.completeExtra(l.subject as Subject, l.id); paintExtra(); const pl = Placement.plan(l.subject as Subject); this.caption("Class", pl?.next ? `Extra lesson done! Next extra lesson: ${pl.next.title}. Your regular class is still waiting.` : "Extra lessons done: you are caught up with your class!", 10000); return; }
-    const list = CURRICULUM[l.subject], next = Progress.complete(l.subject, l.id, list.length); room.refreshBoard(); const b = $("bNext"); b.hidden = false; b.textContent = `Next lesson: ${list[next].title}`; $("moreDot").classList.add("on"); this.caption("Class", `Lesson complete! The next lesson is open: ${list[next].title}. Open More and choose Next lesson to get ahead.`, 12000);
+    const list = bandLessons(CURRICULUM[l.subject]);
+    const next = Progress.complete(l.subject, l.id, list.length); room.refreshBoard(); const b = $("bNext"); b.hidden = false; b.textContent = `Next lesson: ${list[next].title}`; $("moreDot").classList.add("on"); this.caption("Class", `Lesson complete! The next lesson is open: ${list[next].title}. Open More and choose Next lesson to get ahead.`, 12000);
   },
   book(ref: string) { curRef = ref; $("bBook").classList.add("on"); $("moreDot").classList.add("on"); },
   setTitle(t: string) { $("ltitle").textContent = t; },
@@ -72,13 +74,13 @@ const director = new Director(room, ui); (window as any).__dir = director;
 
 /* ---- the lesson is set by the class you walked into (today's lesson for that subject); students can't pick one ---- */
 async function start(s: Subject, att: number[] = lastAtt) {
-  const tok = ++startTok; lastAtt = att; subject = s; const list = CURRICULUM[s];
+  const tok = ++startTok; lastAtt = att; subject = s; const list = bandLessons(CURRICULUM[s]);
   if (Progress.assessOn && !Progress.assessment()) { room.inputLocked = true; await runPlacement(); room.inputLocked = false; if (tok !== startTok) return; }
   begin(list[Progress.index(s, list.length)], att);
 }
 /** run one lesson: a regular one, or an extra (catch-up) lesson that sits beside regular classes */
 function begin(l: LessonDef, att: number[] = lastAtt) {
-  lesson = l; subject = l.subject as Subject; $("subj").textContent = (l.elective ? "Elective · " + l.elective : l.extra ? "Extra · " + SUBJECT_NAME[subject] : SUBJECT_NAME[subject]); curRef = l.bookRef ?? ""; $("bBook").classList.remove("on"); ($("bLab") as HTMLButtonElement).hidden = !l.lab.id;
+  lesson = l; subject = l.subject as Subject; $("subj").textContent = (l.elective ? "Elective · " + l.elective : l.extra ? "Extra · " + SUBJECT_NAME[subject] : SUBJECT_NAME[subject]) + (l.grades ? ` · grades ${l.grades}` : ""); curRef = l.bookRef ?? ""; $("bBook").classList.remove("on"); ($("bLab") as HTMLButtonElement).hidden = !l.lab.id;
   room.assign(att); life.stop(); life.lesson = lesson; chat.close(); $("bLab").classList.remove("on"); $("moreDot").classList.remove("on"); ($("bNext") as HTMLButtonElement).hidden = true; room.auto = true; markCam("auto"); room.refreshBoard(subject); paintExtra();
   void director.run(lesson); void life.start(subject);
 }
@@ -117,10 +119,10 @@ room.onTapPic = (pid) => { room.inputLocked = true; openPic(pid, { lesson: lesso
 room.onTapDemo = openLab; $("bLab").onclick = openLab;
 
 /* ---- shell integration ---- */
-const ready = Packs.loadBundled();
 let wanted: string | null = params.get("subject"), wantedAtt: number[] = [];
-addEventListener("message", (e) => { const d = e.data; if (d && d.type === "unify:lesson" && SUBJECTS.includes(d.subject)) ready.then(() => start(d.subject, Array.isArray(d.attendees) ? d.attendees.filter((x: any) => Number.isInteger(x)) : [])); else if (d && d.type === "unify:exit") { director.stop(); life.stop(); } });
-ready.then(() => start(SUBJECTS.includes(wanted as Subject) ? (wanted as Subject) : "math"));
+addEventListener("message", (e) => { const d = e.data; if (d && d.type === "unify:lesson" && SUBJECTS.includes(d.subject)) start(d.subject, Array.isArray(d.attendees) ? d.attendees.filter((x: any) => Number.isInteger(x)) : []); else if (d && d.type === "unify:exit") { director.stop(); life.stop(); } });
+start(SUBJECTS.includes(wanted as Subject) ? (wanted as Subject) : "math").catch((e) => console.error("lesson start failed", e));
+void Packs.loadBundled();
 parent !== window && parent.postMessage({ type: "unify:auditorium-ready" }, "*");
 void ALL_LESSONS; void TEACHER_BY_SUBJECT;
 import { VIDEO_BY_ID } from "../src/class3d/videos"; (window as any).__vids = VIDEO_BY_ID;

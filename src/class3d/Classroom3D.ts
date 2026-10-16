@@ -2,7 +2,7 @@
  *  and a camera director (wide, follow, board, projector close-up with dimmed lights and a spotlight, your seat, free orbit). */
 import * as THREE from "three";
 import { Beam } from "../shared/beam";
-import { dprCap, shadowSize, vignette, rimLight, aoStrips } from "../shared/polish";
+import { dprCap, shadowSize, vignette, rimLight, aoStrips, smallScreen } from "../shared/polish";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { astar } from "../hall3d/logic";
 import { ROSTER, TEACHER_BY_SUBJECT, type NpcDef } from "../hall3d/roster";
@@ -105,7 +105,8 @@ export class Classroom3D {
   private rot2(rot: number, dx: number, dz: number): [number, number] { const s = Math.sin(rot), c = Math.cos(rot); return [dx * c + dz * s, dz * c - dx * s]; }
 
   constructor(public host: HTMLElement) {
-    const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false }); r.setPixelRatio(dprCap()); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
+    const phone = smallScreen();
+    const r = this.renderer = new THREE.WebGLRenderer({ antialias: !phone, alpha: false, powerPreference: phone ? "low-power" : "high-performance" }); r.setPixelRatio(dprCap()); r.shadowMap.enabled = !phone; r.shadowMap.type = THREE.PCFShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
     scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB");
     this.resolveDeskLayout(); this.buildLights(); this.buildShell(); this.buildFront(); this.buildSeats(); this.buildStaticDecor(); this.buildDetails(); this.fx = buildClassExtras(this.scene, { X0, X1, Z0, Z1, WALL, groundY, rowH, rowZ, ROWS, XS, ceilPanels: [0, 1, 2].flatMap((i) => [0, 1, 2, 3].map((j) => [-5.5 + i * 5.5, -6 + j * 4.6] as [number, number])) }); this.scene.add(this.decor, this.demo); this.buildNav(); this.buildTeacher(TEACHER_BY_SUBJECT.math);
     if (isPixar()) { this.px = setupPixarClass(this, { X0, X1, Z0, Z1, WALL, STAGE_H, groundY, rowH, rowZ }, this.lights as any); this.px.refresh(this.scene); this.px.syncTeacher(); }

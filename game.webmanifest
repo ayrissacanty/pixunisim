@@ -1,8 +1,8 @@
 {
   "id": "unify-academy-game",
-  "name": "UNIFY Academy",
-  "short_name": "UNIFY Academy",
-  "description": "UNIFY Academy school sim with your flip phone, newsroom and classes.",
+  "name": "Pixunisim",
+  "short_name": "Pixunisim",
+  "description": "Pixunisim: the UNIFY Academy campus, flip phone, newsroom and classes.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

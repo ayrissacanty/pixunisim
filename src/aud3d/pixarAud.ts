@@ -17,21 +17,21 @@ const lerpA = (a: number, b: number, k: number) => { let d = (b - a) % (Math.PI 
 export function setupPixarAud(A: Auditorium3D, L: { hemi: THREE.HemisphereLight; dl: THREE.DirectionalLight; spotL: THREE.SpotLight; spotR: THREE.SpotLight }): AudPx {
   const { scene, camera, renderer } = A, style = getStyle("pixar");
   const look = usePixarLook(renderer, scene, camera, { exposure: 0.85, bloom: 0.4, radius: 0.8, threshold: 1.0, env: 0.18 });
-  scene.background = new THREE.Color("#1b1240"); (scene.fog as THREE.Fog).color.set("#241a52"); (scene.fog as THREE.Fog).near = 50 * IS; (scene.fog as THREE.Fog).far = 140 * IS;
-  L.hemi.color.set("#ffd9f0"); L.hemi.groundColor.set("#3a2470"); L.hemi.intensity = 0.55; L.dl.color.set("#ffcf9a"); L.dl.intensity = 0.7;
-  L.spotL.color.set("#ffd27a"); L.spotR.color.set("#ff8fd6"); L.spotL.intensity = L.spotR.intensity = 140 * IS; L.spotL.angle = L.spotR.angle = 0.6;
+  scene.background = new THREE.Color("#2a1c14"); (scene.fog as THREE.Fog).color.set("#3a261c"); (scene.fog as THREE.Fog).near = 50 * IS; (scene.fog as THREE.Fog).far = 140 * IS;
+  L.hemi.color.set("#ffe6c4"); L.hemi.groundColor.set("#4a3024"); L.hemi.intensity = 0.45; L.dl.color.set("#ffcf9a"); L.dl.intensity = 0.7;
+  L.spotL.color.set("#ffd27a"); L.spotR.color.set("#ffd27a"); L.spotL.intensity = L.spotR.intensity = 140 * IS; L.spotL.angle = L.spotR.angle = 0.6;
   for (const sp of [L.spotL, L.spotR]) { sp.castShadow = true; sp.shadow.mapSize.set(1024, 1024); sp.shadow.bias = -0.0004; sp.shadow.normalBias = 0.03; sp.shadow.radius = 5; sp.shadow.camera.near = 5; sp.shadow.camera.far = 60 * IS; }
   const rim = new THREE.DirectionalLight(0x6fd6ff, 0.6); rim.position.set(0, 12, 40); scene.add(rim);
   const P = new THREE.Group(); scene.add(P);
   /* beams from the truss lights, dust inside them, footlights, aisle lights */
-  const beams = [[-8, 15, -10, -3, 1.5, -33, 0xffd27a], [8, 15, -10, 3, 1.5, -33, 0xff8fd6], [-14, 13.3, -30, -10, 1.5, -33, 0x6fd6ff], [14, 13.3, -30, 10, 1.5, -33, 0xffb454]].map(([x, y, z, tx, ty, tz, c]) => {
+  const beams = [[-8, 15, -10, -3, 1.5, -33, 0xffd27a], [8, 15, -10, 3, 1.5, -33, 0xffe0b0], [-14, 13.3, -30, -10, 1.5, -33, 0xcfe6ff], [14, 13.3, -30, 10, 1.5, -33, 0xffb454]].map(([x, y, z, tx, ty, tz, c]) => {
     const a = new THREE.Vector3(x - 0.5, y, z), b = new THREE.Vector3(x + 0.5, y, z), m = lightShaft(a, b, new THREE.Vector3(tx - x, ty - y, tz - z), Math.hypot(tx - x, ty - y, tz - z), c, 0.13, 7); P.add(m); return m.material as THREE.MeshBasicMaterial;
   });
   const dust = dustMotes({ x0: -16, x1: 16, y0: 1.5, y1: 14, z0: -36, z1: -12 }, 260, "#ffe8c0", 0.12, 0.6); P.add(dust.points);
   const dust2 = dustMotes({ x0: -14, x1: 14, y0: 1, y1: 13, z0: -12, z1: 20 }, 120, "#ffe8c0", 0.1, 0.4); P.add(dust2.points);
   const fm = new THREE.MeshStandardMaterial({ color: "#fff2cf", emissive: new THREE.Color("#ffb454"), emissiveIntensity: 2.5, roughness: 0.4 });
   for (let i = -9; i <= 9; i++) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), fm); l.position.set(i * 2, 1.78, -27.2); P.add(l); }
-  const aisle = new THREE.MeshStandardMaterial({ color: "#fff", emissive: new THREE.Color("#ff9ad0"), emissiveIntensity: 3 });
+  const aisle = new THREE.MeshStandardMaterial({ color: "#fff", emissive: new THREE.Color("#ffb454"), emissiveIntensity: 2.2 });
   for (let r = 0; r < 18; r++) for (const x of [-1.35, 1.35]) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), aisle); l.position.set(x, r * 0.2 + 0.2, -18 + r * 1.55); P.add(l); }
   const gold = new THREE.MeshStandardMaterial({ color: "#f2c14e", metalness: 0.8, roughness: 0.25 });
   for (const sx of [-1, 1]) { const g = new THREE.Group(), pot = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.65, 1.3, 24), gold); pot.position.y = 0.65; g.add(pot);

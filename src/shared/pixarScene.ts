@@ -29,7 +29,7 @@ export function usePixarLook(renderer: THREE.WebGLRenderer, scene: THREE.Scene, 
           composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(W * pr, H * pr, { type: THREE.HalfFloatType, samples: small ? 0 : 4 }));
           composer.setPixelRatio(pr); composer.setSize(W, H);
           composer.addPass(new RenderPass(scene, camera));
-          bloom = self.bloom = new UnrealBloomPass(new THREE.Vector2(small ? W / 2 : W, small ? H / 2 : H), o.bloom ?? 0.35, o.radius ?? 0.7, o.threshold ?? 0.95); composer.addPass(bloom);
+          if (!small) { bloom = self.bloom = new UnrealBloomPass(new THREE.Vector2(W, H), o.bloom ?? 0.28, o.radius ?? 0.6, o.threshold ?? 1.05); composer.addPass(bloom); }
           composer.addPass(new OutputPass());
         }
         composer.render(dt);
@@ -68,6 +68,7 @@ export function lightShaft(a: THREE.Vector3, b: THREE.Vector3, dir: THREE.Vector
 }
 /** drifting dust motes in a box; call tick(t) every frame */
 export function dustMotes(box: { x0: number; x1: number; y0: number; y1: number; z0: number; z1: number }, n: number, color: THREE.ColorRepresentation = "#fff2cf", size = 0.07, opacity = 0.55) {
+  if (smallScreen()) n = 0;
   const base = new Float32Array(n * 3), ph = new Float32Array(n), pos = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) { base[i * 3] = box.x0 + Math.random() * (box.x1 - box.x0); base[i * 3 + 1] = box.y0 + Math.random() * (box.y1 - box.y0); base[i * 3 + 2] = box.z0 + Math.random() * (box.z1 - box.z0); ph[i] = Math.random() * 6.28; }
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));

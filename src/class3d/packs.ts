@@ -4,6 +4,8 @@
  *  A pack can ADD lessons to a class, REPLACE a class's built-in lessons, or add ELECTIVES (extra courses such as high-school electives).
  *  Packs live in the browser (imported on the phone/tablet/PC) and/or ship in curriculum/*.json (listed in curriculum/index.json). See curriculum/README.md. */
 import { CURRICULUM, type LessonDef } from "./curriculum";
+import { lessonsForBand } from "./gradeband";
+import seedPackData from "./seedpacks.json";
 import { SETS, type Order, type Sort } from "./labs";
 import type { Emotion } from "./persona";
 import { GESTURE } from "./sprites";
@@ -18,7 +20,7 @@ export interface BookSection { heading: string; body: string }
 export interface BookChapter { id: string; title: string; sections: BookSection[] }
 export interface Book { id: string; title: string; subject?: Subject; chapters: BookChapter[]; pack?: string }
 export type Check = { kind: "sort"; prompt: string; groups: Record<string, string[]> } | { kind: "order"; prompt: string; items: string[] };
-export interface PackLesson { id?: string; title: string; blurb?: string; intro?: string; points?: string[]; examples?: string[]; wrap?: string; homework?: string; glossary?: Record<string, string>; whys?: string[]; script?: (ScriptStep | string)[]; book?: string; check?: Check; course?: string; subject?: Subject }
+export interface PackLesson { id?: string; title: string; blurb?: string; intro?: string; points?: string[]; examples?: string[]; wrap?: string; homework?: string; glossary?: Record<string, string>; whys?: string[]; script?: (ScriptStep | string)[]; book?: string; check?: Check; course?: string; subject?: Subject; grades?: string }
 export interface Pack { id: string; title: string; subject: Subject; kind: "regular" | "elective" | "replace"; grades?: string; course?: string; book?: Omit<Book, "pack">; lessons: PackLesson[] }
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "x";
@@ -45,7 +47,7 @@ export function cleanPack(raw: unknown): Pack {
   const title = str(r.title, 100).trim(); if (!title) throw new Error("The pack needs a title."); const id = slug(str(r.id, 60) || title);
   const lessons: PackLesson[] = (Array.isArray(r.lessons) ? r.lessons : []).slice(0, 80).map((l: any): PackLesson | null => {
     const t = str(l?.title, 120).trim(); if (!t) return null; const gl: Record<string, string> = {}; if (l.glossary && typeof l.glossary === "object") for (const k of Object.keys(l.glossary).slice(0, 20)) { const v = str(l.glossary[k], 400); if (v) gl[k.slice(0, 40)] = v; }
-    return { id: slug(str(l.id, 60) || t), title: t, blurb: str(l.blurb, 200), intro: str(l.intro, 600), points: strs(l.points, 10), examples: strs(l.examples, 10), wrap: str(l.wrap, 500), homework: str(l.homework, 400), glossary: gl, whys: strs(l.whys, 8), script: (Array.isArray(l.script) ? l.script : []).slice(0, 60).map(cleanStep).filter(Boolean) as ScriptStep[], book: str(l.book, 160) || undefined, check: cleanCheck(l.check), course: str(l.course, 80) || undefined };
+    return { id: slug(str(l.id, 60) || t), title: t, blurb: str(l.blurb, 200), intro: str(l.intro, 600), points: strs(l.points, 10), examples: strs(l.examples, 10), wrap: str(l.wrap, 500), homework: str(l.homework, 400), glossary: gl, whys: strs(l.whys, 8), script: (Array.isArray(l.script) ? l.script : []).slice(0, 60).map(cleanStep).filter(Boolean) as ScriptStep[], book: str(l.book, 160) || undefined, check: cleanCheck(l.check), course: str(l.course, 80) || undefined, grades: str(l.grades, 40) || undefined };
   }).filter(Boolean) as PackLesson[];
   if (!lessons.length) throw new Error("The pack has no lessons.");
   let book: Pack["book"];
@@ -94,6 +96,7 @@ const BASE: Record<Subject, LessonDef[]> = Object.fromEntries(SUBJECTS.map((s) =
 export const ELECTIVES: Record<Subject, LessonDef[]> = { math: [], ela: [], science: [], history: [], careers: [], life: [] };
 export const BOOKS: Book[] = [];
 let bundled: Pack[] = [], user: Pack[] = []; const listeners: (() => void)[] = [];
+const builtin: Pack[] = (Array.isArray(seedPackData) ? seedPackData : []).map((p) => { try { return cleanPack(p); } catch { return null; } }).filter(Boolean) as Pack[];
 try { const j = JSON.parse(localStorage.getItem(KEY) ?? "[]"); if (Array.isArray(j)) user = j.map((p) => { try { return cleanPack(p); } catch { return null; } }).filter(Boolean) as Pack[]; } catch { /* none */ }
 
 function toLesson(p: Pack, l: PackLesson): LessonDef {
@@ -104,11 +107,11 @@ function toLesson(p: Pack, l: PackLesson): LessonDef {
     lab: l.check ? { id: "cardsort", cfg: "pk-" + id, title: "Check yourself", intro: l.check.prompt } : { id: "", title: "", intro: "" },
     intro: l.intro || `Today's lesson: ${l.title}.`, wrap: l.wrap || "Good work today. Read the textbook section to go deeper.", homework: l.homework || `Read the textbook section on ${l.title} and write down three things you learned.`,
     glossary: l.glossary ?? {}, whys: l.whys?.length ? l.whys : ["Understanding why it works makes it easier to remember."], script: l.script?.map((x) => cleanStep(x)).filter(Boolean) as ScriptStep[], bookRef: l.book,
-    elective: p.kind === "elective" ? course || p.title : undefined, grades: p.grades, pack: p.id };
+    elective: p.kind === "elective" ? course || p.title : undefined, grades: l.grades || p.grades, pack: p.id };
 }
 function apply() {
   for (const s of SUBJECTS) { CURRICULUM[s].length = 0; CURRICULUM[s].push(...BASE[s]); ELECTIVES[s].length = 0; } BOOKS.length = 0; const replaced = new Set<Subject>();
-  for (const p of [...bundled, ...user]) {
+  for (const p of [...builtin, ...bundled, ...user]) {
     const ls = p.lessons.map((l) => toLesson(p, l));
     if (p.kind === "elective") { for (const l of ls) ELECTIVES[l.subject].push(l); }
     else if (p.kind === "replace") { if (!replaced.has(p.subject)) { CURRICULUM[p.subject].length = 0; replaced.add(p.subject); } CURRICULUM[p.subject].push(...ls); }
@@ -135,7 +138,8 @@ apply();
 
 /** a textbook for every class made from the lessons themselves, so the viewer is never empty */
 export function notesBook(subject: Subject, name: string): Book {
-  const ls = [...CURRICULUM[subject], ...ELECTIVES[subject]];
+  const all = [...CURRICULUM[subject], ...ELECTIVES[subject]];
+  const ls = lessonsForBand(all);
   return { id: "notes-" + subject, subject, title: `${name}: class notes`, chapters: ls.map((l) => ({ id: slug(l.id), title: l.title, sections: [
     { heading: "Key points", body: l.points.map((x) => "- " + x).join("\n") }, { heading: "Worked examples", body: l.examples.map((x) => "- " + x).join("\n") },
     ...(Object.keys(l.glossary).length ? [{ heading: "Words to know", body: Object.entries(l.glossary).map(([k, v]) => `- **${k}**: ${v}`).join("\n") }] : []),
