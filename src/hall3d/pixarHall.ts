@@ -46,9 +46,7 @@ export class PixarCrowd {
   has(p: Person) { return this.ents.has(p); }
   private drop(p: Person) { const e = this.ents.get(p); if (!e) return; e.c.dispose(); this.ents.delete(p); }
   private make(p: Person, spec: AvatarSpec, cam: THREE.Camera): Ent | null {
-    const young = spec.age === "k2" || spec.age === "g35";
-    const film: AvatarSpec = { ...spec, prop: spec.prop === "realistic" ? "realistic" : "stylised", headSize: Math.min(spec.headSize || 1, young ? 1 : 0.96) };
-    let c: Char3DEx; try { c = createChar3D(this.style, film); } catch (err) { console.warn("3D character failed", err); return null; }
+    let c: Char3DEx; try { c = createChar3D(this.style, spec); } catch (err) { console.warn("3D character failed", err); return null; }
     const yaw = Math.atan2(cam.position.x / IS - p.pos.x, cam.position.z / IS - p.pos.z); c.root.position.set(p.pos.x, 0, p.pos.z); c.root.rotation.y = yaw; this.scene.add(c.root);
     const e = { c, spec, lx: p.pos.x, lz: p.pos.z, yaw, ty: yaw }; this.ents.set(p, e); return e;
   }
@@ -64,7 +62,7 @@ export class PixarCrowd {
     for (const { p, spec, d } of cand) {
       if (!keep.has(p)) continue; let e = this.ents.get(p);
       if (!e) { if (p !== x.player && made >= 8) continue; e = this.make(p, spec, x.camera) ?? undefined; made++; if (!e) { keep.delete(p); continue; } }
-      else if (e.spec !== spec) { const young = spec.age === "k2" || spec.age === "g35"; e.c.setSpec({ ...spec, prop: spec.prop === "realistic" ? "realistic" : "stylised", headSize: Math.min(spec.headSize || 1, young ? 1 : 0.96) }); e.spec = spec; }
+      else if (e.spec !== spec) { e.c.setSpec(spec); e.spec = spec; }
       this.step(dt, p, e, x); this.shade(e, p === x.player || d < 16);
     }
     for (const p of keep) if (this.ents.has(p)) { p.sprite.visible = false; p.blob.visible = false; }
@@ -81,7 +79,11 @@ export class PixarCrowd {
   }
   private step(dt: number, p: Person, e: Ent, x: PxCtx) {
     const c = e.c, isP = p === x.player, seated = isP && x.seat != null, mx = p.pos.x - e.lx, mz = p.pos.z - e.lz;
-    if (mx * mx + mz * mz > 16) { e.lx = p.pos.x; e.lz = p.pos.z; } else if (mx * mx + mz * mz > 1e-6) { e.ty = Math.atan2(mx, mz); e.lx = p.pos.x; e.lz = p.pos.z; }
+    const path = (p as Stu).path, goal = p.moving && path && path.length ? path[0] : null;
+    if (goal) e.ty = Math.atan2(goal.x - p.pos.x, goal.z - p.pos.z);
+    else if (mx * mx + mz * mz > 16) { e.lx = p.pos.x; e.lz = p.pos.z; }
+    else if (mx * mx + mz * mz > 0.0008) { e.ty = Math.atan2(mx, mz); e.lx = p.pos.x; e.lz = p.pos.z; }
+    if (goal) { e.lx = p.pos.x; e.lz = p.pos.z; }
     if (seated) e.ty = Math.atan2(x.seat!.ctr.x - x.seat!.pos.x, x.seat!.ctr.z - x.seat!.pos.z);
     else if (!p.moving) { const o = isP ? x.talkingTo : p.talking ? x.player : null; if (o) e.ty = Math.atan2(o.pos.x - p.pos.x, o.pos.z - p.pos.z); }
     e.yaw = lerpAngle(e.yaw, e.ty, 1 - Math.exp(-dt * 11));

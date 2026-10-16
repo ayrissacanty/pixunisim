@@ -225,7 +225,7 @@ export class HallScene {
     this.bunting([[-W / 2 + 0.06, -H / 2 + 0.06, W / 2 - 0.06, -H / 2 + 0.06], [-W / 2 + 0.06, -H / 2 + 0.06, -W / 2 + 0.06, H / 2 - 0.06], [W / 2 - 0.06, -H / 2 + 0.06, W / 2 - 0.06, H / 2 - 0.06]], 3.95);
 
     // layered shell: a stone pad under the tile, a raised border, then baseboard, wainscot, rail and crown on the inner walls
-    const pad = this.plain("#B9976A"), lip = this.plain("#E7D3A8"), baseM = this.plain("#F6E7C8"), wainM = this.plain("#E8C27A"), railM = this.plain("#C56A32"), crownM = this.plain("#FFE08A");
+    const pad = this.plain("#B9976A"), lip = this.plain("#E7D3A8"), baseM = this.plain("#F6E7C8"), railM = this.plain("#C56A32"), crownM = this.plain("#FFE08A");
     this.box(W + 2.6, 0.32, H + 2.6, pad, 0, -0.18, 0, { outline: false, shadow: false });
     this.box(W - 0.2, 0.05, 0.7, lip, 0, 0.028, -H / 2 + 0.55, { outline: false, shadow: false });
     this.box(W - 0.2, 0.05, 0.7, lip, 0, 0.028, H / 2 - 0.55, { outline: false, shadow: false });
@@ -233,10 +233,9 @@ export class HallScene {
     this.box(0.7, 0.05, H - 1.6, lip, W / 2 - 0.55, 0.028, 0, { outline: false, shadow: false });
     const layers = (len: number, cx: number, cz: number, horiz: boolean) => {
       if (len < 0.9) return;
-      this.box(horiz ? len : 0.18, 0.26, horiz ? 0.18 : len, baseM, cx, 0.14, cz, { outline: false, shadow: false });
-      this.box(horiz ? len : 0.1, 0.92, horiz ? 0.1 : len, wainM, cx, 0.76, cz, { outline: false, shadow: false });
-      this.box(horiz ? len : 0.16, 0.09, horiz ? 0.16 : len, railM, cx, 1.28, cz, { outline: false, shadow: false });
-      this.box(horiz ? len : 0.2, 0.14, horiz ? 0.2 : len, crownM, cx, WALL_H - 0.12, cz, { outline: false, shadow: false });
+      this.box(horiz ? len : 0.12, 0.18, horiz ? 0.12 : len, baseM, cx, 0.1, cz, { outline: false, shadow: false });
+      this.box(horiz ? len : 0.08, 0.06, horiz ? 0.08 : len, railM, cx, 1.15, cz, { outline: false, shadow: false });
+      this.box(horiz ? len : 0.12, 0.1, horiz ? 0.12 : len, crownM, cx, WALL_H - 0.08, cz, { outline: false, shadow: false });
     };
     const nd = NEWS.cx - W / 2, oz = OPEN.cy - H / 2;
     layers(nd - 1.6 + W / 2, (-W / 2 + nd - 1.6) / 2, -H / 2 + 0.28, true);
@@ -253,19 +252,7 @@ export class HallScene {
       const sx = Mood.tinted(this.std(this.rep("wall", () => T.wallTex(), r.h / 4)), "wash", 1), sz2 = Mood.tinted(this.std(this.rep("wall", () => T.wallTex(), r.w / 4)), "wash", 1);
       const roof = this.std(this.tex(`roof-${s}`, () => T.roofLabelTex(SUBJ_LABEL[s], SUBJ_COL[s], s === "science" ? "#3b3340" : "#FFF9F0")));
       this.box(r.w, WALL_H, r.h, [sx, sx, roof, outer, sz2, sz2], r.x + r.w / 2 - W / 2, WALL_H / 2, r.y + r.h / 2 - H / 2, { occlude: true });
-      this.box(r.w + 0.16, 0.16, r.h + 0.16, crownM, r.x + r.w / 2 - W / 2, WALL_H - 0.02, r.y + r.h / 2 - H / 2, { outline: false, shadow: false });
-      for (const f of (["N", "S", "E", "W"] as Face[])) {
-        const len = f === "N" || f === "S" ? r.w : r.h, horiz = f === "N" || f === "S";
-        const put = (t0: number, t1: number) => {
-          const span = (t1 - t0) * len; if (span < 0.8) return;
-          const p = this.onFace(r, f, (t0 + t1) / 2, 0.22);
-          this.box(horiz ? span : 0.12, 0.9, horiz ? 0.12 : span, wainM, p.x, 0.7, p.z, { outline: false, shadow: false });
-          this.box(horiz ? span : 0.16, 0.08, horiz ? 0.16 : span, railM, p.x, 1.2, p.z, { outline: false, shadow: false });
-          this.box(horiz ? span : 0.18, 0.2, horiz ? 0.18 : span, baseM, p.x, 0.11, p.z, { outline: false, shadow: false });
-        };
-        if (f !== door.face) put(0.03, 0.97);
-        else { const dt = Math.max(0, Math.min(1, (door.cx - r.x) / r.w)), gap = 2.4 / len; put(0.02, dt - gap / 2); put(dt + gap / 2, 0.98); }
-      }
+      this.box(r.w + 0.08, 0.1, r.h + 0.08, crownM, r.x + r.w / 2 - W / 2, WALL_H - 0.04, r.y + r.h / 2 - H / 2, { outline: false, shadow: false });
       const faces: Face[] = ["N", "S", "E", "W"];
       for (const f of faces) {
         const len = f === "N" || f === "S" ? r.w : r.h, n = Math.round(len / 4.6);
@@ -438,18 +425,17 @@ export class HallScene {
     anchor(76, "#E07A66"); anchor(84, "#4F91C7");
     this.box(1.2, 0.7, 0.15, this.plain("#2b2b34"), gx(80), y0 + 1.35, gz(64.2), { outline: false });
     const n = 8, z0 = gz(STAIR_BLOCK.y + STAIR_BLOCK.h), z1 = gz(STAIR_BLOCK.y), mid = STAIR_BLOCK.x + STAIR_BLOCK.w / 2, tread = Math.abs(z1 - z0) / n;
-    const riser = this.plain("#C56A32"), nose = this.plain("#F6E2B8"), run = Math.abs(z1 - z0), rise = y0 - 0.18, ang = Math.atan2(rise, run), dir = z0 > z1 ? 1 : -1;
+    const riser = this.plain("#C56A32"), nose = this.plain("#F6E2B8"), run = Math.abs(z1 - z0), rise = y0 - 0.18, stepH = rise / n, ang = Math.atan2(rise, run), dir = z0 > z1 ? 1 : -1;
     for (let i = 0; i < n; i++) {
-      const t = (i + 0.5) / n, z = z0 + (z1 - z0) * t, top = 0.18 + t * rise;
-      this.box(6.4, top, tread * 0.96, riser, gx(mid), top / 2, z, { outline: false });
-      this.box(6.7, 0.08, tread * 0.36, nose, gx(mid), top + 0.03, z + dir * tread * 0.36, { outline: false, shadow: false });
+      const t = (i + 1) / n, z = z0 + (z1 - z0) * ((i + 0.5) / n), top = 0.18 + t * rise;
+      this.box(6.3, stepH, tread * 1.02, riser, gx(mid), top - stepH / 2, z, { outline: false });
+      this.box(6.55, 0.06, tread * 0.28, nose, gx(mid), top + 0.02, z + dir * tread * 0.38, { outline: false, shadow: false });
     }
-    this.box(7.1, 0.24, 1.5, nose, gx(mid), y0 - 0.02, z1 - dir * 0.2, { outline: false, shadow: false });
+    this.box(6.8, 0.18, 1.3, nose, gx(mid), y0 + 0.04, z1, { outline: false, shadow: false });
     for (const side of [-1, 1]) {
-      this.box(0.24, rise + 0.35, run + 0.4, ink, gx(mid + side * 3.42), (rise + 0.35) / 2, (z0 + z1) / 2, { outline: false });
-      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, run + 0.5), this.plain("#F7F1E6"));
-      rail.position.set(gx(mid + side * 3.55), 1.08 + rise / 2, (z0 + z1) / 2); rail.rotation.x = dir * ang; rail.castShadow = true; this.scene.add(rail);
-      for (let i = 0; i < 4; i++) { const t = (i + 0.5) / 4, z = z0 + (z1 - z0) * t, y = 0.2 + t * rise; this.box(0.08, 1.02, 0.08, ink, gx(mid + side * 3.55), y + 0.42, z, { outline: false, shadow: false }); }
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, run + 0.4), this.plain("#F7F1E6"));
+      rail.position.set(gx(mid + side * 3.35), 0.95 + rise / 2, (z0 + z1) / 2); rail.rotation.x = dir * ang; rail.castShadow = true; this.scene.add(rail);
+      for (let i = 0; i < 5; i++) { const t = i / 4, z = z0 + (z1 - z0) * t, y = 0.18 + t * rise; this.box(0.08, 0.95, 0.08, ink, gx(mid + side * 3.35), y + 0.42, z, { outline: false, shadow: false }); }
     }
     void UP_DOORS;
   }
@@ -711,7 +697,7 @@ export class HallScene {
     const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.04, 8), new THREE.MeshBasicMaterial({ color: "#D8433A" })); arm.rotation.x = Math.PI / 2; arm.rotation.z = Math.PI / 8; arm.position.set(-2.6, 2.1, -1.4); arm.visible = false; g.add(arm);
     const door = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.9, 0.05), this.plain("#d9a31f")); door.position.set(-3.0, 1.55, 1.37); g.add(door);
     const stopX = OUTSIDE.busStop.x - W / 2;
-    g.rotation.y = 0; g.position.set(stopX - 72, 0, OUTSIDE.busStop.y - H / 2); g.visible = false; this.scene.add(g); this.bus = g; this.busState = { t: 0, mode: "idle", from: stopX - 72, to: stopX, arm, door };
+    g.rotation.y = Math.PI; g.position.set(stopX - 72, 0, OUTSIDE.busStop.y - H / 2); g.visible = false; this.scene.add(g); this.bus = g; this.busState = { t: 0, mode: "idle", from: stopX - 72, to: stopX, arm, door };
   }
   private leaves: THREE.Mesh[] = []; private birds: THREE.Group[] = []; private squirrels: { g: THREE.Group; a: number }[] = [];
   /** leaves stay outside the building, birds circle, squirrels hop the lawn */
@@ -763,7 +749,7 @@ export class HallScene {
     if (!this.bus || !this.busState) { onAtBoard(); return; }
     this.standUp(); this.nav = null; const B = this.bus, st = this.busState; B.visible = true; B.position.x = st.from; st.t = 0; st.mode = "in"; st.arm.visible = false; this.player.sprite.visible = false; this.player.blob.visible = false; this.arrivalHide = true; this.arrivalCam = true; this.inputLocked = true;
     this.onBusStopped = () => {
-      const door = new THREE.Vector3(B.position.x - 3.0, 0, B.position.z + 1.6); this.player.pos.copy(door); this.arrivalHide = false; this.player.dir = 0;
+      const door = new THREE.Vector3(B.position.x + 3.0, 0, B.position.z - 1.6); this.player.pos.copy(door); this.arrivalHide = false; this.player.dir = 0;
       const board = g2w(OUTSIDE.board.x, OUTSIDE.board.y + 1.4);
       this.cine = { speed: 4.4, pts: [door.clone(), new THREE.Vector3(door.x + 2, 0, B.position.z - 2.2), board], done: () => { this.cine = null; this.inputLocked = false; onAtBoard(); setTimeout(() => { if (this.busState) this.busState.mode = "out"; }, 900); } };
     };
@@ -778,7 +764,7 @@ export class HallScene {
   private updateBus(dt: number) {
     const st = this.busState, B = this.bus; if (!st || !B) return;
     const spin = (v: number) => B.children.forEach((c) => { if (c.userData.wheel) c.rotation.z -= v; });
-    if (st.mode === "in") { st.t += dt; const k = Math.min(1, st.t / 3.4), e = 1 - Math.pow(1 - k, 3), nx = st.from + (st.to - st.from) * e; spin((nx - B.position.x) * -1.6); B.position.x = nx; if (this.arrivalHide) this.player.pos.set(B.position.x - 3.0, 0, B.position.z + 1.5); if (k >= 1) { st.mode = "wait"; st.t = 0; st.arm.visible = true; } }
+    if (st.mode === "in") { st.t += dt; const k = Math.min(1, st.t / 3.4), e = 1 - Math.pow(1 - k, 3), nx = st.from + (st.to - st.from) * e; spin((nx - B.position.x) * -1.6); B.position.x = nx; if (this.arrivalHide) this.player.pos.set(B.position.x + 3.0, 0, B.position.z - 1.5); if (k >= 1) { st.mode = "wait"; st.t = 0; st.arm.visible = true; } }
     else if (st.mode === "wait") { st.t += dt; st.door.rotation.y = Math.min(1, st.t / 0.45) * 1.3; if (st.t > 0.7 && this.onBusStopped) { const f = this.onBusStopped; this.onBusStopped = () => {}; f(); } }
     else if (st.mode === "out") { st.t += dt; st.arm.visible = false; st.door.rotation.y = Math.max(0, st.door.rotation.y - dt * 2.6); const sp = Math.min(16, 3 + st.t * 5); B.position.x += sp * dt; spin(sp * dt * 1.6); if (B.position.x > st.to + 90) { B.visible = false; st.mode = "idle"; B.position.x = st.from; } }
   }
@@ -1014,25 +1000,24 @@ export class HallScene {
     for (const o of all) {
       if (!o || o === self || (o as Stu).hidden) continue;
       if (Math.abs((o.pos.y || 0) - (self.pos.y || 0)) > 2.2) continue;
-      if (Math.hypot(o.pos.x - x, o.pos.z - z) < 0.46) return true;
+      if (Math.hypot(o.pos.x - x, o.pos.z - z) < 0.38) return true;
     }
     return false;
   }
   /** step toward a point. Walls always win. People slide aside instead of freezing in the doorway. */
   private approach(p: Person, tx: number, tz: number, step: number, floor: number) {
     const dx = tx - p.pos.x, dz = tz - p.pos.z, len = Math.hypot(dx, dz);
-    if (len < 0.15) return true;
-    if (len < 0.85 && !this.wallAt(tx, tz, floor)) return true;
+    if (len < 0.2) return true;
     const k = Math.min(step, len) / Math.max(len, 1e-4), nx = p.pos.x + dx * k, nz = p.pos.z + dz * k;
     const climbing = this.stairTop(p.pos.x, p.pos.z) != null || this.stairTop(nx, nz) != null;
-    const wall = (x: number, z: number) => !climbing && this.wallAt(x, z, floor);
-    if (!wall(nx, nz) && !this.tooClose(nx, nz, p)) { p.pos.x = nx; p.pos.z = nz; return len <= step + 0.05; }
-    if (!wall(nx, p.pos.z) && !this.tooClose(nx, p.pos.z, p)) { p.pos.x = nx; return false; }
-    if (!wall(p.pos.x, nz) && !this.tooClose(p.pos.x, nz, p)) { p.pos.z = nz; return false; }
-    const side = ((p.id ?? 0) & 1 ? 1 : -1) * 0.55, inv = 1 / Math.max(len, 0.01);
-    const ox = p.pos.x + (-dz * inv) * side + dx * 0.4, oz = p.pos.z + (dx * inv) * side + dz * 0.4;
-    if (!wall(ox, oz)) { p.pos.x = ox; p.pos.z = oz; }
-    return len < 1.6;
+    const blocked = (x: number, z: number) => (!climbing && this.wallAt(x, z, floor)) || this.tooClose(x, z, p);
+    if (!blocked(nx, nz)) { p.pos.x = nx; p.pos.z = nz; return len <= step + 0.04; }
+    if (!blocked(nx, p.pos.z)) { p.pos.x = nx; return false; }
+    if (!blocked(p.pos.x, nz)) { p.pos.z = nz; return false; }
+    const side = ((p.id ?? 0) & 1 ? 1 : -1) * 0.16, inv = 1 / Math.max(len, 0.01);
+    const ox = p.pos.x + (-dz * inv) * side, oz = p.pos.z + (dx * inv) * side;
+    if (!this.wallAt(ox, oz, floor)) { p.pos.x = ox; p.pos.z = oz; }
+    return false;
   }
   planNav(gxGoal: number, gyGoal: number, label: string, tail: THREE.Vector3 | null) {
     if (this.sitting != null) this.standUp();
@@ -1076,7 +1061,7 @@ export class HallScene {
       else if (P.kind === "lunch") { const buddy = s.def && Social.peek(s.def.id)?.lunchBuddy && near[ni]; s.pending = { delay: rnd(0, 10), dest: buddy ? near[ni++] : spots[n], hide: false, appear: s.hidden ? s.lastDoor : undefined }; }
       else if (P.kind === "arrive") {
         if (this.bus && this.busState) { this.bus.visible = true; this.bus.position.set(this.busState.to, 0, OUTSIDE.busStop.y - H / 2); if (this.busState.mode === "idle") this.busState.mode = "wait"; }
-        const door = { x: OUTSIDE.busDoor.x + (n % 8) * 1.15 - 4, y: OUTSIDE.busDoor.y + (n % 3) * 0.6 };
+        const door = { x: OUTSIDE.busDoor.x + (n % 5) * 0.42 - 0.84, y: OUTSIDE.busDoor.y };
         const board = { x: OUTSIDE.board.x + (n % 4) * 0.4 - 0.6, y: OUTSIDE.board.y + 1.2 };
         s.hidden = true; s.sprite.visible = false; s.blob.visible = false; s.path = []; s.after = "board";
         s.pending = { delay: 0.12 + n * 0.1, dest: board, hide: false, appear: door, after: "board" };
