@@ -8,6 +8,7 @@ import { Progress, ALL_SUBJECTS } from "../src/game/progress";
 import { runPlacement } from "../src/game/placement";
 import { openPic } from "../src/game/wallart";
 import { openNewsPanel } from "../src/game/newstv";
+import { openLibrary } from "../src/hall3d/libraryui";
 import { CURRICULUM } from "../src/class3d/curriculum";
 import { Lockers, lockerNear, slot as lockerSlot } from "../src/game/lockers";
 import { openLocker } from "../src/hall3d/lockerui";
@@ -92,6 +93,9 @@ $("bOpenLocker").onclick = () => { const p = hall.player.pos, s = Lockers.neares
 /* ---- wall pictures and the news TV are tappable ---- */
 hall.onPic = (pid, _title, subject) => { lock(true); const ls = (CURRICULUM as any)[subject] ?? [], cur = ls[Progress.index(subject as any, ls.length)]; openPic(pid, { lesson: cur?.title, onClose: () => lock(false) }); };
 hall.onTV = () => { lock(true); openNewsPanel(() => lock(false), () => parent !== window && parent.postMessage({ type: "unify:open", view: "news" }, "*")); };
+hall.onBooks = () => { lock(true); openLibrary($("libHost"), () => lock(false)); };
+hall.onNewsroom = () => { if (parent !== window) parent.postMessage({ type: "unify:open", view: "news" }, "*"); else hall.onToast("Open index.html and the newsroom will play."); };
+$("bBooks").onclick = () => { lock(true); openLibrary($("libHost"), () => lock(false)); };
 
 /* ---- the school day: ride the bus in, walk to the bulletin board, make the schedule, go inside (assembly, then first class); sit at Chat Chow when idle ---- */
 const todayKey = () => new Date().toDateString();

@@ -29,19 +29,37 @@ export const NEWS = { cx: 54, cy: 0, trigger: { x: 52.8, y: 0.45, w: 2.4, h: 0.9
 export const OPEN = { cx: 0, cy: 41, trigger: { x: 0.45, y: 39.8, w: 0.95, h: 2.4 } as Rect, approach: { x: 3.2, y: 41 } };
 export type Room = Subject | "news" | "open";
 
-/** second floor: a library on the roofs of the north classrooms, so the ring corridor stays open */
-export const LIB_SHELL: Rect = { x: 14, y: 14, w: 80, h: 12 };
-export const LIBRARY: Rect = { x: 16, y: 15.4, w: 76, h: 9.2 };
-export const LIB_SHELVES: Rect[] = [
-  { x: 20, y: 16.2, w: 1.5, h: 6 }, { x: 28, y: 16.2, w: 1.5, h: 6 },
-  { x: 78, y: 16.2, w: 1.5, h: 6 }, { x: 86, y: 16.2, w: 1.5, h: 6 },
+/** second floor: the same finished building, with a library, side halls, the auditorium and the newsroom.
+ *  The plaza under the middle stays open. */
+export const LIBRARY: Rect = { x: 8, y: 6, w: 92, h: 28 };
+export const WEST_HALL: Rect = { x: 8, y: 34, w: 18, h: 18 };
+export const EAST_HALL: Rect = { x: 82, y: 34, w: 18, h: 18 };
+export const AUDITORIUM: Rect = { x: 8, y: 52, w: 52, h: 22 };
+export const NEWSROOM: Rect = { x: 60, y: 52, w: 40, h: 22 };
+export const UP_ROOMS: Rect[] = [LIBRARY, WEST_HALL, EAST_HALL, AUDITORIUM, NEWSROOM];
+export const LIB_SHELL: Rect = { x: 8, y: 6, w: 92, h: 68 };
+export const UP_DOORS: Rect[] = [
+  { x: 11, y: 33.15, w: 12, h: 1.8 }, { x: 85, y: 33.15, w: 12, h: 1.8 },
+  { x: 11, y: 51.15, w: 12, h: 1.8 }, { x: 85, y: 51.15, w: 12, h: 1.8 },
+  { x: 58.6, y: 60, w: 2.8, h: 8 },
 ];
+export const LIB_SHELVES: Rect[] = [16, 24, 32, 72, 80, 88].flatMap((x) => [{ x, y: 10, w: 1.5, h: 7 }, { x, y: 20, w: 1.5, h: 6 }]);
+export const LIB_READ = { x: 54, y: 16 };
+export const LIB_DESK: Rect = { x: 48.5, y: 13.2, w: 11, h: 3.4 };
+export const AUD_DOOR: Rect = { x: 20, y: 64.5, w: 12, h: 4.2 };
+export const NEWS_DOOR: Rect = { x: 72, y: 64.5, w: 12, h: 4.2 };
+export const underUpper = (x: number, y: number) => UP_ROOMS.some((r) => hit(r, x, y, 0));
+const upInside = (r: Rect, x: number, y: number) => x > r.x + 0.5 && y > r.y + 0.5 && x < r.x + r.w - 0.5 && y < r.y + r.h - 0.5;
+export function upWalk(x: number, y: number) {
+  if (LIB_SHELVES.some((r) => hit(r, x, y, 0.18))) return false;
+  if (UP_ROOMS.some((r) => upInside(r, x, y))) return true;
+  return UP_DOORS.some((r) => hit(r, x, y, 0));
+}
 export const STAIR_BLOCK: Rect = { x: 50, y: 27, w: 8, h: 6 };
 export const STAIR_UP: Rect = { x: 50.5, y: 33.2, w: 7, h: 1.3 };
 export const STAIR_DOWN: Rect = { x: 50.5, y: 22.6, w: 7, h: 1.1 };
 export const STAIR_GROUND = { x: 54, y: 35.2 };
 export const STAIR_TOP = { x: 54, y: 21.2 };
-export const LIB_READ = { x: 54, y: 19.2 };
 
 export interface LockerRun { rect: Rect; face: Face }
 export const LOCKERS: LockerRun[] = [
@@ -81,11 +99,7 @@ export const BLOCKED = blockers();
 
 export const hit = (r: Rect, x: number, y: number, pad = 0) => x > r.x - pad && x < r.x + r.w + pad && y > r.y - pad && y < r.y + r.h + pad;
 export function solidAt(x: number, y: number, pad = 0.16, floor = 0): boolean {
-  if (floor === 1) {
-    const L = LIBRARY;
-    if (x < L.x + 0.55 || y < L.y + 0.55 || x > L.x + L.w - 0.55 || y > L.y + L.h - 0.55) return true;
-    return LIB_SHELVES.some((r) => hit(r, x, y, pad));
-  }
+  if (floor === 1) return !upWalk(x, y);
   if (x < 0.45 || y < 0.45 || x > W - 0.45) return true;
   if (y > H - 0.45) return !(x > ENTRANCE.gap.x0 && x < ENTRANCE.gap.x1 && y < H + 3);
   return BLOCKED.some((r) => hit(r, x, y, pad));
@@ -93,11 +107,7 @@ export function solidAt(x: number, y: number, pad = 0.16, floor = 0): boolean {
 /** nav grid, one char per 1x1 tile: "." open, "#" blocked (tile centre inside a blocker) */
 const row = (blocked: (x: number, y: number) => boolean) => Array.from({ length: H }, (_, y) => Array.from({ length: W }, (_, x) => (blocked(x + 0.5, y + 0.5) ? "#" : ".")).join(""));
 export const NAV: string[] = row((x, y) => BLOCKED.some((r) => hit(r, x, y, 0.2)));
-export const NAV_UP: string[] = row((x, y) => {
-  const L = LIBRARY;
-  if (x < L.x + 0.55 || y < L.y + 0.55 || x > L.x + L.w - 0.55 || y > L.y + L.h - 0.55) return true;
-  return LIB_SHELVES.some((r) => hit(r, x, y, 0.15));
-});
+export const NAV_UP: string[] = row((x, y) => !upWalk(x, y));
 export const PLAZA_TILES: { x: number; y: number }[] = NAV.flatMap((line, y) => line.split("").map((c, x) => ({ c, x, y }))).filter((t) => t.c === "." && t.x >= 32 && t.x <= 76 && t.y >= 30 && t.y <= 62 && !BLOCKS.some((b) => hit(b.rect, t.x + 0.5, t.y + 0.5, 0)));
 export const CORRIDOR_TILES: { x: number; y: number }[] = NAV.flatMap((line, y) => line.split("").map((c, x) => ({ c, x, y }))).filter((t) => t.c === "." && (t.x < 14 || t.x > W - 15 || t.y < 14 || t.y > H - 15));
 

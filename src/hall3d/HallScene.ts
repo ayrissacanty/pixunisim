@@ -4,7 +4,7 @@ import { Beam } from "../shared/beam";
 import { dprCap, shadowSize, vignette, rimLight, smallScreen } from "../shared/polish";
 import { PERIODS, DAY, DAY_START, periodAt, astar, rnd, shuffle } from "./logic";
 import { bakeSheet, DIRS, COLS, FW, FH, SCALE, FEET, SKINS, SHIRTS, HAIRS, AGE_SCALE, type Age, type Look } from "./characters";
-import { SUBJECTS, W, H, WALL_H, LOCK_D, FLOOR_Y, BLOCKS, DOORS, NEWS, OPEN, LOCKERS, PROPS, ENTRANCE, OUTSIDE, NAV, NAV_UP, LIB_SHELL, LIB_SHELVES, STAIR_BLOCK, STAIR_UP, STAIR_DOWN, STAIR_GROUND, STAIR_TOP, LIB_READ, hit, solidAt, type Subject, type Room, type Rect, type Face } from "./campus";
+import { SUBJECTS, W, H, WALL_H, LOCK_D, FLOOR_Y, BLOCKS, DOORS, NEWS, OPEN, LOCKERS, PROPS, ENTRANCE, OUTSIDE, NAV, NAV_UP, LIB_SHELL, LIB_SHELVES, LIBRARY, WEST_HALL, EAST_HALL, AUDITORIUM, NEWSROOM, UP_DOORS, STAIR_BLOCK, STAIR_UP, STAIR_DOWN, STAIR_GROUND, STAIR_TOP, LIB_READ, LIB_DESK, AUD_DOOR, NEWS_DOOR, underUpper, hit, solidAt, type Subject, type Room, type Rect, type Face } from "./campus";
 import * as T from "./textures";
 import { ROSTER, STAFF, HALL_COUNT, type NpcDef } from "./roster";
 import { drawBoard } from "../game/timesui";
@@ -39,7 +39,7 @@ export type ViewMode = "close" | "overview" | "first";
 export const GOTO = [
   { key: "math", label: "Math", color: SUBJ_COL.math }, { key: "ela", label: "ELA", color: SUBJ_COL.ela },
   { key: "science", label: "Science", color: SUBJ_COL.science }, { key: "history", label: "History", color: SUBJ_COL.history }, { key: "careers", label: "CarryingCareers", color: SUBJ_COL.careers }, { key: "life", label: "Life Lessons", color: SUBJ_COL.life },
-  { key: "news", label: "Auditorium (stairs down)", color: "#8E7CC3" }, { key: "open", label: "The Open Door (parent classes)", color: "#E8A33D" },
+  { key: "news", label: "Auditorium (upstairs)", color: "#8E7CC3" }, { key: "newsroom", label: "Newsroom (upstairs)", color: "#E07A66" }, { key: "open", label: "The Open Door (parent classes)", color: "#E8A33D" },
   { key: "library", label: "Library (upstairs)", color: "#6E8B74" },
   { key: "board", label: "Class-times board", color: "#C9A36B" }, { key: "plaza", label: "Plaza fountain", color: "#EAB94E" }, { key: "entrance", label: "Main entrance", color: "#F28F7E" },
 ];
@@ -54,7 +54,7 @@ export class HallScene {
   students: Stu[] = []; player!: Person; monitor!: Person; duty: Person[] = []; inDoor: Room | null = null; onToast: (m: string) => void = () => {};
   keys: Record<string, boolean> = {}; input = { x: 0, y: 0 }; rotate = 0; inputLocked = false;
   /** per-frame hooks (dt = real seconds, sim = simulated seconds) and tap handling for the social layer */
-  onTick: ((dt: number, sim: number) => void)[] = []; onTap: (p: Person | null) => void = () => {}; onPic: (pid: string, title: string, subject: string) => void = () => {}; onTV: () => void = () => {}; hallPics: THREE.Mesh[] = []; tvScreen: THREE.Mesh | null = null;
+  onTick: ((dt: number, sim: number) => void)[] = []; onTap: (p: Person | null) => void = () => {}; onPic: (pid: string, title: string, subject: string) => void = () => {}; onTV: () => void = () => {}; onBooks: () => void = () => {}; onNewsroom: () => void = () => {}; hallPics: THREE.Mesh[] = []; tvScreen: THREE.Mesh | null = null; private bookLatch = false; private newsLatch = false; private sentUp = false;
   /** Chat Chow seats (stools at the plaza tables): tap one to sit; the player sits there when idle */
   seats: { pos: THREE.Vector3; ctr: THREE.Vector3; mesh: THREE.Mesh }[] = []; sitting: number | null = null; private pendingSeat: number | null = null;
   /** scripted walking (arrival from the bus, walking in) that ignores walls and input */
@@ -189,7 +189,7 @@ export class HallScene {
       const dx = NEWS.cx - W / 2, dz = -H / 2;
       this.box(1.9, DR + 0.35, 0.18, this.plain("#9A653D"), dx, (DR + 0.35) / 2, dz + 0.09);
       const dm = new THREE.Mesh(new THREE.PlaneGeometry(1.5, DR), new THREE.MeshStandardMaterial({ map: this.tex("door-news", () => T.doorTex("#8E7CC3")), roughness: 0.95 })); dm.position.set(dx, DR / 2, dz + 0.19); dm.receiveShadow = true; S.add(dm);
-      const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex("sign-news", () => T.signTex("AUDITORIUM ▼", "#6B5AA8")), transparent: true })); sg.position.set(dx, DR + 0.55, dz + 0.2); S.add(sg);
+      const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex("sign-news", () => T.signTex("AUDITORIUM UPSTAIRS", "#6B5AA8")), transparent: true })); sg.position.set(dx, DR + 0.55, dz + 0.2); S.add(sg);
     }
     { // The Open Door: parent-run classroom, west wall
       const dx = -W / 2, dz = OPEN.cy - H / 2;
@@ -250,49 +250,65 @@ export class HallScene {
     }
     this.buildLibrary();
   }
-  /** the upstairs library: a wide reading room over the north wing, with stairs up from the plaza */
+  /** the second floor: library, side halls, auditorium and newsroom, finished like the ground floor */
   private buildLibrary() {
-    const S = LIB_SHELL, y0 = FLOOR_Y, wood = this.plain("#C4A574"), wall = this.plain("#F3E6D0"), ink = this.plain("#8A6239");
+    const y0 = FLOOR_Y, wh = WALL_H, wy = y0 + wh / 2;
     const gx = (x: number) => x - W / 2, gz = (y: number) => y - H / 2;
-    const cx = gx(S.x + S.w / 2), cz = gz(S.y + S.h / 2);
-    this.box(S.w, 0.28, S.h, wood, cx, y0 - 0.14, cz, { outline: false, shadow: false });
-    const wh = WALL_H, wy = y0 + wh / 2;
-    this.box(S.w, wh, 0.4, wall, cx, wy, gz(S.y), { outline: false, occlude: true, shadow: false });
-    this.box(0.4, wh, S.h, wall, gx(S.x), wy, cz, { outline: false, occlude: true, shadow: false });
-    this.box(0.4, wh, S.h, wall, gx(S.x + S.w), wy, cz, { outline: false, occlude: true, shadow: false });
-    const gap0 = STAIR_UP.x, gap1 = STAIR_UP.x + STAIR_UP.w, south = S.y + S.h;
-    const left = gap0 - S.x, right = S.x + S.w - gap1;
-    if (left > 1) this.box(left, wh, 0.4, wall, gx(S.x + left / 2), wy, gz(south), { outline: false, occlude: true, shadow: false });
-    if (right > 1) this.box(right, wh, 0.4, wall, gx(gap1 + right / 2), wy, gz(south), { outline: false, occlude: true, shadow: false });
-    this.box(S.w - 2, 0.16, S.h - 2, this.plain("#E7D3B0"), cx, y0 + WALL_H - 0.08, cz, { outline: false, shadow: false });
-    const mid = STAIR_BLOCK.x + STAIR_BLOCK.w / 2;
-    this.card(this.tex("libsign", () => T.bannerTex("LIBRARY")), 6.4, 0.9, gx(mid), y0 + 3.15, gz(south) + 0.28, Math.PI, true);
-    for (let x = S.x + 8; x < S.x + S.w - 6; x += 10) if (Math.abs(x - mid) > 6) this.card(this.tex("libwin", () => T.windowTex()), 1.5, 1.7, gx(x), y0 + 2.3, gz(S.y) + 0.28, 0);
+    const wallM = Mood.tinted(this.std(this.rep("wall", () => T.wallTex(), 3)), "wash", 1);
+    const floorM = this.std(this.rep("upfloor", () => T.floorTex(), 4, 3));
+    const wood = this.plain("#C4A574"), ink = this.plain("#8A6239"), cream = this.plain("#F6E6D0");
+    const slab = (r: Rect) => {
+      this.box(r.w, 0.24, r.h, floorM, gx(r.x + r.w / 2), y0 - 0.02, gz(r.y + r.h / 2), { outline: false, shadow: false });
+      this.box(Math.max(0.4, r.w - 1.2), 0.1, Math.max(0.4, r.h - 1.2), cream, gx(r.x + r.w / 2), y0 + wh - 0.08, gz(r.y + r.h / 2), { outline: false, shadow: false });
+    };
+    for (const r of [LIBRARY, WEST_HALL, EAST_HALL, AUDITORIUM, NEWSROOM]) slab(r);
+    const edge = (x: number, y: number, w: number, d: number) => { if (w < 0.4 || d < 0.3) return; this.box(w, wh, d, wallM, gx(x + w / 2), wy, gz(y + d / 2), { outline: false, occlude: true, shadow: false }); };
+    edge(8, 6, 92, 0.45); edge(8, 6, 0.45, 28); edge(99.55, 6, 0.45, 28);
+    edge(8, 33.55, 3, 0.45); edge(23, 33.55, 62, 0.45); edge(97, 33.55, 3, 0.45);
+    edge(8, 34, 0.45, 18); edge(25.55, 34, 0.45, 18); edge(8, 34, 3, 0.4); edge(23, 34, 3, 0.4); edge(8, 51.6, 3, 0.4); edge(23, 51.6, 3, 0.4);
+    edge(82, 34, 0.45, 18); edge(99.55, 34, 0.45, 18); edge(82, 34, 3, 0.4); edge(97, 34, 3, 0.4); edge(82, 51.6, 3, 0.4); edge(97, 51.6, 3, 0.4);
+    edge(8, 52, 0.45, 22); edge(8, 73.55, 52, 0.45); edge(8, 52, 3, 0.45); edge(23, 52, 37, 0.45);
+    edge(59.55, 52, 0.45, 8); edge(59.55, 68, 0.45, 6);
+    edge(99.55, 52, 0.45, 22); edge(60, 73.55, 40, 0.45); edge(60, 52, 25, 0.45); edge(97, 52, 3, 0.45);
+    edge(60, 52, 0.45, 8); edge(60, 68, 0.45, 6);
+    const winAt = (x: number, y: number, rot: number) => this.win(gx(x), y0 + 2.35, gz(y), rot);
+    for (let x = 16; x < 96; x += 10) winAt(x, 6.3, 0);
+    for (let x = 16; x < 56; x += 10) winAt(x, 73.7, Math.PI);
+    for (let x = 68; x < 96; x += 10) winAt(x, 73.7, Math.PI);
+    for (let y = 12; y < 30; y += 8) { winAt(8.3, y, Math.PI / 2); winAt(99.7, y, -Math.PI / 2); }
+    const sign = (text: string, col: string, x: number, y: number, rot: number) => this.card(this.tex("sg-" + text, () => T.signTex(text, col)), 2.4, 0.55, gx(x), y0 + 3.15, gz(y), rot, true);
+    sign("LIBRARY", "#6E8B74", 54, 7.2, 0); sign("TO THE AUDITORIUM", "#6B5AA8", 17, 32.4, Math.PI); sign("TO THE NEWSROOM", "#E07A66", 91, 32.4, Math.PI);
+    sign("AUDITORIUM", "#6B5AA8", 32, 71.6, Math.PI); sign("NEWSROOM", "#E07A66", 80, 71.6, Math.PI);
     const spines = this.tex("spines", () => {
       const cv = document.createElement("canvas"); cv.width = 256; cv.height = 128; const c = cv.getContext("2d")!;
       c.fillStyle = "#8A6239"; c.fillRect(0, 0, 256, 128);
-      const cols = ["#C46B4A", "#4F91C7", "#6E8B74", "#E0B15A", "#F4E2C4", "#8E5A3C", "#D4786A"];
-      let x = 4; let i = 0; while (x < 250) { const w = 10 + (i % 4) * 4; c.fillStyle = cols[i % cols.length]; c.fillRect(x, 6, w - 2, 116); c.fillStyle = "rgba(255,255,255,.35)"; c.fillRect(x, 18, w - 2, 3); x += w; i++; }
+      const cols = ["#6E8B74", "#4F91C7", "#C46B4A", "#E0B15A", "#F4E2C4", "#8E5A3C", "#D4786A", "#7C6BB5"];
+      const titles = ["COUNT", "WEATHER", "CELLS", "ALGEBRA", "STORIES", "FACTS", "SPEECH", "FRACTIONS"];
+      let x = 4, i = 0; while (x < 248) { const w = 14 + (i % 3) * 6; c.fillStyle = cols[i % cols.length]; c.fillRect(x, 8, w - 3, 112); c.fillStyle = "#fffaf2"; c.font = "700 11px Georgia, serif"; c.save(); c.translate(x + 4, 108); c.rotate(-Math.PI / 2); c.fillText(titles[i % titles.length], 0, 0); c.restore(); x += w; i++; }
       const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
     });
-    const front = new THREE.MeshStandardMaterial({ map: spines, roughness: 0.85 });
-    for (const r of LIB_SHELVES) {
-      const wide = r.w > r.h, mats = wide ? [ink, ink, wood, ink, front, front] : [front, front, wood, ink, ink, ink];
-      this.box(r.w, 2.15, r.h, mats, gx(r.x + r.w / 2), y0 + 1.08, gz(r.y + r.h / 2), { outline: false, shadow: true });
+    const front = new THREE.MeshStandardMaterial({ map: spines, roughness: 0.8 });
+    for (const r of LIB_SHELVES) this.box(r.w, 2.2, r.h, [front, front, wood, ink, ink, ink], gx(r.x + r.w / 2), y0 + 1.1, gz(r.y + r.h / 2), { outline: false, shadow: true });
+    this.flat(this.rep("librug", () => T.stoneTex(), 3, 2), 12, 7, gx(54), gz(LIB_READ.y), y0 + 0.03);
+    this.box(3.2, 0.9, 1.1, wood, gx(54), y0 + 0.45, gz(14.6), { outline: false });
+    this.card(this.tex("deskplate", () => T.signTex("CHECK OUT A BOOK", "#6E8B74")), 2.2, 0.42, gx(54), y0 + 1.15, gz(14.2), 0, true);
+    for (const [x, y] of [[42, 18], [66, 18], [54, 24]] as const) {
+      this.box(2.4, 0.08, 1.15, wood, gx(x), y0 + 0.74, gz(y), { outline: false });
+      this.box(0.1, 0.7, 0.1, ink, gx(x - 1), y0 + 0.35, gz(y - 0.4), { outline: false, shadow: false });
+      this.box(0.1, 0.7, 0.1, ink, gx(x + 1), y0 + 0.35, gz(y + 0.4), { outline: false, shadow: false });
+      this.lamp(gx(x + 1.6), gz(y), "#E7C98A", y0);
     }
-    this.flat(this.rep("librug", () => T.stoneTex(), 3, 2), 10, 6, gx(mid), gz(LIB_READ.y), y0 + 0.02);
-    for (const [x, y] of [[mid - 18, LIB_READ.y], [mid + 18, LIB_READ.y]] as const) {
-      this.box(2.2, 0.08, 1.1, wood, gx(x), y0 + 0.78, gz(y), { outline: false });
-      this.box(0.12, 0.74, 0.12, ink, gx(x), y0 + 0.37, gz(y), { outline: false, shadow: false });
-      this.lamp(gx(x) + 1.8, gz(y), "#E7C98A", y0);
-    }
-    const n = 8, z0 = gz(STAIR_BLOCK.y + STAIR_BLOCK.h), z1 = gz(STAIR_BLOCK.y);
-    for (let i = 0; i < n; i++) {
-      const t = (i + 0.5) / n, z = z0 + (z1 - z0) * t, h = 0.28 + t * (y0 - 0.28);
-      this.box(7.2, h, Math.abs(z1 - z0) / n + 0.02, wood, gx(mid), h / 2, z, { outline: false, shadow: false });
-    }
+    for (const [x, y] of [[14, 30], [94, 30], [14, 58], [94, 58], [20, 70], [80, 70]] as const) this.plant(gx(x), gz(y), y0);
+    for (const [x, y] of [[12, 40], [96, 40], [30, 70], [86, 70]] as const) this.lamp(gx(x), gz(y), "#F8D977", y0);
+    this.bench(gx(18), gz(62), Math.PI / 2, y0); this.bench(gx(40), gz(62), Math.PI / 2, y0);
+    this.box(16, 0.45, 5, wood, gx(32), y0 + 0.28, gz(70), { outline: false });
+    this.card(this.tex("stagesign", () => T.signTex("WALK UP TO OPEN THE SHOW", "#6B5AA8")), 3.4, 0.5, gx(32), y0 + 1.3, gz(67.6), Math.PI, true);
+    this.box(2.2, 0.9, 1.0, ink, gx(80), y0 + 0.45, gz(68), { outline: false });
+    this.card(this.tex("newsset", () => T.bannerTex("THE NEWSROOM")), 3.2, 1.6, gx(80), y0 + 2.2, gz(72.6), Math.PI, true);
+    const n = 8, z0 = gz(STAIR_BLOCK.y + STAIR_BLOCK.h), z1 = gz(STAIR_BLOCK.y), mid = STAIR_BLOCK.x + STAIR_BLOCK.w / 2;
+    for (let i = 0; i < n; i++) { const t = (i + 0.5) / n, z = z0 + (z1 - z0) * t, h = 0.28 + t * (y0 - 0.28); this.box(7.2, h, Math.abs(z1 - z0) / n + 0.02, wood, gx(mid), h / 2, z, { outline: false, shadow: false }); }
     for (const side of [-1, 1]) this.box(0.12, 1.05, 8.2, ink, gx(mid + side * 3.7), y0 * 0.45 + 0.4, (z0 + z1) / 2, { outline: false, shadow: false });
-    this.box(7.4, 0.9, 0.12, ink, gx(mid), y0 + 0.55, gz(south) - 0.2, { outline: false, shadow: false });
+    void UP_DOORS;
   }
   private fx!: { tick(t: number, dt: number): void };
   private buildDetails() {
@@ -330,9 +346,9 @@ export class HallScene {
     this.tables.push({ x, z, cloth, flag, sign, mat: cm });
     g.position.set(x, y, z); this.scene.add(g);
   }
-  private bench(x: number, z: number, rot: number) {
+  private bench(x: number, z: number, rot: number, y = 0) {
     const g = new THREE.Group(); g.add(this.part(0.62, 0.1, 1.8, "#F1C887", 0, 0.5, 0)); g.add(this.part(0.12, 0.45, 1.7, "#9A653D", -0.24, 0.25, 0)); g.add(this.part(0.1, 0.5, 1.8, "#F28F7E", -0.3, 0.8, 0));
-    g.rotation.y = rot; g.position.set(x, 0, z); this.scene.add(g);
+    g.rotation.y = rot; g.position.set(x, y, z); this.scene.add(g);
   }
   private part(w: number, h: number, d: number, col: string, x: number, y: number, z: number) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), this.plain(col)); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; return m; }
   private lamp(x: number, z: number, col: string, y = 0) {
@@ -340,11 +356,11 @@ export class HallScene {
     const l = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 12), Mood.lit(new THREE.MeshStandardMaterial({ map: this.tex(`lan-${col}`, () => T.lanternTex(col)), emissive: col, emissiveIntensity: 0.3, roughness: 1 }), 1.1, 0.3)); l.scale.y = 1.2; l.position.y = 3.2; l.castShadow = true; g.add(l);
     g.position.set(x, y, z); this.scene.add(g);
   }
-  private plant(x: number, z: number) {
+  private plant(x: number, z: number, y = 0) {
     const g = new THREE.Group(); const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.38, 0.5, 14), this.plain("#F28F7E")); pot.position.y = 0.25; pot.castShadow = true; g.add(pot);
     const cols = ["#5E9C72", "#88B89A", "#3F7655", "#A9DCC0"];
     for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2, leaf = new THREE.Mesh(new THREE.ConeGeometry(0.11, 1.0 + (i % 3) * 0.25, 4), this.plain(cols[i % 4])); leaf.position.set(Math.cos(a) * 0.26, 0.95, Math.sin(a) * 0.26); leaf.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5); leaf.castShadow = true; g.add(leaf); }
-    g.position.set(x, 0, z); this.scene.add(g);
+    g.position.set(x, y, z); this.scene.add(g);
   }
   /** one merged mesh of paper pennants hung along wall segments [x0,z0,x1,z1] */
   /** a colourful striped welcome mat in front of a door (colour = the room's colour) */
@@ -699,23 +715,28 @@ export class HallScene {
 
   /* ------------------------------------------------------------ doors, navigation */
   placeAtDoor(room: string) {
-    const d = room === "news" ? { approach: NEWS.approach, subject: "news" as Room } : room === "open" ? { approach: OPEN.approach, subject: "open" as Room } : DOORS.find((x) => x.subject === room) ?? DOORS[0]; this.floor = 0; this.player.pos.copy(g2w(d.approach.x, d.approach.y)); this.player.pos.y = 0; this.inDoor = d.subject; this.nav = null; this.navLabel = ""; this.navThen = null; this.onToast("");
+    if (room === "news") { this.floor = 1; this.player.pos.copy(g2w(28, 62)); this.player.pos.y = FLOOR_Y; this.inDoor = null; this.nav = null; this.navLabel = ""; this.navThen = null; this.onToast(""); return; }
+    const d = room === "open" ? { approach: OPEN.approach, subject: "open" as Room } : DOORS.find((x) => x.subject === room) ?? DOORS[0]; this.floor = 0; this.player.pos.copy(g2w(d.approach.x, d.approach.y)); this.player.pos.y = 0; this.inDoor = d.subject; this.nav = null; this.navLabel = ""; this.navThen = null; this.onToast("");
   }
   private clear(a: THREE.Vector3, b: THREE.Vector3) {
     const n = Math.ceil(a.distanceTo(b) / 0.25); for (let i = 1; i < n; i++) { const p = a.clone().lerp(b, i / n); if (solidAt(p.x + W / 2, p.z + H / 2, 0.3, this.floor)) return false; } return true;
   }
   /** walk the player to a class door, the library, the plaza fountain, or the main entrance */
   goTo(key: string) {
-    if (key === "library") {
-      if (this.floor === 1) { this.planNav(LIB_READ.x, LIB_READ.y, "the reading room", null); return; }
-      this.navThen = () => this.climb(1);
-      if (!this.planNav(STAIR_GROUND.x, STAIR_GROUND.y, "the library stairs", null)) this.navThen = null;
-      return;
+    if (key === "library" || key === "news" || key === "newsroom") {
+      if (this.floor === 0) {
+        this.navThen = () => this.climb(1, () => this.goTo(key));
+        if (!this.planNav(STAIR_GROUND.x, STAIR_GROUND.y, "the upstairs stairs", null)) this.navThen = null;
+        return;
+      }
+      const goal = key === "news" ? { x: 28, y: 66 } : key === "newsroom" ? { x: 78, y: 66 } : LIB_READ;
+      const label = key === "news" ? "the auditorium" : key === "newsroom" ? "the newsroom" : "the reading room";
+      this.planNav(goal.x, goal.y, label, null); return;
     }
     if (this.floor === 1) { this.navThen = null; this.climb(0, () => this.goTo(key)); return; }
     const fount = PROPS.find((p) => p.kind === "fountain")!, board = PROPS.find((p) => p.kind === "bboard")!;
     const door = DOORS.find((d) => d.subject === key), goal = door ? door.approach : key === "news" ? NEWS.approach : key === "open" ? OPEN.approach : key === "plaza" ? { x: fount.x, y: fount.y + 3.2 } : key === "board" ? { x: board.x, y: board.y + 1.6 } : { x: ENTRANCE.tile.x, y: ENTRANCE.tile.y - 2 };
-    const label = door ? `${door.subject === "careers" ? "CarryingCareers" : door.subject === "life" ? "Life Lessons" : SUBJ_LABEL[door.subject]} classroom` : key === "news" ? "the auditorium stairs" : key === "open" ? "The Open Door" : key === "plaza" ? "the plaza fountain" : key === "board" ? "the class-times bulletin board" : "the main entrance";
+    const label = door ? `${door.subject === "careers" ? "CarryingCareers" : door.subject === "life" ? "Life Lessons" : SUBJ_LABEL[door.subject]} classroom` : key === "news" ? "the auditorium" : key === "open" ? "The Open Door" : key === "plaza" ? "the plaza fountain" : key === "board" ? "the class-times bulletin board" : "the main entrance";
     const tail = door ? g2w(door.cx, door.cy + (door.face === "S" ? 0.5 : -0.5)) : key === "news" ? g2w(NEWS.cx, 0.95) : key === "open" ? g2w(0.95, OPEN.cy) : null;
     if (key === "board" || key === "outside") { this.standUp(); if (this.planNav(ENTRANCE.tile.x + 0.5, ENTRANCE.tile.y - 0.5, label, null) || true) { const pts = this.nav?.pts ?? (this.nav = { pts: [], label }).pts; pts.push(g2w(ENTRANCE.tile.x, H + 0.7), g2w(OUTSIDE.boardStand.x - 2.5, OUTSIDE.boardStand.y), g2w(OUTSIDE.boardStand.x, OUTSIDE.boardStand.y)); this.navLabel = label; } return; }
     if (this.planNav(goal.x, goal.y, label, tail)) { if (this.inDoor === (door?.subject ?? (key === "news" || key === "open" ? key : null))) this.inDoor = null; }
@@ -796,7 +817,7 @@ export class HallScene {
     const from = this.player.pos.clone(), dest = to === 1 ? top : bot, pts: THREE.Vector3[] = [];
     for (let i = 1; i <= 10; i++) { const p = from.clone().lerp(dest, i / 10); p.y = from.y + (dest.y - from.y) * (i / 10); pts.push(p); }
     this.nav = null; this.navLabel = "";
-    this.cine = { pts, speed: 3.2, done: () => { this.floor = to; this.player.pos.y = dest.y; this.onToast(to ? "The library. Quiet voices." : "Back on the ground floor."); done?.(); } };
+    this.cine = { pts, speed: 3.2, done: () => { this.floor = to; this.player.pos.y = dest.y; this.onToast(to ? "Upstairs. The library is ahead. The auditorium and newsroom are down the side halls." : "Back on the ground floor."); done?.(); } };
   }
 
   /* ------------------------------------------------------------ player + camera */
@@ -826,8 +847,16 @@ export class HallScene {
     const gx = P.pos.x + W / 2, gy = P.pos.z + H / 2;
     if (this.floor === 0 && hit(STAIR_UP, gx, gy)) { this.climb(1); return; }
     if (this.floor === 1 && hit(STAIR_DOWN, gx, gy)) { this.climb(0); return; }
-    if (this.floor !== 0) return;
-    const d = DOORS.find((q) => hit(q.trigger, gx, gy)) ?? (hit(NEWS.trigger, gx, gy) ? { subject: "news" as Room } : hit(OPEN.trigger, gx, gy) ? { subject: "open" as Room } : undefined);
+    if (this.floor === 1) {
+      if (hit(AUD_DOOR, gx, gy) && this.inDoor !== "news") this.enterDoor("news");
+      else if (!hit(AUD_DOOR, gx, gy) && this.inDoor === "news") this.inDoor = null;
+      if (hit(NEWS_DOOR, gx, gy)) { if (!this.newsLatch) { this.newsLatch = true; this.onNewsroom(); } } else this.newsLatch = false;
+      if (hit(LIB_DESK, gx, gy)) { if (!this.bookLatch) { this.bookLatch = true; this.onBooks(); } } else this.bookLatch = false;
+      return;
+    }
+    if (hit(NEWS.trigger, gx, gy)) { if (!this.sentUp) { this.sentUp = true; this.goTo("news"); } return; }
+    if (!hit(NEWS.trigger, gx, gy)) this.sentUp = false;
+    const d = DOORS.find((q) => hit(q.trigger, gx, gy)) ?? (hit(OPEN.trigger, gx, gy) ? { subject: "open" as Room } : undefined);
     if (d && this.inDoor !== d.subject) this.enterDoor(d.subject);
     else if (!d && this.inDoor) { const r = this.inDoor === "news" ? NEWS.trigger : this.inDoor === "open" ? OPEN.trigger : DOORS.find((x) => x.subject === this.inDoor)!.trigger, dist = Math.hypot(Math.max(r.x - gx, 0, gx - r.x - r.w), Math.max(r.y - gy, 0, gy - r.y - r.h)); if (dist > 0.35) this.inDoor = null; }
   }
@@ -842,7 +871,7 @@ export class HallScene {
     else if (this.view === "overview") { const d = Math.max(70, Math.max(W, H) * 0.92) * this.zoom, cp = Math.cos(this.pitch); pos = new THREE.Vector3(st * cp * d, P.y + Math.sin(this.pitch) * d, ct * cp * d + 3); look = new THREE.Vector3(P.x * 0.25, P.y, P.z * 0.25); }
     else { const ey = P.y + 1.7 / IS; pos = new THREE.Vector3(P.x, ey, P.z); look = new THREE.Vector3(P.x - st * 6, ey + Math.tan(this.fpitch) * 6, P.z - ct * 6); }
     if (this.view !== "overview") {
-      const gx = P.x + W / 2, gy = P.z + H / 2, S = LIB_SHELL, under = gx > S.x && gx < S.x + S.w && gy > S.y && gy < S.y + S.h;
+      const gx = P.x + W / 2, gy = P.z + H / 2, under = underUpper(gx, gy);
       const ceil = (this.floor === 1 ? FLOOR_Y + WALL_H : under ? FLOOR_Y : 99) - 0.7;
       if (pos.y > ceil) pos.y = ceil;
     }
