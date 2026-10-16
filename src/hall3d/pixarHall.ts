@@ -60,7 +60,7 @@ export class PixarCrowd {
     let made = 0;
     for (const { p, spec } of cand) {
       if (!keep.has(p)) continue; let e = this.ents.get(p);
-      if (!e) { if (p !== x.player && made >= 4) continue; e = this.make(p, spec, x.camera) ?? undefined; made++; if (!e) { keep.delete(p); continue; } }
+      if (!e) { if (p !== x.player && made >= 8) continue; e = this.make(p, spec, x.camera) ?? undefined; made++; if (!e) { keep.delete(p); continue; } }
       else if (e.spec !== spec) { e.c.setSpec(spec); e.spec = spec; }
       this.step(dt, p, e, x);
     }

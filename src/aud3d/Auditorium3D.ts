@@ -16,7 +16,7 @@ import { isPixar } from "../shared/look";
 import { setupPixarAud, type AudPx } from "./pixarAud";
 
 import { INTERIOR_SCALE as IS, CHAR_K, PROP_H, scaleScene } from "../shared/scale";
-import { makeBody, stepBody } from "../shared/body3d";
+import { makeBody } from "../shared/body3d";
 const SY = PROP_H.audStage, LH = PROP_H.lectern;   // stage riser + lectern heights (design units)
 const UNIT = 1.75 / 45;
 export const ROWS = 18, PER_SIDE = 12, SEAT_W = 0.95, ROW_D = 1.55, RISE = 0.2, AUD_Z0 = -18;
@@ -155,9 +155,9 @@ export class Auditorium3D {
 
   /* ---------------------------------------------------------------- people */
   private sprite(tex: THREE.Texture, h: number, look?: Look, seated = false) {
-    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false }), sp = new THREE.Sprite(mat);
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true }), sp = new THREE.Sprite(mat);
     sp.center.set(0.5, FEET / FH); sp.scale.set((FW / SCALE) * UNIT * h * CHAR_K, (FH / SCALE) * UNIT * h * CHAR_K, 1); this.scene.add(sp);
-    const body = makeBody(look || {}, sp.scale.y * 0.9); body.userData.seated = seated; this.scene.add(body);
+    const body = makeBody(look || {}, sp.scale.y * 0.9); body.visible = false;
     return { sp, mat, body };
   }
   /** one character's audience frames: columns sit, stand with hand on heart, head bowed; rows front, back */
@@ -241,7 +241,7 @@ export class Auditorium3D {
       p.sprite.position.copy(p.pos);
       if (walking) { if (p.mat.map !== p.walkTex) { p.mat.map = p.walkTex; p.mat.needsUpdate = true; } const col = 1 + (Math.floor(this.t * 8) % 4); p.walkTex.offset.set(col / COLS, 1 - 1 / DIRS.length); p.sprite.position.y += Math.abs(Math.sin(this.t * 9)) * 0.06; }
       else { if (p.mat.map !== p.tex) { p.mat.map = p.tex; p.mat.needsUpdate = true; } const talking = this.speaking === k || this.speaking === "both"; let f = 0; if (talking) f = [1, 2, 1, 0, 2, 1][Math.floor(this.t * 9) % 6]; else if (this.bowing) f = 5; else if (this.standing) f = 4; else if (this.gesture === k) f = this.gestureFrame; p.tex.offset.set(f / 8, 0); }
-      const body = (p as Stand & { body?: THREE.Group }).body; if (body) stepBody(body, p.sprite.position, walking, this.t, false);
+      const body = (p as Stand & { body?: THREE.Group }).body; if (body) body.visible = false;
     }
     // audience faces the stage; show the front or back by where the camera is
     const camZ = this.camera.position.z / IS; let ai = 0; for (const a of [...this.audience, this.me]) {
@@ -250,7 +250,7 @@ export class Auditorium3D {
       if (col === 0 && !a.me) { if (this.cheer) col = Math.sin(this.t * 9 + ph * 20) > -0.2 ? 3 : 0; else if (this.chatter && ph < 0.4) col = (this.t * (0.9 + ph) + ph * 9) % 1 < 0.55 ? 3 : 0; }
       if (!a.me && !this.tween) { const by: number = aa.by ?? (aa.by = a.sprite.position.y); a.sprite.position.y = by + (this.cheer ? Math.abs(Math.sin(this.t * 7 + ph * 12)) * 0.35 : 0); }
       a.tex.offset.set(col / 4, row === 0 ? 0.5 : 0);
-      const body = (a as Aud & { body?: THREE.Group }).body; if (body) { stepBody(body, a.sprite.position, false, this.t, true); body.rotation.y = Math.PI; }
+      const body = (a as Aud & { body?: THREE.Group }).body; if (body) body.visible = false;
     }
     if (this.tween) { const tw = this.tween; tw.t += dt / 0.7; const k = Math.min(1, tw.t), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; this.me.sprite.position.lerpVectors(tw.from, tw.to, e); this.me.sprite.position.y += Math.sin(k * Math.PI) * 0.8; if (k >= 1) this.tween = null; }
     const mp = this.me.sprite.position, ts = (this.me as any).tagSprite as THREE.Sprite; ts.position.set(mp.x, mp.y + 2.4, mp.z); ts.visible = this.view !== "audience";   // from your own seat the tag would sit right on the camera

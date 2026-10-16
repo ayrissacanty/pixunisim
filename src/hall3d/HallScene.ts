@@ -23,7 +23,7 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import { ACTIONS, POSE_KEYS, POSE_IX, GAITS, GAIT_BY_PERSONALITY, FIDGETS, bakeActions, frameAt } from "./actions";
 
 import { INTERIOR_SCALE as IS, CHAR_K, PROP_H, scaleScene } from "../shared/scale";
-import { makeBody, stepBody } from "../shared/body3d";
+import { makeBody } from "../shared/body3d";
 const DR = PROP_H.hallDoor;   // door height (design units)
 const UNIT = 1.75 / 45;                                              // one drawing unit of the chibi art in world units
 const g2w = (gx: number, gy: number) => new THREE.Vector3(gx - W / 2, 0, gy - H / 2);
@@ -86,7 +86,7 @@ export class HallScene {
     addEventListener("blur", () => { this.keys = {}; });
     addEventListener("message", (e) => { const m = e.data; if (m && m.type === "unify:exit") this.placeAtDoor(m.room); });
     this.bindPointer(r.domElement);
-    if (!this.px) this.bodies = new PixarCrowd(this.scene, getStyle("papercut"));
+    if (!this.px) this.bodies = new PixarCrowd(this.scene, getStyle("pixar"));
     this.setView("close", true); requestAnimationFrame(this.frame);
   }
   resize() { const w = this.host.clientWidth || innerWidth, h = this.host.clientHeight || innerHeight; this.renderer.setSize(w, h); this.camera.aspect = w / h; this.camera.fov = w / h < 0.8 ? 62 : 48; this.camera.updateProjectionMatrix(); this.px?.resize(w, h); }
@@ -296,17 +296,23 @@ export class HallScene {
   }
   /** the second floor: library, side halls, auditorium and newsroom, finished like the ground floor */
   private buildLibrary() {
-    const y0 = FLOOR_Y, wh = WALL_H, wy = y0 + wh / 2;
+    const y0 = FLOOR_Y, wh = WALL_H;
     const gx = (x: number) => x - W / 2, gz = (y: number) => y - H / 2;
-    const wallM = Mood.tinted(this.std(this.rep("wall", () => T.wallTex(), 3)), "wash", 1);
-    const floorM = this.std(this.rep("upfloor", () => T.floorTex(), 4, 3));
-    const wood = this.plain("#C4A574"), ink = this.plain("#8A6239"), cream = this.plain("#F6E6D0");
-    const slab = (r: Rect) => {
-      this.box(r.w, 0.24, r.h, floorM, gx(r.x + r.w / 2), y0 - 0.02, gz(r.y + r.h / 2), { outline: false, shadow: false });
-      this.box(Math.max(0.4, r.w - 1.2), 0.1, Math.max(0.4, r.h - 1.2), cream, gx(r.x + r.w / 2), y0 + wh - 0.08, gz(r.y + r.h / 2), { outline: false, shadow: false });
+    const upper = this.plain("#F6E4C4"), wain = this.plain("#2C6B62"), crown = this.plain("#E2A84A"), wood = this.plain("#A86B3C"), ink = this.plain("#6B4228"), cream = this.plain("#F3E2C4");
+    const slab = (r: Rect, floorCol: THREE.Material) => {
+      this.box(r.w, 0.2, r.h, floorCol, gx(r.x + r.w / 2), y0 + 0.02, gz(r.y + r.h / 2), { outline: false, shadow: false });
+      this.box(Math.max(0.4, r.w - 1.4), 0.08, Math.max(0.4, r.h - 1.4), cream, gx(r.x + r.w / 2), y0 + wh - 0.06, gz(r.y + r.h / 2), { outline: false, shadow: false });
     };
-    for (const r of [LIBRARY, WEST_HALL, EAST_HALL, AUDITORIUM, NEWSROOM]) slab(r);
-    const edge = (x: number, y: number, w: number, d: number) => { if (w < 0.4 || d < 0.3) return; this.box(w, wh, d, wallM, gx(x + w / 2), wy, gz(y + d / 2), { outline: false, occlude: true, shadow: false }); };
+    const oak = this.plain("#C4894A"), hallTile = this.std(this.rep("upfloor", () => T.floorTex(), 4, 3));
+    slab(LIBRARY, oak);
+    for (const r of [WEST_HALL, EAST_HALL, AUDITORIUM, NEWSROOM]) slab(r, hallTile);
+    const edge = (x: number, y: number, w: number, d: number) => {
+      if (w < 0.4 || d < 0.3) return;
+      const cx = gx(x + w / 2), cz = gz(y + d / 2);
+      this.box(w, wh * 0.7, d, upper, cx, y0 + wh * 0.62, cz, { outline: false, occlude: true, shadow: false });
+      this.box(w + 0.06, 1.2, d + 0.06, wain, cx, y0 + 0.6, cz, { outline: false, shadow: false });
+      this.box(w + 0.08, 0.14, d + 0.08, crown, cx, y0 + wh - 0.08, cz, { outline: false, shadow: false });
+    };
     edge(8, 6, 92, 0.45); edge(8, 6, 0.45, 28); edge(99.55, 6, 0.45, 28);
     edge(8, 33.55, 3, 0.45); edge(23, 33.55, 62, 0.45); edge(97, 33.55, 3, 0.45);
     edge(8, 34, 0.45, 18); edge(25.55, 34, 0.45, 18); edge(8, 34, 3, 0.4); edge(23, 34, 3, 0.4); edge(8, 51.6, 3, 0.4); edge(23, 51.6, 3, 0.4);
@@ -332,15 +338,21 @@ export class HallScene {
       const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
     });
     const front = new THREE.MeshStandardMaterial({ map: spines, roughness: 0.8 });
-    for (const r of LIB_SHELVES) this.box(r.w, 2.2, r.h, [front, front, wood, ink, ink, ink], gx(r.x + r.w / 2), y0 + 1.1, gz(r.y + r.h / 2), { outline: false, shadow: true });
-    this.flat(this.rep("librug", () => T.stoneTex(), 3, 2), 12, 7, gx(54), gz(LIB_READ.y), y0 + 0.03);
-    this.box(3.2, 0.9, 1.1, wood, gx(54), y0 + 0.45, gz(14.6), { outline: false });
-    this.card(this.tex("deskplate", () => T.signTex("CHECK OUT A BOOK", "#6E8B74")), 2.2, 0.42, gx(54), y0 + 1.15, gz(14.2), 0, true);
-    for (const [x, y] of [[42, 18], [66, 18], [54, 24]] as const) {
-      this.box(2.4, 0.08, 1.15, wood, gx(x), y0 + 0.74, gz(y), { outline: false });
-      this.box(0.1, 0.7, 0.1, ink, gx(x - 1), y0 + 0.35, gz(y - 0.4), { outline: false, shadow: false });
-      this.box(0.1, 0.7, 0.1, ink, gx(x + 1), y0 + 0.35, gz(y + 0.4), { outline: false, shadow: false });
-      this.lamp(gx(x + 1.6), gz(y), "#E7C98A", y0);
+    for (const r of LIB_SHELVES) {
+      this.box(r.w, 3.15, r.h, [front, front, wood, ink, ink, ink], gx(r.x + r.w / 2), y0 + 1.58, gz(r.y + r.h / 2), { outline: false, shadow: true });
+      this.box(r.w + 0.08, 0.08, r.h + 0.08, crown, gx(r.x + r.w / 2), y0 + 3.2, gz(r.y + r.h / 2), { outline: false, shadow: false });
+    }
+    this.flat(this.rep("librug", () => T.rugTex(), 1, 4), 3.2, 16, gx(54), gz(20), y0 + 0.08);
+    this.box(6.4, 0.95, 1.3, wood, gx(54), y0 + 0.5, gz(13.4), { outline: false });
+    this.box(6.6, 0.12, 1.5, crown, gx(54), y0 + 1.02, gz(13.4), { outline: false, shadow: false });
+    this.card(this.tex("deskplate", () => T.signTex("CHECK OUT A BOOK", "#2C6B62")), 3.2, 0.46, gx(54), y0 + 1.35, gz(12.7), 0, true);
+    const globe = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), this.plain("#3E8FD4")); globe.position.set(gx(50.2), y0 + 1.35, gz(13.4)); this.scene.add(globe);
+    this.box(0.9, 0.7, 0.55, ink, gx(58), y0 + 0.4, gz(12.2), { outline: false });
+    for (const [x, y] of [[42, 18], [66, 18], [48, 26], [60, 26]] as const) {
+      this.box(2.2, 0.08, 1.05, wood, gx(x), y0 + 0.74, gz(y), { outline: false });
+      for (const s of [-1, 1]) this.box(0.08, 0.7, 0.08, ink, gx(x + s), y0 + 0.35, gz(y), { outline: false, shadow: false });
+      this.box(0.42, 0.42, 0.42, this.plain("#C45A4A"), gx(x - 0.7), y0 + 0.42, gz(y + 0.85), { outline: false, shadow: false });
+      this.lamp(gx(x + 0.7), gz(y - 0.15), "#F0B429", y0);
     }
     for (const [x, y] of [[14, 30], [94, 30], [14, 58], [94, 58], [20, 70], [80, 70]] as const) this.plant(gx(x), gz(y), y0);
     for (const [x, y] of [[12, 40], [96, 40], [30, 70], [86, 70]] as const) this.lamp(gx(x), gz(y), "#F8D977", y0);
@@ -507,9 +519,9 @@ export class HallScene {
   /* ------------------------------------------------------------ people (billboarded chibi sprites baked from the vector art) */
   private makePerson(id: number, look: Look, h = AGE_SCALE[look.age ?? "hs"] * ((look as any).hScale ?? 1)): Person {
     const tex = new THREE.CanvasTexture(bakeSheet(look)); tex.colorSpace = THREE.SRGBColorSpace; tex.repeat.set(1 / COLS, 1 / DIRS.length); tex.anisotropy = 4;
-    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false }); const sprite = new THREE.Sprite(mat);
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 1, depthWrite: false }); const sprite = new THREE.Sprite(mat);
     sprite.center.set(0.5, FEET / FH); sprite.scale.set(((FW / SCALE) * UNIT) * h * CHAR_K, ((FH / SCALE) * UNIT) * h * CHAR_K, 1); this.scene.add(sprite);
-    const body = makeBody(look, sprite.scale.y * 0.92); this.scene.add(body);
+    const body = makeBody(look, sprite.scale.y * 0.92); body.visible = false;
     const blob = new THREE.Mesh(new THREE.CircleGeometry(0.28, 14), new THREE.MeshBasicMaterial({ color: "#000", transparent: true, opacity: 0.18, depthWrite: false })); blob.rotation.x = -Math.PI / 2; blob.position.y = 0.02; this.scene.add(blob);
     return { id, look, sprite, body, mat, tex, blob, pos: new THREE.Vector3(), dir: 0, frame: 0, moving: false, baseScale: sprite.scale.clone(), gait: "steady", fidgetT: 4 + Math.random() * 10 };
   }
@@ -957,7 +969,7 @@ export class HallScene {
       if (s.talking) { s.moving = false; s.frame = 0; continue; }
       this.fidget(s, dt);
       if (s.act && !s.path.length) { s.moving = false; s.frame = 0; continue; }
-      if (s.fade < 1) s.fade = Math.min(1, s.fade + sim * 3);
+      if (s.fade < 1) { s.fade = Math.min(1, s.fade + sim * 3); s.mat.opacity = s.fade; }
       if (s.path.length) {
         const tgt = s.path[0], d = tgt.clone().sub(s.pos); d.y = 0; const len = d.length(), step = s.speed * sim;
         if (len <= step) { s.pos.copy(tgt); s.path.shift(); } else { d.normalize(); s.pos.addScaledVector(d, step); s.dir = this.dirFrom(d, fwd, s.dir); }
@@ -972,12 +984,11 @@ export class HallScene {
     this.fadeOccluders(dt);
     this.player.sprite.visible = this.view !== "first" && !this.arrivalHide; this.player.blob.visible = this.view !== "first" && !this.arrivalHide;
     this.tickVisitors(dt);
-    for (const p of [...this.students, this.player, this.monitor, this.teacher, ...this.duty, ...this.visitors.values()]) { if ((p as Stu).hidden) { p.body.visible = false; continue; } p.mat.opacity = 0; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position.clone().divideScalar(IS)) < 1.1; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, p.pos.y + 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); this.applyBody(p, dt, p === this.player); p.body.visible = p.sprite.visible && !(this.view === "first" && p === this.player); const fade = (p as Stu).fade ?? 1; p.body.scale.setScalar(Math.max(0.05, fade)); stepBody(p.body, p.sprite.position, p.moving, this.t, p === this.player && this.sitting != null); }
+    for (const p of [...this.students, this.player, this.monitor, this.teacher, ...this.duty, ...this.visitors.values()]) { if ((p as Stu).hidden) { p.body.visible = false; continue; } p.body.visible = false; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position.clone().divideScalar(IS)) < 1.1; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, p.pos.y + 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); this.applyBody(p, dt, p === this.player); }
     const crowd = this.px?.crowd ?? this.bodies;
     if (crowd) {
       if (this.px) this.px.tick(this.t, this.player.pos);
       crowd.update(dt, [this.player, ...this.students, this.monitor, this.teacher, ...this.duty], { player: this.player, playerSpec: this.playerSpec, camera: this.camera, shown: this.view !== "first" && !this.arrivalHide, first: this.view === "first", seat: this.sitting != null ? this.seats[this.sitting] : null, talkingTo: this.persons().find((q) => q.talking) ?? null });
-      for (const p of [this.player, ...this.students, this.monitor, this.teacher, ...this.duty]) if (crowd.has(p)) p.body.visible = false;
     }
     const tg = PERIODS[this.idx].tint, k = Math.min(1, dt * 1.5); for (let i = 0; i < 4; i++) this.tint[i] += (tg[i] - this.tint[i]) * k;
     if (this.sitting != null) this.player.sprite.position.y -= 0.12;
