@@ -658,7 +658,7 @@ export class HallScene {
   /** after the schedule is made: walk through the front doors into the school, then on to where the day goes next */
   walkInside(next: () => void) {
     this.standUp(); this.inputLocked = false; const bs = g2w(OUTSIDE.boardStand.x, OUTSIDE.boardStand.y);
-    this.cine = { speed: 3.6, pts: [g2w(28 + 1.2, H + 3.2), g2w(28, H + 1.2), g2w(28, H - 0.6)], done: () => { this.cine = null; this.arrivalCam = false; next(); } }; void bs;
+    this.cine = { speed: 3.6, pts: [g2w(54, H + 1.8), g2w(54, H - 1.4), g2w(54, H - 5)], done: () => { this.cine = null; this.arrivalCam = false; next(); } }; void bs;
   }
   skipCine() { if (!this.cine) return; const last = this.cine.pts[this.cine.pts.length - 1], d = this.cine.done; this.player.pos.copy(last); this.cine = null; this.arrivalHide = false; this.arrivalCam = false; if (this.busState) { this.busState.mode = "out"; } d?.(); }
   private updateBus(dt: number) {
@@ -717,8 +717,7 @@ export class HallScene {
       const m = w.p; if (m.talking) { m.moving = false; m.frame = 0; continue; }
       if (!w.path.length) { const gx = Math.floor(m.pos.x + W / 2), gy = Math.floor(m.pos.z + H / 2), [tx, ty] = w.stops[w.leg]; w.leg = (w.leg + 1) % w.stops.length; w.path = astar(NAV, Math.max(0, Math.min(W - 1, gx)), Math.max(0, Math.min(H - 1, gy)), tx, ty).map((t) => g2w(t.x + 0.5, t.y + 0.5)); }
       const tgt = w.path[0]; if (!tgt) { m.moving = false; m.frame = 0; continue; }
-      const d = tgt.clone().sub(m.pos); d.y = 0; const len = d.length(), step = w.speed * dt;
-      if (len <= step) { if (!this.hitsPerson(tgt.x, tgt.z, m)) { m.pos.copy(tgt); w.path.shift(); } } else { d.normalize(); const nx = m.pos.x + d.x * step, nz = m.pos.z + d.z * step; if (!this.hitsPerson(nx, nz, m)) { m.pos.x = nx; m.pos.z = nz; } m.dir = this.dirFrom(d, fwd, m.dir); }
+      const step = w.speed * dt, aim = tgt.clone().sub(m.pos); aim.y = 0; if (this.approach(m, tgt.x, tgt.z, step, 0)) w.path.shift(); if (aim.lengthSq() > 1e-4) m.dir = this.dirFrom(aim, fwd, m.dir);
       m.moving = true; m.frame = 1 + (Math.floor(this.t * 5) % 4);
     }
   }
@@ -893,15 +892,30 @@ export class HallScene {
     mesh.position.set(spot.x, (subject === "news" ? FLOOR_Y : 0) + 1.6, spot.z);
     mesh.lookAt(this.camera.position); this.scene.add(mesh); this.peek = mesh;
   }
-  /** true when stepping to nx,nz would push into someone. Moving away from an overlap is allowed. */
-  private hitsPerson(nx: number, nz: number, self: Person) {
+  /** a wall, a column, or the closed outside of the building */
+  private wallAt(x: number, z: number, floor: number) { return solidAt(x + W / 2, z + H / 2, 0.18, floor); }
+  /** someone else is standing on this spot */
+  private tooClose(x: number, z: number, self: Person) {
     const all = [this.player, this.monitor, this.teacher, ...this.duty, ...this.students];
     for (const o of all) {
       if (!o || o === self || (o as Stu).hidden) continue;
       if (Math.abs((o.pos.y || 0) - (self.pos.y || 0)) > 2.2) continue;
-      const d0 = Math.hypot(self.pos.x - o.pos.x, self.pos.z - o.pos.z), d1 = Math.hypot(nx - o.pos.x, nz - o.pos.z);
-      if (d1 < 0.72 && d1 < d0 - 0.002) return true;
+      if (Math.hypot(o.pos.x - x, o.pos.z - z) < 0.42) return true;
     }
+    return false;
+  }
+  /** step toward a point. Walls always win. People slide aside instead of freezing in the doorway. */
+  private approach(p: Person, tx: number, tz: number, step: number, floor: number) {
+    const dx = tx - p.pos.x, dz = tz - p.pos.z, len = Math.hypot(dx, dz);
+    if (len < 0.08) return true;
+    if (len < 0.55 && !this.wallAt(tx, tz, floor)) return true;
+    const k = Math.min(step, len) / len, nx = p.pos.x + dx * k, nz = p.pos.z + dz * k;
+    const open = (x: number, z: number) => !this.wallAt(x, z, floor) && !this.tooClose(x, z, p);
+    if (open(nx, nz)) { p.pos.x = nx; p.pos.z = nz; return len <= step + 0.02; }
+    if (!this.wallAt(nx, p.pos.z, floor) && !this.tooClose(nx, p.pos.z, p)) { p.pos.x = nx; return false; }
+    if (!this.wallAt(p.pos.x, nz, floor) && !this.tooClose(p.pos.x, nz, p)) { p.pos.z = nz; return false; }
+    const side = ((p.id ?? 0) % 2 ? 1 : -1) * 0.2, ox = p.pos.x + (-dz / len) * side, oz = p.pos.z + (dx / len) * side;
+    if (!this.wallAt(ox, oz, floor)) { p.pos.x = ox; p.pos.z = oz; }
     return false;
   }
   planNav(gxGoal: number, gyGoal: number, label: string, tail: THREE.Vector3 | null) {
@@ -946,7 +960,7 @@ export class HallScene {
       else if (P.kind === "lunch") { const buddy = s.def && Social.peek(s.def.id)?.lunchBuddy && near[ni]; s.pending = { delay: rnd(0, 10), dest: buddy ? near[ni++] : spots[n], hide: false, appear: s.hidden ? s.lastDoor : undefined }; }
       else if (P.kind === "arrive") {
         if (this.bus && this.busState) { this.bus.visible = true; this.bus.position.set(this.busState.to, 0, OUTSIDE.busStop.y - H / 2); if (this.busState.mode === "idle") this.busState.mode = "wait"; }
-        const door = { x: OUTSIDE.busDoor.x + (n % 5) * 0.55 - 1, y: OUTSIDE.busDoor.y };
+        const door = { x: 48 + (n % 8) * 2.4, y: H + 4.4 };
         s.hidden = true; s.sprite.visible = false; s.blob.visible = false; s.path = []; s.pending = { delay: 0.35 + n * 0.22, dest: spots[n] || ent, hide: false, appear: door };
       }
       else s.pending = { delay: rnd(0, 12), dest: ent, hide: true, appear: s.hidden ? s.lastDoor : undefined };
@@ -955,8 +969,10 @@ export class HallScene {
   private begin(s: Stu) {
     const p = s.pending!; s.pending = null;
     if (p.appear) { s.pos.copy(g2w(p.appear.x + 0.5, p.appear.y + 0.5)); s.hidden = false; s.sprite.visible = true; s.blob.visible = true; s.fade = 0; s.mat.opacity = 0; }
-    const sx = Math.min(W - 1, Math.max(0, Math.floor(s.pos.x + W / 2))), sy = Math.min(H - 1, Math.max(0, Math.floor(s.pos.z + H / 2)));
-    s.path = astar(NAV, sx, sy, p.dest.x, p.dest.y).map((t) => g2w(t.x + 0.5, t.y + 0.5)); s.hideOnArrive = p.hide; s.moving = s.path.length > 0;
+    const outside = p.appear != null && p.appear.y > H;
+    const sx = Math.min(W - 1, Math.max(0, Math.floor(outside ? 54 : s.pos.x + W / 2))), sy = Math.min(H - 1, Math.max(0, Math.floor(outside ? H - 2 : s.pos.z + H / 2)));
+    const indoors = astar(NAV, sx, sy, p.dest.x, p.dest.y).map((t) => g2w(t.x + 0.5, t.y + 0.5));
+    s.path = outside ? [g2w(54, H + 1.6), g2w(54, H - 1.6), ...indoors] : indoors; s.hideOnArrive = p.hide; s.moving = s.path.length > 0;
     if (!s.path.length && p.hide) { s.hidden = true; s.sprite.visible = false; s.blob.visible = false; }
   }
 
@@ -988,13 +1004,14 @@ export class HallScene {
     if (manual) {                                                  // controls follow the camera: up = away from the viewer
       const v = new THREE.Vector3(ct * ix + st * iz, 0, -st * ix + ct * iz).normalize().multiplyScalar(4 * dt); P.moving = true;
       const gx0 = P.pos.x + W / 2, gy0 = P.pos.z + H / 2;
-      if (!solidAt(gx0 + v.x, gy0, 0.16, this.floor) && !this.hitsPerson(P.pos.x + v.x, P.pos.z, P)) P.pos.x += v.x;
-      if (!solidAt(P.pos.x + W / 2, gy0 + v.z, 0.16, this.floor) && !this.hitsPerson(P.pos.x, P.pos.z + v.z, P)) P.pos.z += v.z;
+      if (!solidAt(gx0 + v.x, gy0, 0.16, this.floor) && !this.tooClose(P.pos.x + v.x, P.pos.z, P)) P.pos.x += v.x;
+      if (!solidAt(P.pos.x + W / 2, gy0 + v.z, 0.16, this.floor) && !this.tooClose(P.pos.x, P.pos.z + v.z, P)) P.pos.z += v.z;
       P.dir = this.dirFrom(v, fwd, P.dir); P.frame = 1 + (Math.floor(this.t * 9) % 4);
     } else if (this.nav) {
-      const tgt = this.nav.pts[0], d = tgt.clone().sub(P.pos); d.y = 0; const len = d.length(), step = 4.6 * dt; P.moving = true;
-      if (len <= step) { if (!this.hitsPerson(tgt.x, tgt.z, P)) { P.pos.copy(tgt); this.nav.pts.shift(); } if (!this.nav.pts.length) { const label = this.nav.label; this.nav = null; this.navLabel = ""; const then = this.navThen; this.navThen = null; if (then) { then(); return; } if (this.pendingSeat != null) { this.sitting = this.pendingSeat; this.pendingSeat = null; this.ensureSitTex(P); this.onToast("Sitting at Chat Chow. Move to get up."); return; } if (this.floor === 0 && ![...DOORS, NEWS, OPEN].some((q) => hit(q.trigger, P.pos.x + W / 2, P.pos.z + H / 2))) this.onToast(`Arrived at ${label}`); } }
-      else { d.normalize(); const nx = P.pos.x + d.x * step, nz = P.pos.z + d.z * step; if (!this.hitsPerson(nx, nz, P)) { P.pos.x = nx; P.pos.z = nz; } P.dir = this.dirFrom(d, fwd, P.dir); }
+      const tgt = this.nav.pts[0], step = 4.6 * dt; P.moving = true;
+      if (this.approach(P, tgt.x, tgt.z, step, this.floor)) this.nav.pts.shift();
+      const aim = tgt.clone().sub(P.pos); aim.y = 0; if (aim.lengthSq() > 1e-4) P.dir = this.dirFrom(aim, fwd, P.dir);
+      if (!this.nav.pts.length) { const label = this.nav.label; this.nav = null; this.navLabel = ""; const then = this.navThen; this.navThen = null; if (then) { then(); return; } if (this.pendingSeat != null) { this.sitting = this.pendingSeat; this.pendingSeat = null; this.ensureSitTex(P); this.onToast("Sitting at Chat Chow. Move to get up."); return; } if (this.floor === 0 && ![...DOORS, NEWS, OPEN].some((q) => hit(q.trigger, P.pos.x + W / 2, P.pos.z + H / 2))) this.onToast(`Arrived at ${label}`); }
       P.frame = 1 + (Math.floor(this.t * 9) % 4);
     } else { P.moving = false; P.frame = 0; }
     const gx = P.pos.x + W / 2, gy = P.pos.z + H / 2;
@@ -1064,8 +1081,7 @@ export class HallScene {
       if (s.act && !s.path.length) { s.moving = false; s.frame = 0; continue; }
       if (s.fade < 1) { s.fade = Math.min(1, s.fade + sim * 3); s.mat.opacity = s.fade; }
       if (s.path.length) {
-        const tgt = s.path[0], d = tgt.clone().sub(s.pos); d.y = 0; const len = d.length(), step = s.speed * sim;
-        if (len <= step) { if (!this.hitsPerson(tgt.x, tgt.z, s)) { s.pos.copy(tgt); s.path.shift(); } } else { d.normalize(); const nx = s.pos.x + d.x * step, nz = s.pos.z + d.z * step; if (!this.hitsPerson(nx, nz, s)) { s.pos.x = nx; s.pos.z = nz; } s.dir = this.dirFrom(d, fwd, s.dir); }
+        const tgt = s.path[0], step = s.speed * sim; if (this.approach(s, tgt.x, tgt.z, step, s.pos.y > 2 ? 1 : 0)) s.path.shift(); s.dir = this.dirFrom(tgt.clone().sub(s.pos), fwd, s.dir);
         s.moving = true; s.frame = 1 + (Math.floor((this.t * s.speed * 3.4)) % 4);
         if (!s.path.length && s.hideOnArrive) { s.hidden = true; s.sprite.visible = false; s.blob.visible = false; s.moving = false; }
       } else { s.moving = false; s.frame = 0; }
@@ -1077,7 +1093,7 @@ export class HallScene {
       this.doorAnim.t += dt; const leaf = this.doorLeaves.find((d) => d.subject === this.doorAnim!.subject), k = Math.min(1, this.doorAnim.t / 0.7);
       if (leaf) leaf.hinge.rotation.y = leaf.yaw0 - k * 1.25;
       if (this.peek) this.peek.lookAt(this.camera.position);
-      if (this.doorAnim.t > 1.55) this.finishDoor();
+      if (this.doorAnim.t > 1.55) { this.finishDoor(); this.doorAnim = null; }
     }
     this.updateCamera(dt);
     this.fadeOccluders(dt);

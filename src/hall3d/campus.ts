@@ -113,8 +113,11 @@ export const BLOCKED = blockers();
 export const hit = (r: Rect, x: number, y: number, pad = 0) => x > r.x - pad && x < r.x + r.w + pad && y > r.y - pad && y < r.y + r.h + pad;
 export function solidAt(x: number, y: number, pad = 0.16, floor = 0): boolean {
   if (floor === 1) return !upWalk(x, y);
+  // the front door, and the sidewalk from the bus up to it. The wall on either side stays solid.
+  if (x > ENTRANCE.gap.x0 && x < ENTRANCE.gap.x1 && y > H - 1.4 && y < H + 9) return false;
+  if (y > H + 2.4 && y < H + 9 && x > 46 && x < 76) return false;
   if (x < 0.45 || y < 0.45 || x > W - 0.45) return true;
-  if (y > H - 0.45) return !(x > ENTRANCE.gap.x0 && x < ENTRANCE.gap.x1 && y < H + 3);
+  if (y > H - 0.45) return true;
   return BLOCKED.some((r) => hit(r, x, y, pad));
 }
 /** nav grid, one char per 1x1 tile: "." open, "#" blocked (tile centre inside a blocker) */
