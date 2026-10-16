@@ -82,6 +82,8 @@ SUPPORT = [
     "supabase-client.js",
     "supabase-config.js",
     "calmui.js",
+    "look.js",
+    "pixar-ui.css",
     "phone-icon.svg",
     "icon-180.png",
     "icon-192.png",
