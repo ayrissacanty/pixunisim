@@ -4,7 +4,7 @@
 const fs = require("fs"), path = require("path"), vm = require("vm");
 const ctx = { window: {} };
 vm.createContext(ctx);
-for (const part of ["curriculum-seed-1.js","curriculum-seed-2.js","curriculum-seed-3.js","curriculum-seed-4.js","curriculum-seed-5.js","curriculum-seed-6.js","curriculum-seed-7.js"]) vm.runInContext(fs.readFileSync(path.join(__dirname, "..", part), "utf8"), ctx);
+for (const part of ["curriculum-seed-1.js","curriculum-seed-2.js","curriculum-seed-3.js","curriculum-seed-4.js","curriculum-seed-5.js","curriculum-seed-6.js","curriculum-seed-7.js","curriculum-seed-8.js","curriculum-seed-9.js"]) vm.runInContext(fs.readFileSync(path.join(__dirname, "..", part), "utf8"), ctx);
 const SEED = ctx.window.UNIFY_CURRICULUM_SEED;
 
 let pass = 0, fail = 0;

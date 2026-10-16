@@ -6,6 +6,3 @@ dist.zip
 dist-pixar/
 dist-normal/
 .claude/
-__pycache__/
-*.pyc
-*.whl

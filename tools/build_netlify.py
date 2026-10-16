@@ -43,7 +43,6 @@ PAGES = [
     "mail.html",
     "newsdesk.html",
     "dorm.html",
-    # Agent Team apps: HQ + admin studios (gated in-page) and the in-class textbook (open to students)
     "hq.html",
     "academy-control.html",
     "staff.html",
@@ -76,6 +75,8 @@ SUPPORT = [
     "curriculum-seed-5.js",
     "curriculum-seed-6.js",
     "curriculum-seed-7.js",
+    "curriculum-seed-8.js",
+    "curriculum-seed-9.js",
     "academy-presence.js",
     "phone-config.js",
     "supabase-client.js",
