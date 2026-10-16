@@ -3,7 +3,7 @@
  *  avatar, grades and phone data follow them to any device the parent signs in on. Guests can still play with nothing saved online.
  *  Locker PHOTOS never leave the device. The backend is swappable (window.__FAMILY_BACKEND) so the whole flow can be tested without a cloud back end. */
 import { gradesFromState } from "../src/hall3d/lockerui";
-import { parentGrade, setParentGrade } from "../src/class3d/gradeband";
+import { isMainAccount, parentGrade, setParentGrade } from "../src/class3d/gradeband";
 import { SUBJECT_NAME } from "../src/game/progress";
 
 interface User { uid: string; email: string | null; verified: boolean }
@@ -160,8 +160,8 @@ async function pull(uid: string, kid: string, force: boolean): Promise<boolean> 
 const paintBtn = () => {
   if (!(window as any).__SUPABASE && !(window as any).__FAMILY_BACKEND && !USER) {
     const g = parentGrade();
-    btn.textContent = g == null ? "👪 Set grade" : `👪 Grade ${g === 0 ? "K" : g}`;
-    btn.title = "A parent or the account holder sets the grade for this student";
+    btn.textContent = !isMainAccount() ? (g == null ? "👪 Grade" : `👪 Grade ${g === 0 ? "K" : g}`) : (g == null ? "👪 Set grade" : `👪 Grade ${g === 0 ? "K" : g}`);
+    btn.title = isMainAccount() ? "You are the main account. You set the grade." : "Only the main account can change the grade.";
     return;
   }
   btn.textContent = activeKid ? `👪 ${lget().kidName ?? "Family"}` : USER ? "👪 Who's playing?" : "👪 Sign in"; btn.title = activeKid ? syncMsg || "Family account" : "Family accounts: save your progress and use it on any device";
@@ -302,9 +302,10 @@ async function kidHome() {
   if (kidLogin) {
     E("div", "fm-lab", panel, "My academy address (it is also my mailbox)"); const ar = E("div", "fm-row", panel), ad = E("b", "", ar, k.login_email || ""); ad.id = "fmAddr";
     const cp = E("button", "fm-b", ar, "Copy"); cp.onclick = () => copyText(k.login_email || "", cp); const mb = E("button", "fm-b go", ar, "Open my mail"); mb.onclick = openMail;
-    E("p", "fm-sm", panel, "Ask a parent to change this (nickname, icon, colour and code)."); bottomBar([["Close", close], ["Sign out", () => void kidSignOut()]]); return;
+    E("p", "fm-sm", panel, "Ask the main account to change your grade. You can change your nickname, icon, colour and code."); bottomBar([["Close", close], ["Sign out", () => void kidSignOut()]]); return;
   }
   E("div", "fm-lab", panel, "My nickname"); const nm = E("input", "fm-in", panel) as HTMLInputElement; nm.maxLength = 14; nm.value = k.name;
+  E("p", "fm-sm", panel, `You are in ${gradeLabel(k)}. Only the main account can change your grade.`);
   swatches(panel, "My icon", ICONS, icon, false, (v) => { icon = v; }); swatches(panel, "My color", COLORS, color, true, (v) => { color = v; });
   const err = E("div", "fm-err", panel), row = E("div", "fm-row", panel), save = E("button", "fm-b pri", row, "Save changes"), cc = E("button", "fm-b", row, "Change my code"), cl = E("button", "fm-b", row, "Close"); cl.onclick = close;
   save.onclick = async () => { const name = nm.value.trim().slice(0, 14); if (!name) { err.textContent = "Type a nickname."; return; } if (KIDS.some((x) => x.id !== k.id && x.name.toLowerCase() === name.toLowerCase())) { err.textContent = "Someone in your family already has that nickname."; return; }
@@ -471,9 +472,15 @@ async function netSection(parent: HTMLElement, k: KidDoc, msg: HTMLElement) {
 }
 
 function localGrade() {
+  const g = parentGrade();
+  if (!isMainAccount()) {
+    card("Your grade");
+    E("p", "", panel, g == null ? "The main account has not set your grade yet. You can't choose it yourself." : `You are in ${gradeName(g)}. Only the main account can change it.`);
+    const back = E("button", "fm-b", panel, "Close"); back.onclick = () => close(); return;
+  }
   card("Set the student's grade");
-  E("p", "", panel, "Only a parent or the account holder sets this. Students can share a classroom. Each one is taught the lesson for their own grade, and they do not see a classmate's lesson unless that classmate is in the same grade.");
-  const ag = gradeSelect(panel, parentGrade() ?? 4);
+  E("p", "", panel, "You are the main account, so you can set this. A student on their own profile cannot. Students can share a classroom, and each one only sees the lesson for their grade.");
+  const ag = gradeSelect(panel, g ?? 4);
   const row = E("div", "fm-row", panel), go = E("button", "fm-b pri", row, "Save grade"), back = E("button", "fm-b", row, "Close");
   back.onclick = () => close();
   go.onclick = () => { setParentGrade(+ag.value); close(); paintBtn(); };

@@ -29,8 +29,20 @@ export function parentGrade(): number | null {
   return null;
 }
 
-/** only a parent or the account holder should call this */
+/** A child signed in under someone else's account cannot pick a grade.
+ *  The main account can: a parent, or a student who owns the account. */
+export function isMainAccount(): boolean {
+  try {
+    if (sessionStorage.getItem("unify.family.ci") === "kid") return false;
+    const link = JSON.parse(localStorage.getItem("unify.family.link") || "null") as { kidLogin?: boolean } | null;
+    if (link?.kidLogin) return false;
+  } catch { /* the person at the device is the account holder */ }
+  return true;
+}
+
+/** only the main account should call this */
 export function setParentGrade(grade: number) {
+  if (!isMainAccount()) return;
   const g = Math.max(0, Math.min(12, Math.round(grade)));
   try { localStorage.setItem(ACCOUNT_GRADE, JSON.stringify({ grade: g, by: "account" })); } catch { /* private mode */ }
   try {

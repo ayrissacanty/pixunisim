@@ -5,6 +5,7 @@ import { ROSTER } from "./roster";
 import { JEWEL_COLORS, OLDER, signature, starterCloset, outfitOf, wearOutfit, CLOTH_COLORS, EYE_COLORS, HAIR_COLORS, HIGHLIGHT_COLORS, OPTIONS, PRONOUNS, SHOE_COLORS, SKIN_TONES, CLOSET_SLOTS, padCloset, defaultAvatar, defaultProp, normalizeAvatar, randomAvatar, rng, toLook, type AvatarSpec, type Opt } from "./avatar";
 import { Preview3D } from "./preview3d";
 import { Social } from "./social";
+import { isMainAccount, parentGrade } from "../class3d/gradeband";
 import { Wardrobe, WARDROBE_CSS } from "./wardrobe";
 
 const CSS = `
@@ -245,7 +246,7 @@ export class AvatarCreator {
     this.head("Hat"); this.chips("Style", "hat", o.hat); if (a.hat !== "none") { this.swatches("Hat colour", "hatColor", CLOTH_COLORS); this.swatches("Band / brim accent", "hat2", CLOTH_COLORS, "Automatic"); }
     this.head("Glasses"); this.chips("Style", "glasses", o.glasses); if (a.glasses !== "none") this.swatches("Frame colour", "glassColor", ["#5b4048", "#313a3f", "#d9564a", "#4f91c7", "#b8a8da", "#eab94e", "#ffffff", "#3fb8af"]);
     this.head("Jewelry");
-    if (!old) E("p", "", b, "Earrings, wrist items and necklaces unlock in middle school and high school (pick a grade band on the Body tab).");
+    if (!old) E("p", "", b, isMainAccount() ? "Earrings, wrist items and necklaces unlock in middle school and high school (pick a grade band on the Body tab)." : "Earrings, wrist items and necklaces unlock in middle school and high school. Your grade is set by the main account.");
     else { this.chips("Earring style", "earStyle", o.earStyle); this.swatches("Earrings", "earrings", JEWEL_COLORS, "None"); this.swatches("Nose stud", "nosePin", JEWEL_COLORS, "None"); this.chips("Wrist", "wrist", o.wrist); if (a.wrist !== "none") this.swatches("Wrist colour", "wristColor", JEWEL_COLORS); }
     this.head("Neck and chest"); this.chips("Neckwear", "neckwear", o.neckwear.filter((x) => x.id !== "necklace" || old)); if (a.neckwear !== "none") this.swatches("Neckwear colour", "neckColor", [...JEWEL_COLORS, ...CLOTH_COLORS]); this.swatches("Scarf", "scarf", CLOTH_COLORS, "None"); this.swatches("Badge", "badge", CLOTH_COLORS, "None"); this.chips("Chest emblem", "emblem", o.emblem);
     this.head("Special extras"); this.chips("Extra (20 to choose from)", "extra", o.extra); if (a.extra !== "none") this.swatches("Extra colour", "extraColor", JEWEL_COLORS.concat(CLOTH_COLORS));
@@ -259,7 +260,8 @@ export class AvatarCreator {
     if (this.tab === "Body") {
       const adultOk = this.spec.age === "adult" || ((): boolean => { try { return sessionStorage.getItem("unify.family.ci") === "parent" || localStorage.getItem("unify.opendoor.adult") === "1"; } catch { return false; } })();
       this.chips("Proportion style", "prop", o.proportion);
-      this.chips("Grade band (sets your height)", "age", [...o.age, ...(adultOk ? [{ id: "adult", label: "Adult (parent)" }] : [])], (id) => { if (this.spec.prop === defaultProp(this.spec.age)) this.spec.prop = defaultProp(id); });
+      if (isMainAccount()) this.chips("Grade band (sets your height)", "age", [...o.age, ...(adultOk ? [{ id: "adult", label: "Adult (parent)" }] : [])], (id) => { if (this.spec.prop === defaultProp(this.spec.age)) this.spec.prop = defaultProp(id); });
+      else { const g = parentGrade(); E("p", "", b, g == null ? "Only the main account can set your grade." : `Grade ${g === 0 ? "K" : g} is set by the main account. You can't change it.`); }
       this.chips("Build", "build", o.build);
       this.head("Shape"); this.slider("Height", "height", 0.9, 1.1, 0.01); this.slider("Head size", "headSize", 0.8, 1.25, 0.01); this.slider("Shoulder width", "shoulder", 0.8, 1.25, 0.01); this.slider("Waist", "waist", 0.8, 1.3, 0.01); this.slider("Hips", "hips", 0.85, 1.3, 0.01); this.slider("Arm and leg length", "limbs", 0.88, 1.15, 0.01);
       this.swatches("Skin tone", "skin", SKIN_TONES); this.chips("Pronouns", "pronouns", PRONOUNS.map((p) => ({ id: p, label: p })));
@@ -271,7 +273,7 @@ export class AvatarCreator {
       if (OLDER(this.spec.age)) { this.swatches("Eyeshadow", "eyeShadow", CLOTH_COLORS, "None"); this.toggle("Winged eyeliner", "liner"); }
     } else if (this.tab === "Hair") { this.chips("Style", "hairStyle", o.hairStyle); this.chips("Texture", "htex", o.htex); this.chips("Parting", "part", o.part); this.chips("Fringe / bangs", "fringe", o.fringe); this.swatches("Colour", "hair", HAIR_COLORS); this.swatches("Highlight colour", "hair2", HIGHLIGHT_COLORS, "No highlights"); if (this.spec.hair2) this.chips("Highlight style", "hl", o.hl); this.swatches("Hair clip", "clip", CLOTH_COLORS, "None"); }
     else if (this.tab === "Facial hair") {
-      if (this.spec.age !== "hs" && this.spec.age !== "adult") { E("h2", "", b, "Facial hair"); E("p", "", b, "Facial hair is for high school. Pick High school on the Body tab to unlock it."); }
+      if (this.spec.age !== "hs" && this.spec.age !== "adult") { E("h2", "", b, "Facial hair"); E("p", "", b, isMainAccount() ? "Facial hair is for high school. Pick High school on the Body tab to unlock it." : "Facial hair is for high school. The main account sets your grade."); }
       else { this.chips("Style", "beard", o.beard); if (this.spec.beard !== "none") this.swatches("Colour", "beardColor", HAIR_COLORS, "Match hair"); }
     } else if (this.tab === "Closet") this.closet(b);
     else if (this.tab === "Wardrobe") this.wardrobe.render(b);
