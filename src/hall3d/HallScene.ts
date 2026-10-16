@@ -1047,7 +1047,7 @@ export class HallScene {
     }
     const k = snap ? 1 : Math.min(1, dt * 9); this.camPos.lerp(pos, k); this.camLook.lerp(look, k); this.camera.position.copy(this.camPos).multiplyScalar(IS); this.camera.lookAt(this.camLook.clone().multiplyScalar(IS));
     // sun follows the action; the shadow box widens in overview
-    const R = this.view === "overview" ? 56 : 22, c = this.view === "overview" ? new THREE.Vector3(0, 0, 3) : P;
+    const R = this.view === "overview" ? 32 : 14, c = this.view === "overview" ? new THREE.Vector3(0, 0, 3) : P;
     this.sun.target.position.copy(c); if (this.px) this.sun.position.set(c.x + 11, 9, c.z + 7); else this.sun.position.set(c.x + 7, 15, c.z + 9);   // Pixar: a low golden sun
     if (R !== this.shadowR) { this.shadowR = R; const sc = this.sun.shadow.camera; sc.left = -R * IS; sc.right = R * IS; sc.top = R * IS; sc.bottom = -R * IS; sc.updateProjectionMatrix(); }
   }

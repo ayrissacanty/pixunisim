@@ -25,8 +25,10 @@ const hash = (a: number, b: number) => { const n = Math.sin(a * 127.1 + b * 311.
 const GRADE = {
   uniforms: { tDiffuse: { value: null as THREE.Texture | null } },
   vertexShader: "varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }",
-  fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c=texture2D(tDiffuse,vUv); float lu=dot(c.rgb,vec3(.299,.587,.114)); c.rgb=mix(vec3(lu),c.rgb,1.16);
-    c.rgb*=mix(vec3(.94,.99,1.07),vec3(1.07,1.,.9),smoothstep(.04,.8,lu)); float v=smoothstep(.5,1.1,length(vUv-.5)*1.25); c.rgb*=1.-v*.2; gl_FragColor=c; }`,
+  fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c=texture2D(tDiffuse,vUv); float lu=dot(c.rgb,vec3(.299,.587,.114));
+    c.rgb=mix(vec3(lu),c.rgb,1.62); c.rgb=pow(max(c.rgb,0.0),vec3(.9));
+    c.rgb*=mix(vec3(.97,1.03,1.08),vec3(1.05,1.0,.94),smoothstep(.05,.78,lu));
+    float v=smoothstep(.55,1.15,length(vUv-.5)*1.2); c.rgb*=1.-v*.16; gl_FragColor=c; }`,
 };
 
 export interface PxCtx { player: Person; playerSpec: AvatarSpec; camera: THREE.Camera; shown: boolean; first: boolean; seat: { pos: THREE.Vector3; ctr: THREE.Vector3 } | null; talkingTo: Person | null }
@@ -35,7 +37,7 @@ export interface PxTags { floor: THREE.Mesh; lockers: THREE.Material[]; winSpots
 const ACT: Record<string, Anim> = { wave: "wave", highfive: "wave", cheer: "cheer", jump: "cheer", hop: "cheer", dance: "cheer", clap: "cheer", excited: "cheer", silly: "cheer", laugh: "cheer", kick: "cheer", nod: "nod", shake: "shake", talk: "talk", scratch: "think", shy: "think", shrug: "shrug", point: "point", hip: "hip", eyeroll: "think", facepalm: "think", thumbs: "wave" };
 const lerpAngle = (a: number, b: number, k: number) => { let d = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI; return a + d * k; };
 
-interface Ent { c: Char3DEx; spec: AvatarSpec; lx: number; lz: number; yaw: number; ty: number }
+interface Ent { c: Char3DEx; spec: AvatarSpec; lx: number; lz: number; yaw: number; ty: number; cast?: boolean }
 const MAX3D = 80, NEAR = 800, FAR = 900;
 /** real 3D characters for everyone in the hall. A few are built each frame so the phone does not stall. */
 export class PixarCrowd {
@@ -45,7 +47,6 @@ export class PixarCrowd {
   private drop(p: Person) { const e = this.ents.get(p); if (!e) return; e.c.dispose(); this.ents.delete(p); }
   private make(p: Person, spec: AvatarSpec, cam: THREE.Camera): Ent | null {
     let c: Char3DEx; try { c = createChar3D(this.style, spec); } catch (err) { console.warn("3D character failed", err); return null; }
-    c.root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
     const yaw = Math.atan2(cam.position.x / IS - p.pos.x, cam.position.z / IS - p.pos.z); c.root.position.set(p.pos.x, 0, p.pos.z); c.root.rotation.y = yaw; this.scene.add(c.root);
     const e = { c, spec, lx: p.pos.x, lz: p.pos.z, yaw, ty: yaw }; this.ents.set(p, e); return e;
   }
@@ -58,13 +59,23 @@ export class PixarCrowd {
     cand.sort((a, b) => a.d - b.d); const keep = new Set<Person>(cand.slice(0, MAX3D).map((c) => c.p));
     for (const p of [...this.ents.keys()]) if (!keep.has(p)) this.drop(p);
     let made = 0;
-    for (const { p, spec } of cand) {
+    for (const { p, spec, d } of cand) {
       if (!keep.has(p)) continue; let e = this.ents.get(p);
       if (!e) { if (p !== x.player && made >= 8) continue; e = this.make(p, spec, x.camera) ?? undefined; made++; if (!e) { keep.delete(p); continue; } }
       else if (e.spec !== spec) { e.c.setSpec(spec); e.spec = spec; }
-      this.step(dt, p, e, x);
+      this.step(dt, p, e, x); this.shade(e, p === x.player || d < 16);
     }
     for (const p of keep) if (this.ents.has(p)) { p.sprite.visible = false; p.blob.visible = false; }
+  }
+  /** movie-set shadows: people near the camera cast a soft sun shadow, the same way the dorm does */
+  private shade(e: Ent, on: boolean) {
+    if (e.cast === on) return; e.cast = on;
+    e.c.root.traverse((o) => {
+      const m = o as THREE.Mesh; if (!m.isMesh) return;
+      const basic = (m.material as THREE.Material | undefined)?.type === "MeshBasicMaterial";
+      if (basic || m.userData.noShadow || m.userData.overlay) { m.castShadow = false; return; }
+      m.castShadow = on; m.receiveShadow = on;
+    });
   }
   private step(dt: number, p: Person, e: Ent, x: PxCtx) {
     const c = e.c, isP = p === x.player, seated = isP && x.seat != null, mx = p.pos.x - e.lx, mz = p.pos.z - e.lz;
@@ -87,11 +98,11 @@ export class PixarHall {
   readonly crowd: PixarCrowd; private composer: EffectComposer | null = null; private failed = false; private w = 1; private h = 1; private bloom: UnrealBloomPass | null = null; private shafts: THREE.Mesh | null = null;
   private rim1: THREE.DirectionalLight; private rim2: THREE.DirectionalLight; private warm: THREE.PointLight; private cool: THREE.PointLight; private skyCv = document.createElement("canvas"); private skyTex: THREE.CanvasTexture; private fog: THREE.Fog;
   constructor(private r: THREE.WebGLRenderer, private scene: THREE.Scene, private cam: THREE.PerspectiveCamera, private sun: THREE.DirectionalLight, private hemi: THREE.HemisphereLight) {
-    r.shadowMap.type = THREE.PCFShadowMap; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 0.95; r.outputColorSpace = THREE.SRGBColorSpace;
-    const pm = new THREE.PMREMGenerator(r), env = new RoomEnvironment(), rt = pm.fromScene(env, 0.04); scene.environment = rt.texture; scene.environmentIntensity = 0.18; pm.dispose(); env.dispose();
+    r.shadowMap.type = THREE.PCFShadowMap; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05; r.outputColorSpace = THREE.SRGBColorSpace;
+    const pm = new THREE.PMREMGenerator(r), env = new RoomEnvironment(), rt = pm.fromScene(env, 0.04); scene.environment = rt.texture; scene.environmentIntensity = 0.28; pm.dispose(); env.dispose();
     this.skyCv.width = 4; this.skyCv.height = 128; this.skyTex = new THREE.CanvasTexture(this.skyCv); this.skyTex.colorSpace = THREE.SRGBColorSpace; scene.background = this.skyTex;
     this.fog = scene.fog = new THREE.Fog(HAZE.getHex(), 55 * IS, 210 * IS);
-    sun.color.copy(KEY); sun.intensity = 1.7; hemi.color.copy(TEAL); hemi.groundColor.copy(PEACH); hemi.intensity = 0.42;
+    sun.color.copy(KEY); sun.intensity = 1.85; hemi.color.copy(TEAL); hemi.groundColor.copy(PEACH); hemi.intensity = 0.5; sun.shadow.radius = 6; sun.shadow.normalBias = 0.03;
     this.rim1 = new THREE.DirectionalLight("#9fd4ea", 0.55); this.rim1.position.set(-12, 9, -15); this.rim2 = new THREE.DirectionalLight("#ffe2b8", 0.35); this.rim2.position.set(14, 7, -12);
     this.warm = new THREE.PointLight("#ff9a5a", 5 * IS * IS, 9 * IS, 2); this.cool = new THREE.PointLight("#6fc6ff", 3 * IS * IS, 10 * IS, 2);
     scene.add(this.rim1, this.rim2, this.warm, this.cool); this.crowd = new PixarCrowd(scene); this.paintSky(); Mood.onChange(() => this.paintSky());
@@ -133,7 +144,7 @@ export class PixarHall {
     const tune = (m: THREE.Material, o: THREE.Mesh) => {
       if (seen.has(m)) return; seen.add(m); const s = m as THREE.MeshStandardMaterial; if (!s.isMeshStandardMaterial) return;
       if (s.flatShading) { s.flatShading = false; s.needsUpdate = true; }
-      if (!s.map && !s.emissiveMap) { s.color.getHSL(hsl); if (hsl.s > 0.08) s.color.setHSL(hsl.h, Math.min(1, hsl.s * 1.18 + 0.04), hsl.l); }
+      if (!s.map && !s.emissiveMap) { s.color.getHSL(hsl); if (hsl.s > 0.04) s.color.setHSL(hsl.h, Math.min(1, hsl.s * 1.48 + 0.06), Math.min(0.74, hsl.l * 1.06)); }
       s.envMapIntensity = 1;
       if (o === tags.floor) { s.roughness = 0.25; s.metalness = 0.04; s.envMapIntensity = 2.2; }          // waxed floor with a soft reflection gradient
       else if (lock.has(m)) { s.roughness = 0.3; s.metalness = 0.35; s.envMapIntensity = 1.4; }          // satin painted-metal lockers
