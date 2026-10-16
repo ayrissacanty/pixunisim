@@ -11,12 +11,14 @@ import { ROSTER, STAFF } from "../hall3d/roster";
 import { Social } from "../hall3d/social";
 
 export interface AudPx { render(dt: number): void; resize(w: number, h: number): void; update(dt: number, t: number): void }
-const TINT = new THREE.Color(1.0, 0.93, 0.9), N3D = 11;
+const TINT = new THREE.Color(1.0, 0.93, 0.9);
 const lerpA = (a: number, b: number, k: number) => { let d = (b - a) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return a + d * k; };
 
-export function setupPixarAud(A: Auditorium3D, L: { hemi: THREE.HemisphereLight; dl: THREE.DirectionalLight; spotL: THREE.SpotLight; spotR: THREE.SpotLight }): AudPx {
-  const { scene, camera, renderer } = A, style = getStyle("pixar");
-  const look = usePixarLook(renderer, scene, camera, { exposure: 0.85, bloom: 0.4, radius: 0.8, threshold: 1.0, env: 0.18 });
+export function setupPixarAud(A: Auditorium3D, L: { hemi: THREE.HemisphereLight; dl: THREE.DirectionalLight; spotL: THREE.SpotLight; spotR: THREE.SpotLight }, bodiesOnly = false): AudPx {
+  const { scene, camera, renderer } = A, style = getStyle(bodiesOnly ? "papercut" : "pixar");
+  const look = bodiesOnly ? null : usePixarLook(renderer, scene, camera, { exposure: 0.85, bloom: 0.4, radius: 0.8, threshold: 1.0, env: 0.18 });
+  let beams: THREE.MeshBasicMaterial[] = [], dust = { tick(_t: number) {} }, dust2 = { tick(_t: number) {} };
+  if (!bodiesOnly) {
   scene.background = new THREE.Color("#2a1c14"); (scene.fog as THREE.Fog).color.set("#3a261c"); (scene.fog as THREE.Fog).near = 50 * IS; (scene.fog as THREE.Fog).far = 140 * IS;
   L.hemi.color.set("#ffe6c4"); L.hemi.groundColor.set("#4a3024"); L.hemi.intensity = 0.45; L.dl.color.set("#ffcf9a"); L.dl.intensity = 0.7;
   L.spotL.color.set("#ffd27a"); L.spotR.color.set("#ffd27a"); L.spotL.intensity = L.spotR.intensity = 140 * IS; L.spotL.angle = L.spotR.angle = 0.6;
@@ -24,11 +26,13 @@ export function setupPixarAud(A: Auditorium3D, L: { hemi: THREE.HemisphereLight;
   const rim = new THREE.DirectionalLight(0x6fd6ff, 0.6); rim.position.set(0, 12, 40); scene.add(rim);
   const P = new THREE.Group(); scene.add(P); const SY = PROP_H.audStage;
   /* beams from the truss lights, dust inside them, footlights, aisle lights */
-  const beams = [[-8, 15, -10, -3, SY, -33, 0xffd27a], [8, 15, -10, 3, SY, -33, 0xffe0b0], [-14, 13.3, -30, -10, SY, -33, 0xcfe6ff], [14, 13.3, -30, 10, SY, -33, 0xffb454]].map(([x, y, z, tx, ty, tz, c]) => {
+  const beamsBuilt = [[-8, 15, -10, -3, SY, -33, 0xffd27a], [8, 15, -10, 3, SY, -33, 0xffe0b0], [-14, 13.3, -30, -10, SY, -33, 0xcfe6ff], [14, 13.3, -30, 10, SY, -33, 0xffb454]].map(([x, y, z, tx, ty, tz, c]) => {
     const a = new THREE.Vector3(x - 0.5, y, z), b = new THREE.Vector3(x + 0.5, y, z), m = lightShaft(a, b, new THREE.Vector3(tx - x, ty - y, tz - z), Math.hypot(tx - x, ty - y, tz - z), c, 0.13, 7); P.add(m); return m.material as THREE.MeshBasicMaterial;
   });
-  const dust = dustMotes({ x0: -16, x1: 16, y0: SY, y1: 14, z0: -36, z1: -12 }, 260, "#ffe8c0", 0.12, 0.6); P.add(dust.points);
-  const dust2 = dustMotes({ x0: -14, x1: 14, y0: 1, y1: 13, z0: -12, z1: 20 }, 120, "#ffe8c0", 0.1, 0.4); P.add(dust2.points);
+  beams = beamsBuilt;
+  const dustA = dustMotes({ x0: -16, x1: 16, y0: SY, y1: 14, z0: -36, z1: -12 }, 260, "#ffe8c0", 0.12, 0.6); P.add(dustA.points);
+  const dustB = dustMotes({ x0: -14, x1: 14, y0: 1, y1: 13, z0: -12, z1: 20 }, 120, "#ffe8c0", 0.1, 0.4); P.add(dustB.points);
+  dust = dustA; dust2 = dustB;
   const fm = new THREE.MeshStandardMaterial({ color: "#fff2cf", emissive: new THREE.Color("#ffb454"), emissiveIntensity: 2.5, roughness: 0.4 });
   for (let i = -9; i <= 9; i++) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), fm); l.position.set(i * 2, SY + 0.28, -27.2); P.add(l); }
   const aisle = new THREE.MeshStandardMaterial({ color: "#fff", emissive: new THREE.Color("#ffb454"), emissiveIntensity: 2.2 });
@@ -45,24 +49,27 @@ export function setupPixarAud(A: Auditorium3D, L: { hemi: THREE.HemisphereLight;
   scene.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh || (m as THREE.InstancedMesh).isInstancedMesh) return; m.receiveShadow = true; if (m.position.z < -24 && m.position.y < 4 && !(m.material as THREE.Material).transparent) m.castShadow = true; });
   A.baseMesh.receiveShadow = A.backMesh.receiveShadow = true;
   pixarize(scene, { rough: 0.45, sat: 1.15 });
+  }
 
-  /* characters */
-  const chars: Char3DEx[] = [], mk = (spec: any) => { const c = fitChar(createChar3D(style, spec)); scene.add(c.root); chars.push(c); return c; };
+  /* characters: the people on stage, you, and every student in a seat */
+  const chars: Char3DEx[] = [], mk = (spec: any) => { const c = fitChar(createChar3D(style, spec)); c.root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } }); scene.add(c.root); chars.push(c); return c; };
   const princ = new Map<string, Char3DEx>(), aud = new Map<number, Char3DEx>(); let me: Char3DEx | null = null;
   { const base = (f: string) => STAFF.find((d) => d.faculty === f)!.spec;
     princ.set("ayrissa", mk({ ...base("ayrissa"), top: "blazer", shirt: "#3b2f6b", shirt2: "#f6f1e8", bottom: "pants", pants: "#2e2a3d" }));
     princ.set("marcus", mk({ ...base("tanaka"), skin: "#6b4430", hair: "#1c1512", shirt: "#2b3445", shirt2: "#f1f4f8", top: "blazer", bottom: "pants", pants: "#232a38", beard: "goatee", beardColor: "#1c1512" })); }
   const seatPos = (i: number) => A.seats[i];
   const sit = (c: Char3DEx, x: number, y: number, z: number) => { c.root.position.set(x, y + 0.55 + 0.03 - c.seatHeight * CHAR_K, z + 0.02); c.root.rotation.y = Math.PI; };
-  const chosen: number[] = A.audience.map((a, i) => ({ a, i })).sort((p, q) => Math.hypot(p.a.sprite.position.x - A.me.sprite.position.x, p.a.sprite.position.z - A.me.sprite.position.z) - Math.hypot(q.a.sprite.position.x - A.me.sprite.position.x, q.a.sprite.position.z - A.me.sprite.position.z)).slice(0, N3D).map((p) => p.i);
-  for (const i of chosen) { const spec = ROSTER[i % 36].spec; aud.set(i, mk(i >= 36 ? { ...spec, shirt: ["#e8789a", "#4f91c7", "#88b89a", "#eab94e", "#b8a8da"][i % 5] } : spec)); }
+  const queue = A.audience.map((_, i) => i);
+  const buildSome = (n: number) => { for (let k = 0; k < n && queue.length; k++) { const i = queue.shift()!; const spec = ROSTER[i % ROSTER.length].spec; aud.set(i, mk(i >= ROSTER.length ? { ...spec, shirt: ["#e8789a", "#4f91c7", "#88b89a", "#eab94e", "#b8a8da"][i % 5] } : spec)); } };
+  buildSome(8);
   me = mk(Social.profile.avatar);
   const pose: Record<string, number> = {}; void pose; void seatPos;
   return {
-    render(dt) { look.render(dt); },
-    resize(w, h) { look.resize(w, h); },
+    render(dt) { if (look) look.render(dt); else renderer.render(scene, camera); },
+    resize(w, h) { look?.resize(w, h); },
     update(dt, t) {
-      dust.tick(t); dust2.tick(t); for (let i = 0; i < beams.length; i++) beams[i].opacity = 0.12 * (0.85 + 0.15 * Math.sin(t * 1.3 + i));
+      buildSome(6);
+      if (!bodiesOnly) { dust.tick(t); dust2.tick(t); for (let i = 0; i < beams.length; i++) beams[i].opacity = 0.12 * (0.85 + 0.15 * Math.sin(t * 1.3 + i)); }
       for (const [k, p] of A.stage) {
         const c = princ.get(k)!, sp = p.sprite; sp.visible = false; c.root.position.set(p.pos.x, p.pos.y, p.pos.z);
         const walking = !!p.target, talk = A.speaking === k || A.speaking === "both";

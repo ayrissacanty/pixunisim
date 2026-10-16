@@ -10,6 +10,7 @@ import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { createPixar } from "../dorm/style-pixar";
 import { createChar3D, type Char3DEx } from "../dorm/char3d";
+import type { Style } from "../dorm/types";
 import { INTERIOR_SCALE as IS, CHAR_K } from "../shared/scale";
 import type { Anim } from "../dorm/types";
 import type { AvatarSpec } from "./avatar";
@@ -35,15 +36,16 @@ const ACT: Record<string, Anim> = { wave: "wave", highfive: "wave", cheer: "chee
 const lerpAngle = (a: number, b: number, k: number) => { let d = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI; return a + d * k; };
 
 interface Ent { c: Char3DEx; spec: AvatarSpec; lx: number; lz: number; yaw: number; ty: number }
-const MAX3D = 12, NEAR = 18, FAR = 21;
-/** real 3D characters for the player and the nearest NPCs; everyone else stays a (tinted) sprite */
+const MAX3D = 80, NEAR = 800, FAR = 900;
+/** real 3D characters for everyone in the hall. A few are built each frame so the phone does not stall. */
 export class PixarCrowd {
-  private ents = new Map<Person, Ent>(); private style = createPixar(); private tmp = new THREE.Vector3(); private camLocal = new THREE.Vector3();
-  constructor(private scene: THREE.Scene) {}
+  private ents = new Map<Person, Ent>(); private tmp = new THREE.Vector3(); private camLocal = new THREE.Vector3();
+  constructor(private scene: THREE.Scene, private style: Style = createPixar()) {}
   has(p: Person) { return this.ents.has(p); }
   private drop(p: Person) { const e = this.ents.get(p); if (!e) return; e.c.dispose(); this.ents.delete(p); }
   private make(p: Person, spec: AvatarSpec, cam: THREE.Camera): Ent | null {
     let c: Char3DEx; try { c = createChar3D(this.style, spec); } catch (err) { console.warn("3D character failed", err); return null; }
+    c.root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
     const yaw = Math.atan2(cam.position.x / IS - p.pos.x, cam.position.z / IS - p.pos.z); c.root.position.set(p.pos.x, 0, p.pos.z); c.root.rotation.y = yaw; this.scene.add(c.root);
     const e = { c, spec, lx: p.pos.x, lz: p.pos.z, yaw, ty: yaw }; this.ents.set(p, e); return e;
   }
@@ -58,7 +60,7 @@ export class PixarCrowd {
     let made = 0;
     for (const { p, spec } of cand) {
       if (!keep.has(p)) continue; let e = this.ents.get(p);
-      if (!e) { if (p !== x.player && made >= 1) continue; e = this.make(p, spec, x.camera) ?? undefined; made++; if (!e) { keep.delete(p); continue; } }
+      if (!e) { if (p !== x.player && made >= 4) continue; e = this.make(p, spec, x.camera) ?? undefined; made++; if (!e) { keep.delete(p); continue; } }
       else if (e.spec !== spec) { e.c.setSpec(spec); e.spec = spec; }
       this.step(dt, p, e, x);
     }

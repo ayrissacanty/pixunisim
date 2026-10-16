@@ -17,7 +17,8 @@ import { toLook, type AvatarSpec } from "./avatar";
 import { Mood, Gfx } from "./mood";
 import { buildHallDetails } from "./hallDetails";
 import { isPixar } from "../shared/look";
-import { PixarHall } from "./pixarHall";
+import { PixarHall, PixarCrowd } from "./pixarHall";
+import { getStyle } from "../dorm/style";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { ACTIONS, POSE_KEYS, POSE_IX, GAITS, GAIT_BY_PERSONALITY, FIDGETS, bakeActions, frameAt } from "./actions";
 
@@ -67,7 +68,7 @@ export class HallScene {
   private occl: Occluder[] = []; private sun!: THREE.DirectionalLight; private hemi!: THREE.HemisphereLight; private tintT = 9; private shadowR = 0;
   private texCache = new Map<string, THREE.Texture>(); private beam!: Beam;
   /** Pixar edition only (null in the normal build) */
-  private px: PixarHall | null = null; private playerSpec: AvatarSpec = Social.profile.avatar; private floorMesh: THREE.Mesh | null = null; private lockMats: THREE.Material[] = [];
+  private px: PixarHall | null = null; private bodies: PixarCrowd | null = null; private playerSpec: AvatarSpec = Social.profile.avatar; private floorMesh: THREE.Mesh | null = null; private lockMats: THREE.Material[] = [];
   private camPos = new THREE.Vector3(0, 6, 8); private camLook = new THREE.Vector3(0, 1, -4);
   private last = performance.now(); private t = 0; private blobTex = T.blobTex();
 
@@ -84,6 +85,7 @@ export class HallScene {
     addEventListener("blur", () => { this.keys = {}; });
     addEventListener("message", (e) => { const m = e.data; if (m && m.type === "unify:exit") this.placeAtDoor(m.room); });
     this.bindPointer(r.domElement);
+    if (!this.px) this.bodies = new PixarCrowd(this.scene, getStyle("papercut"));
     this.setView("close", true); requestAnimationFrame(this.frame);
   }
   resize() { const w = this.host.clientWidth || innerWidth, h = this.host.clientHeight || innerHeight; this.renderer.setSize(w, h); this.camera.aspect = w / h; this.camera.fov = w / h < 0.8 ? 62 : 48; this.camera.updateProjectionMatrix(); this.px?.resize(w, h); }
@@ -894,9 +896,10 @@ export class HallScene {
     this.player.sprite.visible = this.view !== "first" && !this.arrivalHide; this.player.blob.visible = this.view !== "first" && !this.arrivalHide;
     this.tickVisitors(dt);
     for (const p of [...this.students, this.player, this.monitor, this.teacher, ...this.duty, ...this.visitors.values()]) { if ((p as Stu).hidden) continue; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position.clone().divideScalar(IS)) < 1.1; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, p.pos.y + 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); this.applyBody(p, dt, p === this.player); }
-    if (this.px) {   // real 3D characters for the player and whoever is near (sprites stay for the rest)
-      this.px.tick(this.t, this.player.pos);
-      this.px.crowd.update(dt, [this.player, ...this.students, this.monitor, this.teacher, ...this.duty], { player: this.player, playerSpec: this.playerSpec, camera: this.camera, shown: this.view !== "first" && !this.arrivalHide, first: this.view === "first", seat: this.sitting != null ? this.seats[this.sitting] : null, talkingTo: this.persons().find((q) => q.talking) ?? null });
+    const crowd = this.px?.crowd ?? this.bodies;
+    if (crowd) {
+      if (this.px) this.px.tick(this.t, this.player.pos);
+      crowd.update(dt, [this.player, ...this.students, this.monitor, this.teacher, ...this.duty], { player: this.player, playerSpec: this.playerSpec, camera: this.camera, shown: this.view !== "first" && !this.arrivalHide, first: this.view === "first", seat: this.sitting != null ? this.seats[this.sitting] : null, talkingTo: this.persons().find((q) => q.talking) ?? null });
     }
     const tg = PERIODS[this.idx].tint, k = Math.min(1, dt * 1.5); for (let i = 0; i < 4; i++) this.tint[i] += (tg[i] - this.tint[i]) * k;
     if (this.sitting != null) this.player.sprite.position.y -= 0.12;

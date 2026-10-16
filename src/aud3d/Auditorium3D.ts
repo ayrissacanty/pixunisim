@@ -51,6 +51,7 @@ export class Auditorium3D {
     vignette(host, 0.3); this.buildRoom(); this.buildStage(); this.buildSeats(); this.buildScreen(); this.buildPeople(); this.bind();
     this.fx = buildAudExtras(this.scene, { hemi: this.hemi, dl: this.dl, spots: [this.spotL, this.spotR], bg: this.scene.background as THREE.Color, fog: this.scene.fog as THREE.Fog, baseMesh: this.baseMesh, backMesh: this.backMesh, seatCount: this.seats.length });
     if (isPixar()) this.px = setupPixarAud(this, { hemi: this.hemi, dl: this.dl, spotL: this.spotL, spotR: this.spotR });
+    else this.px = setupPixarAud(this, { hemi: this.hemi, dl: this.dl, spotL: this.spotL, spotR: this.spotR }, true);
     addEventListener("resize", () => this.resize()); this.resize(); this.setView("audience", true); requestAnimationFrame(this.frame);
   }
   resize() { const w = this.host.clientWidth || innerWidth, h = this.host.clientHeight || innerHeight; this.renderer.setSize(w, h); this.px?.resize(w, h); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
