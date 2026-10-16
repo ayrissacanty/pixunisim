@@ -23,7 +23,7 @@ export class WeatherFx {
     for (const p of this.pts) {
       if (this.kind === "rain") { p.y += p.v * dt * 1.9; p.x -= dt * 0.12; c.strokeStyle = "rgba(190,215,245,.5)"; c.lineWidth = 1.2; c.beginPath(); c.moveTo(p.x * W, p.y * H); c.lineTo(p.x * W - 4, p.y * H + 14 * p.s); c.stroke(); }
       else if (this.kind === "snow") { p.y += p.v * dt * 0.28; p.x += Math.sin(t / 900 + p.r) * dt * 0.03; c.fillStyle = "rgba(255,255,255,.85)"; c.beginPath(); c.arc(p.x * W, p.y * H, 1.6 + p.s * 1.4, 0, 6.28); c.fill(); }
-      else { p.y += p.v * dt * 0.12; p.x += Math.sin(t / 1200 + p.r) * dt * 0.06; p.r += dt * 1.4; c.save(); c.translate(p.x * W, p.y * H); c.rotate(p.r); c.fillStyle = this.kind === "leaf" ? ["#E8833A", "#C2452D", "#EAB94E"][Math.floor(p.a * 3)] : ["#F7B6C8", "#FFFFFF", "#FBE08A"][Math.floor(p.a * 3)]; c.globalAlpha = 0.85; c.beginPath(); c.ellipse(0, 0, 5 * p.s, 2.6 * p.s, 0, 0, 6.28); c.fill(); c.restore(); }
+      else if (this.kind !== "leaf") { p.y += p.v * dt * 0.12; p.x += Math.sin(t / 1200 + p.r) * dt * 0.06; p.r += dt * 1.4; c.save(); c.translate(p.x * W, p.y * H); c.rotate(p.r); c.fillStyle = ["#F7B6C8", "#FFFFFF", "#FBE08A"][Math.floor(p.a * 3)]; c.globalAlpha = 0.85; c.beginPath(); c.ellipse(0, 0, 5 * p.s, 2.6 * p.s, 0, 0, 6.28); c.fill(); c.restore(); }
       if (p.y > 1.05) { p.y = -0.05; p.x = Math.random(); } if (p.x < -0.05) p.x = 1.05; if (p.x > 1.05) p.x = -0.05;
     }
     requestAnimationFrame(this.loop);

@@ -26,7 +26,7 @@ import { Cosm } from "../src/game/cosmetics";
 import { Story, lastTextDay, markTextDay } from "../src/game/community";
 import { Safety } from "../src/game/safety";
 import { Events } from "../src/game/events";
-import { Gfx } from "../src/hall3d/mood";
+import { Gfx, Mood } from "../src/hall3d/mood";
 import { isPixar } from "../src/shared/look";
 const $ = (id: string) => document.getElementById(id)!;
 const hall = new HallScene($("game")); (window as any).__hall = hall;
@@ -62,6 +62,7 @@ addEventListener("keydown", (e) => { if ((e.key === "b" || e.key === "B") && !(e
 setInterval(() => { const p = hall.player.pos, b = hall.boardPos; bchip.classList.toggle("show", Math.hypot(p.x - b.x, p.z - b.z) < 3.4 && p.z > b.z - 0.2); }, 250);
 GOTO.forEach((g) => { const b = document.createElement("button"); b.innerHTML = `<i style="background:${g.color}"></i>${g.label}`; b.onclick = () => { menu.classList.remove("show"); hall.goTo(g.key); }; menu.appendChild(b); });
 $("bGo").onclick = () => toggle(menu);
+const look = $("bLook") as HTMLSelectElement; look.value = Mood.palette === "auto" ? "auto" : Mood.palette; look.onchange = () => Mood.set(look.value === "auto" ? null : look.value);
 $("game").addEventListener("pointerdown", () => menu.classList.remove("show"));
 $("bSpd").onclick = () => { hall.speed = hall.speed === 1 ? 4 : hall.speed === 4 ? 16 : 1; $("bSpd").textContent = `Speed x${hall.speed}`; };
 const NAMES = { close: "Close-up", overview: "Overview", first: "First person" } as const;

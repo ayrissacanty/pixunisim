@@ -17,8 +17,17 @@ export const PALETTES: Record<string, Pal> = {
   night: { hemi: "#9aa0e0", gnd: "#ffb070", sun: "#a9b8ff", wash: "#7076b8", floor: "#8a90c8", sky: "#1d1f44", accent: "#F6C85F", accent2: "#8E7CC3", night: 1, w: 0.7 },
   candy: { hemi: "#ffe0f0", gnd: "#d8c8ff", sun: "#fff0fa", wash: "#FFD3EA", floor: "#fbe6f4", sky: "#e8d3ff", accent: "#FF8FB1", accent2: "#A8E6FF", w: 0.5 },
   paper: { hemi: "#fff6e8", gnd: "#e4d3b4", sun: "#fff0d8", wash: "#ffffff", floor: "#ffffff", sky: "#EADFCB", accent: "#E07A66", accent2: "#EAB94E", w: 0 },
+  story: { hemi: "#fff1d2", gnd: "#e7c99a", sun: "#ffe7b0", wash: "#F6E4C4", floor: "#E8C48A", sky: "#f6d7a4", accent: "#C4553A", accent2: "#2F6B45", w: 0.9 },
+  candle: { hemi: "#fff4dc", gnd: "#e6d2a4", sun: "#ffe6b8", wash: "#F4E6C8", floor: "#E7D3A2", sky: "#f7e4c0", accent: "#7A2E3A", accent2: "#E2B657", w: 0.88 },
 };
-/** time of day (hours) -> [hemi, sun, sky] keyframes; the last two entries fade into night */
+export const LOOKS: { id: string; name: string }[] = [
+  { id: "auto", name: "Vivid" },
+  { id: "story", name: "Storybook" },
+  { id: "sky", name: "Sky Hall" },
+  { id: "forest", name: "Forest" },
+  { id: "candle", name: "Candle Hall" },
+  { id: "sunset", name: "Sunset" },
+];
 const TOD: [number, string, string, string][] = [[0, "#8a90d0", "#9fb0ff", "#1d1f44"], [5.5, "#8a90d0", "#9fb0ff", "#1d1f44"], [6.8, "#ffc8b0", "#ffe0c0", "#f29a78"], [10.5, "#c9e6ff", "#fff8e4", "#7ec8f0"], [15, "#ffe0b8", "#ffd09a", "#f0b48a"], [18, "#ffb0c0", "#ffb48c", "#c98ad4"], [20.5, "#8a90d0", "#9fb0ff", "#1d1f44"], [24, "#8a90d0", "#9fb0ff", "#1d1f44"]];
 const SEASON: Record<string, string> = { winter: "#dbe8ff", spring: "#ffeaf0", summer: "#fff4c8", autumn: "#ffdcb0" };
 const KEY = "unify.mood.v1";

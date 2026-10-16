@@ -48,7 +48,7 @@ export class Auditorium3D {
 
   constructor(host: HTMLElement) {
     this.host = host; const r = this.renderer = new THREE.WebGLRenderer({ antialias: true }); r.setPixelRatio(dprCap()); r.outputColorSpace = THREE.SRGBColorSpace; r.shadowMap.enabled = false;
-    scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#d7ecff"); this.scene.fog = new THREE.Fog("#c5dff6", 70 * IS, 170 * IS);
+    scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#f4ead2"); this.scene.fog = new THREE.Fog("#f3e6c8", 90 * IS, 220 * IS);
     vignette(host, 0.3); this.buildRoom(); this.buildStage(); this.buildSeats(); this.buildScreen(); this.buildPeople(); this.bind();
     this.fx = buildAudExtras(this.scene, { hemi: this.hemi, dl: this.dl, spots: [this.spotL, this.spotR], bg: this.scene.background as THREE.Color, fog: this.scene.fog as THREE.Fog, baseMesh: this.baseMesh, backMesh: this.backMesh, seatCount: this.seats.length });
     if (isPixar()) this.px = setupPixarAud(this, { hemi: this.hemi, dl: this.dl, spotL: this.spotL, spotR: this.spotR });
@@ -67,7 +67,7 @@ export class Auditorium3D {
     side(-35, Math.PI / 2); side(35, -Math.PI / 2);
     const back = new THREE.Mesh(new THREE.PlaneGeometry(70, 26), wm); back.position.set(0, 13, 40); back.rotation.y = Math.PI; S.add(back);
     const sky = canvasTex(512, 512, (c) => {
-      const g = c.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, "#163a72"); g.addColorStop(0.45, "#3d7ec4"); g.addColorStop(1, "#f0c27a"); c.fillStyle = g; c.fillRect(0, 0, 512, 512);
+    const g = c.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, "#7eb6ee"); g.addColorStop(0.5, "#f6e7b8"); g.addColorStop(1, "#fff8e8"); c.fillStyle = g; c.fillRect(0, 0, 512, 512);
       c.fillStyle = "rgba(255,255,255,.55)"; c.beginPath(); c.ellipse(140, 360, 90, 28, 0, 0, 7); c.ellipse(250, 340, 70, 22, 0, 0, 7); c.fill();
       c.fillStyle = "#fff8d0"; for (let i = 0; i < 80; i++) { const x = (i * 97) % 500 + 6, y = (i * 53) % 280 + 8; c.fillRect(x, y, i % 5 === 0 ? 3 : 1.5, i % 5 === 0 ? 3 : 1.5); }
     });

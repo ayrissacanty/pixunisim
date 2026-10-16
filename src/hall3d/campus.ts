@@ -115,7 +115,7 @@ export function solidAt(x: number, y: number, pad = 0.16, floor = 0): boolean {
   if (floor === 1) return !upWalk(x, y);
   // the front door, and the sidewalk from the bus up to it. The wall on either side stays solid.
   if (x > ENTRANCE.gap.x0 && x < ENTRANCE.gap.x1 && y > H - 1.4 && y < H + 9) return false;
-  if (y > H + 2.4 && y < H + 9 && x > 46 && x < 76) return false;
+  if (y > H + 2.2 && y < H + 12 && x > 44 && x < 78) return false;
   if (x < 0.45 || y < 0.45 || x > W - 0.45) return true;
   if (y > H - 0.45) return true;
   return BLOCKED.some((r) => hit(r, x, y, pad));
@@ -128,6 +128,6 @@ export const PLAZA_TILES: { x: number; y: number }[] = NAV.flatMap((line, y) => 
 export const CORRIDOR_TILES: { x: number; y: number }[] = NAV.flatMap((line, y) => line.split("").map((c, x) => ({ c, x, y }))).filter((t) => t.c === "." && (t.x < 14 || t.x > W - 15 || t.y < 14 || t.y > H - 15));
 
 /** outside the front doors: the bulletin board, and the bus stop pulled up beside it */
-export const OUTSIDE = { board: { x: 64, y: H + 2.4 }, boardStand: { x: 64, y: H + 4.0 }, busStop: { x: 57, y: H + 7.6 }, busDoor: { x: 54, y: H + 5.6 }, roadY: H + 7.6 };
+export const OUTSIDE = { board: { x: 64, y: H + 2.4 }, boardStand: { x: 64, y: H + 4.0 }, busStop: { x: 57, y: H + 7.6 }, busDoor: { x: 54, y: H + 8.6 }, roadY: H + 7.6 };
 /** Chat Chow: the plaza tables where students sit and talk */
 export const CHOW_TABLES: { x: number; y: number }[] = PROPS.filter((p) => p.kind === "table").map((p) => ({ x: p.x, y: p.y }));
