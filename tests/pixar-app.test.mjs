@@ -10,7 +10,7 @@ let bad = 0; const t = (n, c) => { console.log((c ? "PASS  " : "FAIL  ") + n); i
 const rd = (f) => fs.readFileSync(path.join(OUT, f), "utf8");
 t('look.js ships LOOK "pixar"', rd("look.js").includes('var LOOK = "pixar"'));
 t("pixar-ui.css at root", fs.existsSync(path.join(OUT, "pixar-ui.css")));
-t("source look.js still papercut", fs.readFileSync(path.join(ROOT, "look.js"), "utf8").includes('var LOOK = "papercut"'));
+t("source look.js defaults to pixar", fs.readFileSync(path.join(ROOT, "look.js"), "utf8").includes('var LOOK = "pixar"'));
 t("index title suffix", /<title>[^<]*- Pixar edition<\/title>/.test(rd("index.html")));
 t("nested page uses ../look.js", rd("prototypes/newsroom-enhanced.html").includes('<script src="../look.js">'));
 t("supabase config shipped", fs.existsSync(path.join(OUT, "supabase-config.js")));

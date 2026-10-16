@@ -1,6 +1,5 @@
 /** Procedural 3D character built from the same AvatarSpec as the 2D rig. See types.ts (Char3D). Faces +z, feet at y = 0, origin between the feet. */
 import * as THREE from "three";
-import { AGE_H } from "../shared/scale";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { normalizeRegions, REGION_IDS, type AvatarSpec, type RegionSpec } from "../hall3d/avatar";
 import type { Anim, Char3D, MouthShape, Style } from "./types";
@@ -10,8 +9,9 @@ import { decorate, hairMaterial } from "./char-parts/detail";
 import { buildHair } from "./char-parts/hair";
 import { buildTop, buildNeck, buildWrist, buildBottom, buildSocks, buildShoes } from "./char-parts/clothes";
 import { buildHat, buildGlasses, buildHeadExtra, buildBodyExtra, buildPack } from "./char-parts/items";
+import { hairSwingK } from "../shared/hair";
 
-const H: Record<string, number> = AGE_H;
+const H: Record<string, number> = { k2: 1.08, g35: 1.25, g68: 1.45, hs: 1.68, adult: 1.84 };
 /** head-heights tall (body height / head height) per proportion style and age: kids have big heads, adults realistic ones (Sims-1-like at the stylised end) */
 const HEADS: Record<string, Record<string, number>> = {
   chibi: { k2: 3.1, g35: 3.4, g68: 3.7, hs: 5.2, adult: 5.7 }, stylised: { k2: 3.5, g35: 3.8, g68: 4.1, hs: 5.2, adult: 5.7 }, realistic: { k2: 4.4, g35: 4.7, g68: 5.0, hs: 5.5, adult: 5.75 },
@@ -267,7 +267,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
 
   /* ---------------------------------------------------------------- animation state */
   const cur = new Float32Array(N), from = new Float32Array(N), tgt = new Float32Array(N), AV = () => AGEV[spec.age] ?? AGEV.g68;
-  let anim: Anim = "idle", time = Math.random() * 10, bl = 1, speaking = false, blinkAt = 1.5 + Math.random() * 3, blinkT = -1, dartAt = 1, gx = 0, gy = 0, tgx = 0, tgy = 0, look: THREE.Vector3 | null = null;
+  let anim: Anim = "idle", time = Math.random() * 10, bl = 1, moveU = 0, speaking = false, blinkAt = 1.5 + Math.random() * 3, blinkT = -1, dartAt = 1, gx = 0, gy = 0, tgx = 0, tgy = 0, look: THREE.Vector3 | null = null;
   let hy = 0, hp = 0, glanceAt = 1 + Math.random() * 2, gyT = 0, gpT = 0;
   let manualMouth: MouthPose | null = null, manualBrow: number | null = null, visT = 0, vis: MouthPose = VISEMES.closed, energy = 1, browAt = 2 + Math.random() * 4, browPulse = 0, brow = 0;
   const mCur: MP = { o: 0, w: 1, c: 0, p: 0 }, tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
@@ -288,6 +288,8 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
   };
   const update = (dt: number) => {
     dt = Math.min(dt, 0.1); time += dt; pose(anim, time, tgt, AV());
+    /* hair swing gating: hair is rigid with the head, so while walking damp the head swing and bounce unless the hair is loose AND the character is moving fast (glitch fix) */
+    if (anim === "walk") { const hk = hairSwingK(spec.hairStyle, moveU); if (hk < 1) { tgt[nkY] *= hk; tgt[nkX] *= hk; tgt[nkZ] *= hk; tgt[spZ] *= hk; tgt[hipY] = -0.012 + (tgt[hipY] + 0.012) * hk; } }
     if (bl < 1) { bl = Math.min(1, bl + dt / 0.25); const s = sm(bl); for (let i = 0; i < N; i++) cur[i] = from[i] + (tgt[i] - from[i]) * s; } else cur.set(tgt);
     /* head look-at: toward the target when set, else an occasional idle glance; the head eases, the eyes lead it */
     let yaw = 0, pitch = 0;
@@ -328,6 +330,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
   const v = new THREE.Vector3(), wp = (o: THREE.Object3D, x = 0, y = 0, z = 0) => { root.updateWorldMatrix(true, true); return o.localToWorld(v.set(x, y, z)).clone(); };
   const api: Char3DEx = {
     root, setSpec, update,
+    setMoveSpeed(u) { moveU = u; },
     play(a) { if (a === anim) return; from.set(cur); bl = 0; anim = a; },
     lookAt(t) { look = t ? t.clone() : null; },
     speak(on) { if (on && !speaking) visT = 0; speaking = on; },
