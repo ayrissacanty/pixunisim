@@ -38,7 +38,8 @@ const ACT: Record<string, Anim> = { wave: "wave", highfive: "wave", cheer: "chee
 const lerpAngle = (a: number, b: number, k: number) => { let d = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI; return a + d * k; };
 
 interface Ent { c: Char3DEx; spec: AvatarSpec; lx: number; lz: number; yaw: number; ty: number; cast?: boolean }
-const MAX3D = 80, NEAR = 800, FAR = 900;
+const phone = smallScreen();
+const MAX3D = phone ? 10 : 22, NEAR = phone ? 12 : 20, FAR = phone ? 16 : 26;
 /** real 3D characters for everyone in the hall. A few are built each frame so the phone does not stall. */
 export class PixarCrowd {
   private ents = new Map<Person, Ent>(); private tmp = new THREE.Vector3(); private camLocal = new THREE.Vector3();
@@ -59,11 +60,11 @@ export class PixarCrowd {
     cand.sort((a, b) => a.d - b.d); const keep = new Set<Person>(cand.slice(0, MAX3D).map((c) => c.p));
     for (const p of [...this.ents.keys()]) if (!keep.has(p)) this.drop(p);
     let made = 0;
-    for (const { p, spec, d } of cand) {
+    for (const { p, spec } of cand) {
       if (!keep.has(p)) continue; let e = this.ents.get(p);
-      if (!e) { if (p !== x.player && made >= 8) continue; e = this.make(p, spec, x.camera) ?? undefined; made++; if (!e) { keep.delete(p); continue; } }
+      if (!e) { if (p !== x.player && made >= 1) continue; e = this.make(p, spec, x.camera) ?? undefined; made++; if (!e) { keep.delete(p); continue; } }
       else if (e.spec !== spec) { e.c.setSpec(spec); e.spec = spec; }
-      this.step(dt, p, e, x); this.shade(e, p === x.player || d < 16);
+      this.step(dt, p, e, x); this.shade(e, p === x.player);
     }
     for (const p of keep) if (this.ents.has(p)) { p.sprite.visible = false; p.blob.visible = false; }
   }
@@ -102,11 +103,11 @@ export class PixarHall {
   readonly crowd: PixarCrowd; private composer: EffectComposer | null = null; private failed = false; private w = 1; private h = 1; private bloom: UnrealBloomPass | null = null; private shafts: THREE.Mesh | null = null;
   private rim1: THREE.DirectionalLight; private rim2: THREE.DirectionalLight; private warm: THREE.PointLight; private cool: THREE.PointLight; private skyCv = document.createElement("canvas"); private skyTex: THREE.CanvasTexture; private fog: THREE.Fog;
   constructor(private r: THREE.WebGLRenderer, private scene: THREE.Scene, private cam: THREE.PerspectiveCamera, private sun: THREE.DirectionalLight, private hemi: THREE.HemisphereLight) {
-    r.shadowMap.type = THREE.PCFShadowMap; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05; r.outputColorSpace = THREE.SRGBColorSpace;
+    r.shadowMap.type = phone ? THREE.BasicShadowMap : THREE.PCFShadowMap; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05; r.outputColorSpace = THREE.SRGBColorSpace;
     const pm = new THREE.PMREMGenerator(r), env = new RoomEnvironment(), rt = pm.fromScene(env, 0.04); scene.environment = rt.texture; scene.environmentIntensity = 0.28; pm.dispose(); env.dispose();
     this.skyCv.width = 4; this.skyCv.height = 128; this.skyTex = new THREE.CanvasTexture(this.skyCv); this.skyTex.colorSpace = THREE.SRGBColorSpace; scene.background = this.skyTex;
     this.fog = scene.fog = new THREE.Fog(HAZE.getHex(), 90 * IS, 280 * IS);
-    sun.color.copy(KEY); sun.intensity = 1.85; hemi.color.copy(TEAL); hemi.groundColor.copy(PEACH); hemi.intensity = 0.5; sun.shadow.radius = 6; sun.shadow.normalBias = 0.03;
+    sun.color.copy(KEY); sun.intensity = 1.85; hemi.color.copy(TEAL); hemi.groundColor.copy(PEACH); hemi.intensity = 0.5; sun.shadow.radius = phone ? 0 : 2; sun.shadow.normalBias = 0.03;
     this.rim1 = new THREE.DirectionalLight("#9fd4ea", 0.55); this.rim1.position.set(-12, 9, -15); this.rim2 = new THREE.DirectionalLight("#ffe2b8", 0.35); this.rim2.position.set(14, 7, -12);
     this.warm = new THREE.PointLight("#ff9a5a", 5 * IS * IS, 9 * IS, 2); this.cool = new THREE.PointLight("#6fc6ff", 3 * IS * IS, 10 * IS, 2);
     scene.add(this.rim1, this.rim2, this.warm, this.cool); this.crowd = new PixarCrowd(scene); this.paintSky(); Mood.onChange(() => this.paintSky());

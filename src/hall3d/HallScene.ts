@@ -77,7 +77,7 @@ export class HallScene {
   constructor(public host: HTMLElement) {
     const phone = smallScreen();
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: !phone, alpha: false, powerPreference: phone ? "low-power" : "high-performance" });
-    r.setPixelRatio(dprCap()); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
+    r.setPixelRatio(dprCap()); r.shadowMap.enabled = true; r.shadowMap.type = phone ? THREE.BasicShadowMap : THREE.PCFShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
     scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB"); this.scene.fog = new THREE.Fog("#EADFCB", 70 * IS, 340 * IS);
     this.skyCv.width = 256; this.skyCv.height = 320; this.skyTex = new THREE.CanvasTexture(this.skyCv); this.skyTex.colorSpace = THREE.SRGBColorSpace; this.paintSky(10);
     this.reachable(); this.buildLights(); this.buildCampus(); this.buildDetails(); this.buildDoorLeaves(); this.buildOutside(); this.buildLife(); this.buildRoad(); this.buildBus(); this.buildPeople();
@@ -117,7 +117,8 @@ export class HallScene {
   private buildLights() {
     const hemi = this.hemi = new THREE.HemisphereLight(0xfff6e8, 0xe4d3b4, 1.85); this.scene.add(hemi);
     const sun = this.sun = new THREE.DirectionalLight(0xfff0d8, 1.6); sun.castShadow = true;
-    sun.shadow.mapSize.set(shadowSize(2048), shadowSize(2048)); sun.shadow.camera.near = 1; sun.shadow.camera.far = 110 * IS; sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02; sun.shadow.radius = 5;
+    const phone = smallScreen();
+    sun.shadow.mapSize.set(shadowSize(phone ? 512 : 2048), shadowSize(phone ? 512 : 2048)); sun.shadow.camera.near = 1; sun.shadow.camera.far = 80 * IS; sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02; sun.shadow.radius = phone ? 0 : 2;
     this.scene.add(sun, sun.target);
     if (isPixar()) this.px = new PixarHall(this.renderer, this.scene, this.camera, sun, hemi);   // golden key, teal fill, coloured rims, haze and post stack (lights follow Mood themselves)
     else { Mood.rig({ hemi, sun, bg: this.scene.background as THREE.Color, fog: this.scene.fog as THREE.Fog });
@@ -137,7 +138,7 @@ export class HallScene {
   private box(w: number, h: number, d: number, mats: THREE.Material | THREE.Material[], x: number, y: number, z: number, o: { outline?: boolean; occlude?: boolean; shadow?: boolean } = {}) {
     const { outline = !this.px, occlude = false, shadow = true } = o;
     if (occlude) mats = (Array.isArray(mats) ? mats : [mats]).map((m) => m.clone());       // own materials so each can fade alone
-    const m = new THREE.Mesh(this.px ? new RoundedBoxGeometry(w, h, d, 3, Math.min(0.18, w / 5, h / 5, d / 5)) : new THREE.BoxGeometry(w, h, d), mats); m.position.set(x, y, z); m.castShadow = shadow; m.receiveShadow = true; this.scene.add(m);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mats); m.position.set(x, y, z); m.castShadow = shadow; m.receiveShadow = true; this.scene.add(m);
     if (outline) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({ color: 0x6d5a5f, transparent: true, opacity: 0.55 })));
     if (occlude) this.occl.push({ mats: Array.isArray(mats) ? mats : [mats], box: new THREE.Box3().setFromCenterAndSize(m.position, new THREE.Vector3(w + 0.05, h, d + 0.05)), o: 1 });
     return m;
@@ -1012,6 +1013,8 @@ export class HallScene {
     const climbing = this.stairTop(p.pos.x, p.pos.z) != null || this.stairTop(nx, nz) != null;
     const blocked = (x: number, z: number) => (!climbing && this.wallAt(x, z, floor)) || this.tooClose(x, z, p);
     if (!blocked(nx, nz)) { p.pos.x = nx; p.pos.z = nz; return len <= step + 0.04; }
+    const personOnly = (x: number, z: number) => (climbing || !this.wallAt(x, z, floor)) && this.tooClose(x, z, p);
+    if (personOnly(nx, nz)) { p.pos.x += dx * k * 0.45; p.pos.z += dz * k * 0.45; return false; }
     if (!blocked(nx, p.pos.z)) { p.pos.x = nx; return false; }
     if (!blocked(p.pos.x, nz)) { p.pos.z = nz; return false; }
     const side = ((p.id ?? 0) & 1 ? 1 : -1) * 0.16, inv = 1 / Math.max(len, 0.01);
