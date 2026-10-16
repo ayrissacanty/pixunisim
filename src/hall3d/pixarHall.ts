@@ -75,7 +75,8 @@ export class PixarCrowd {
     const act = p.act ? ACT[p.act.name] : undefined, anim: Anim = seated ? "sit" : p.moving ? "walk" : act ?? (p.speaking || p.talking ? "talk" : "idle");
     c.play(anim); c.speak(!!p.speaking); const st = p.moving ? Math.min(1.7, Math.max(0.75, (isP ? 4.3 : (p as Stu).speed ?? 2.4) / 2.4)) : 1; c.update(dt * st);
     c.root.position.set(p.pos.x, (seated ? 0.46 - c.seatHeight * CHAR_K : 0) + p.pos.y, p.pos.z); c.root.rotation.y = e.yaw;
-    const f = (p as Stu).fade ?? 1; c.root.scale.setScalar(Math.max(0.02, f) * CHAR_K);
+    const f = (p as Stu).fade ?? 1, grown = !x.first && (p.def?.role === "staff" || p.look.age === "adult");
+    c.root.scale.setScalar(Math.max(0.02, f) * CHAR_K * (grown ? 1.62 : 1));
     c.root.visible = isP ? x.shown : !(x.first && this.tmp.set(p.pos.x, 0, p.pos.z).distanceTo(this.camLocal.copy(x.camera.position).divideScalar(IS)) < 1.1 / IS);
     void anim;
   }

@@ -81,13 +81,19 @@ const tablesAt = (xs: number[], ys: number[]): Prop[] => xs.flatMap((x) => ys.ma
 export const PROPS: Prop[] = [
   { kind: "fountain", x: 54, y: 46 },
   { kind: "bboard", x: 54, y: 52 },
-  { kind: "tv", x: 68, y: 40 },
-  ...[[32, 36], [76, 36], [32, 58], [76, 58], [22, 42], [86, 42]].map(([x, y]) => ({ kind: "tree" as const, x, y })),
+  { kind: "tv", x: 22, y: 27 },
   ...tablesAt([28, 80], [40, 50]),
   ...[[46, 44], [62, 44], [8, 34], [100, 40]].map(([x, y]) => ({ kind: "bench" as const, x, y, rot: x < 20 || x > 90 ? 0 : Math.PI / 2 })),
-  { kind: "planter", x: 48, y: 42 }, { kind: "planter", x: 60, y: 42 }, { kind: "planter", x: 48, y: 50 }, { kind: "planter", x: 60, y: 50 },
-  { kind: "planter", x: 22, y: 8 }, { kind: "planter", x: 86, y: 8 }, { kind: "planter", x: 22, y: 74 }, { kind: "planter", x: 86, y: 74 },
+  { kind: "planter", x: 40, y: 30 }, { kind: "planter", x: 68, y: 30 }, { kind: "planter", x: 40, y: 62 }, { kind: "planter", x: 68, y: 62 },
+  { kind: "planter", x: 20, y: 2.4 }, { kind: "planter", x: 88, y: 2.4 }, { kind: "planter", x: 20, y: 79.4 }, { kind: "planter", x: 88, y: 79.4 },
   ...[[10, 6], [30, 6], [78, 6], [98, 6], [10, 76], [98, 76], [6, 24], [6, 58], [102, 24], [102, 58]].map(([x, y]) => ({ kind: "lamp" as const, x, y })),
+];
+
+/** tall indoor plants, tucked against the walls so the walkways stay clear */
+export const GREENS: { x: number; y: number }[] = [
+  { x: 8, y: 2.2 }, { x: 36, y: 2.2 }, { x: 72, y: 2.2 }, { x: 100, y: 2.2 },
+  { x: 8, y: 79.2 }, { x: 36, y: 79.2 }, { x: 70, y: 79.2 }, { x: 100, y: 79.2 },
+  { x: 2.4, y: 18 }, { x: 2.4, y: 64 }, { x: 105.6, y: 18 }, { x: 105.6, y: 64 },
 ];
 
 const SIZE: Record<PropKind, [number, number]> = { tree: [1.2, 1.2], bench: [0.7, 1.9], table: [1.9, 1.9], fountain: [4.6, 4.6], planter: [1.4, 1.4], lamp: [0.1, 0.1], tv: [2.0, 1.3], bboard: [3.2, 0.7] };
@@ -99,6 +105,7 @@ export function blockers(): Rect[] {
   for (const c of COLUMNS) r.push({ x: c.x - 0.55, y: c.y - 0.55, w: 1.1, h: 1.1 });
   for (const l of LOCKERS) r.push(l.rect);
   for (const p of PROPS) { const [w, h] = SIZE[p.kind]; if (p.kind === "lamp") continue; r.push({ x: p.x - w / 2, y: p.y - h / 2, w, h }); }
+  for (const g of GREENS) r.push({ x: g.x - 0.45, y: g.y - 0.45, w: 0.9, h: 0.9 });
   return r;
 }
 export const BLOCKED = blockers();
@@ -117,7 +124,7 @@ export const NAV_UP: string[] = row((x, y) => !upWalk(x, y));
 export const PLAZA_TILES: { x: number; y: number }[] = NAV.flatMap((line, y) => line.split("").map((c, x) => ({ c, x, y }))).filter((t) => t.c === "." && t.x >= 32 && t.x <= 76 && t.y >= 30 && t.y <= 62 && !BLOCKS.some((b) => hit(b.rect, t.x + 0.5, t.y + 0.5, 0)));
 export const CORRIDOR_TILES: { x: number; y: number }[] = NAV.flatMap((line, y) => line.split("").map((c, x) => ({ c, x, y }))).filter((t) => t.c === "." && (t.x < 14 || t.x > W - 15 || t.y < 14 || t.y > H - 15));
 
-/** outside the front doors: the class-times bulletin board by the entrance, the bus stop on the road in front of the school (grid units; y > H is outdoors) */
-export const OUTSIDE = { board: { x: 64, y: H + 2.4 }, boardStand: { x: 64, y: H + 4.0 }, busStop: { x: 28, y: H + 7.6 }, busDoor: { x: 36, y: H + 5.9 }, roadY: H + 7.6 };
+/** outside the front doors: the bulletin board, and the bus stop pulled up beside it */
+export const OUTSIDE = { board: { x: 64, y: H + 2.4 }, boardStand: { x: 64, y: H + 4.0 }, busStop: { x: 57, y: H + 7.6 }, busDoor: { x: 54, y: H + 5.6 }, roadY: H + 7.6 };
 /** Chat Chow: the plaza tables where students sit and talk */
 export const CHOW_TABLES: { x: number; y: number }[] = PROPS.filter((p) => p.kind === "table").map((p) => ({ x: p.x, y: p.y }));
