@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script src="look.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>UNIFY Hallway 3D</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,6 +16,7 @@ html,body{height:100%;background:var(--sheet);color:var(--ink);font-family:var(-
 #game{position:absolute;inset:0}
 #game canvas{display:block;width:100%;height:100%}
 #paper,#tint,#vig{position:absolute;inset:0;pointer-events:none}
+html[data-look="pixar"] #paper,html[data-look="pixar"] #tint{display:none}
 #paper{mix-blend-mode:multiply;opacity:.6;background-size:256px 256px;z-index:20}
 #tint{mix-blend-mode:multiply;z-index:21}
 #vig{background:radial-gradient(ellipse at center,rgba(0,0,0,0) 58%,rgba(96,58,52,.28) 100%);z-index:22}
@@ -69,7 +71,7 @@ button.tag:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
   <button class="tag" id="bMe">Me &#9662;</button>
   <label class="tag" for="bLook">Look</label>
   <select class="tag" id="bLook" aria-label="School colours">
-    <option value="auto">Vivid</option>
+    <option value="auto">Movie</option>
     <option value="story">Storybook</option>
     <option value="sky">Sky Hall</option>
     <option value="forest">Forest</option>
@@ -89,7 +91,7 @@ button.tag:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 <div id="libHost"></div>
 <div class="pad"><button data-k="u" style="left:62px;top:0">&#9650;</button><button data-k="l" style="left:0;top:62px">&#9664;</button><button data-k="r" style="left:124px;top:62px">&#9654;</button><button data-k="d" style="left:62px;top:124px">&#9660;</button></div>
 <script src="phone-config.js"></script><script src="supabase-config.js"></script><script src="supabase-client.js"></script><script>if(window.PHONE_CONFIG&&PHONE_CONFIG.networkLocalOnly)window.__PHONE_NET_LOCAL=true;</script><script src="phone-net.js"></script>
-<script src="demo/dist/hall3d.js?v=17"></script>
+<script src="demo/dist/hall3d.js?v=18"></script>
 <script src="calmui.js"></script>
 </body>
 </html>

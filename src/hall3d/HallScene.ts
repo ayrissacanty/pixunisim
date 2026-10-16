@@ -1067,12 +1067,15 @@ export class HallScene {
       else if (P.kind === "lunch") { const buddy = s.def && Social.peek(s.def.id)?.lunchBuddy && near[ni]; s.pending = { delay: rnd(0, 10), dest: buddy ? near[ni++] : spots[n], hide: false, appear: s.hidden ? s.lastDoor : undefined }; }
       else if (P.kind === "arrive") {
         if (this.bus && this.busState) { this.bus.visible = true; this.bus.position.set(this.busState.to, 0, OUTSIDE.busStop.y - H / 2); if (this.busState.mode === "idle") this.busState.mode = "wait"; }
-        const door = { x: OUTSIDE.busDoor.x + (n % 5) * 0.42 - 0.84, y: OUTSIDE.busDoor.y };
-        const board = { x: OUTSIDE.board.x + (n % 4) * 0.4 - 0.6, y: OUTSIDE.board.y + 1.2 };
-        s.hidden = true; s.sprite.visible = false; s.blob.visible = false; s.path = []; s.after = "board";
-        s.pending = { delay: 0.12 + n * 0.1, dest: board, hide: false, appear: door, after: "board" };
+        const door = { x: OUTSIDE.busDoor.x + (n % 5) * 0.7 - 1.4, y: OUTSIDE.busDoor.y };
+        const toBoard = n < 6;
+        const dest = toBoard
+          ? { x: OUTSIDE.board.x + (n % 3) * 1.1 - 1.1, y: OUTSIDE.board.y + 2.2 }
+          : (spots[n % Math.max(1, spots.length)] || ent);
+        s.hidden = true; s.sprite.visible = false; s.blob.visible = false; s.path = []; s.after = toBoard ? "board" : "";
+        s.pending = { delay: 0.2 + n * 0.12, dest, hide: false, appear: door, after: toBoard ? "board" : "" };
       }
-      else s.pending = { delay: rnd(0, 12), dest: ent, hide: true, appear: s.hidden ? s.lastDoor : undefined };
+      else s.pending = { delay: rnd(0, 12), dest: spots[n % Math.max(1, spots.length)] || ent, hide: false, appear: s.hidden ? ent : undefined };
     });
   }
   private begin(s: Stu) {
@@ -1111,15 +1114,8 @@ export class HallScene {
   }
   /** what a student does when they reach the end of a walk */
   private afterPath(s: Stu) {
-    if (s.after === "board") { s.after = "hall"; s.pending = { delay: 0.45, dest: { x: STAIR_GROUND.x, y: STAIR_GROUND.y }, hide: false, after: "hall" }; return; }
-    if (s.after === "hall") { s.after = "scatter"; s.path = this.stairPath(30 + (s.id % 4) * 3, 64); return; }
-    if (s.after === "scatter") {
-      s.after = ""; const pick = s.id % 3;
-      if (pick === 0) s.path = this.stairPath(54, 16);
-      else if (pick === 1) { const d = DOORS[s.id % DOORS.length]; s.path = this.downPath(s.pos, d.approach.x, d.approach.y); s.hideOnArrive = true; }
-      else s.path = this.downPath(s.pos, 40 + (s.id % 5) * 6, 46);
-      return;
-    }
+    if (s.after === "board") { s.after = ""; const spot = this.open[s.id % Math.max(1, this.open.length)]; if (spot) s.pending = { delay: 0.8, dest: spot, hide: false }; return; }
+    if (s.after === "hall" || s.after === "scatter") { s.after = ""; return; }
     if (s.hideOnArrive) { s.hidden = true; s.sprite.visible = false; s.blob.visible = false; s.moving = false; }
   }
   private climb(to: 0 | 1, done?: () => void) {
@@ -1181,7 +1177,7 @@ export class HallScene {
   cycleView() { this.setView(this.view === "close" ? "overview" : this.view === "overview" ? "first" : "close"); return this.view; }
   private updateCamera(dt: number, snap = false) {
     const P = this.player.pos, st = Math.sin(this.yaw), ct = Math.cos(this.yaw); let pos: THREE.Vector3, look: THREE.Vector3;
-    if (this.view === "close") { const ap = this.arrivalCam, pit = ap ? 0.38 : this.pitch, d = (ap ? 7.2 : 6.8) * this.zoom, cp = Math.cos(pit); pos = new THREE.Vector3(P.x + st * cp * d, P.y + 1.15 + Math.sin(pit) * d, P.z + ct * cp * d); look = new THREE.Vector3(P.x - st * 1.2, P.y + 1.35, P.z - ct * 1.2); }
+    if (this.view === "close") { const ap = this.arrivalCam, pit = ap ? 0.42 : this.pitch, d = (ap ? 11 : 9.4) * this.zoom, cp = Math.cos(pit); pos = new THREE.Vector3(P.x + st * cp * d, P.y + 1.35 + Math.sin(pit) * d, P.z + ct * cp * d); look = new THREE.Vector3(P.x - st * 2.4, P.y + 1.6, P.z - ct * 2.4); }
     else if (this.view === "overview") { const d = Math.max(70, Math.max(W, H) * 0.92) * this.zoom, cp = Math.cos(this.pitch); pos = new THREE.Vector3(st * cp * d, P.y + Math.sin(this.pitch) * d, ct * cp * d + 3); look = new THREE.Vector3(P.x * 0.25, P.y, P.z * 0.25); }
     else { const ey = P.y + 1.7 / IS; pos = new THREE.Vector3(P.x, ey, P.z); look = new THREE.Vector3(P.x - st * 6, ey + Math.tan(this.fpitch) * 6, P.z - ct * 6); }
     if (this.view !== "overview") {
@@ -1246,9 +1242,10 @@ export class HallScene {
     }
     this.updateCamera(dt);
     this.fadeOccluders(dt);
-    this.player.sprite.visible = this.view !== "first" && !this.arrivalHide; this.player.blob.visible = this.view !== "first" && !this.arrivalHide;
+    const pix = !!this.px;
+    this.player.sprite.visible = !pix && this.view !== "first" && !this.arrivalHide; this.player.blob.visible = !pix && this.view !== "first" && !this.arrivalHide;
     this.tickVisitors(dt);
-    for (const p of [...this.students, this.player, this.monitor, this.teacher, ...this.duty, ...this.visitors.values()]) { if ((p as Stu).hidden) { p.body.visible = false; continue; } p.body.visible = false; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position.clone().divideScalar(IS)) < 1.1; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, p.pos.y + 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); this.applyBody(p, dt, p === this.player); if (this.view !== "first" && (p.look.age === "adult" || p.def?.role === "staff")) p.sprite.scale.multiplyScalar(1.55); }
+    for (const p of [...this.students, this.player, this.monitor, this.teacher, ...this.duty, ...this.visitors.values()]) { if ((p as Stu).hidden) { p.body.visible = false; continue; } p.body.visible = false; p.sprite.position.copy(p.pos); if (pix) { p.sprite.visible = false; p.blob.visible = false; } else if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position.clone().divideScalar(IS)) < 1.1; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, p.pos.y + 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); this.applyBody(p, dt, p === this.player); if (!pix && this.view !== "first" && (p.look.age === "adult" || p.def?.role === "staff")) p.sprite.scale.multiplyScalar(1.55); }
     const crowd = this.px?.crowd ?? this.bodies;
     if (crowd) {
       if (this.px) this.px.tick(this.t, this.player.pos);

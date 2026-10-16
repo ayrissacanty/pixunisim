@@ -19,15 +19,16 @@ import { Mood, Gfx } from "./mood";
 import { smallScreen, dprCap } from "../shared/polish";
 import { W, H, PROPS } from "./campus";
 
-const KEY = new THREE.Color("#fff4e4"), TEAL = new THREE.Color("#d5e2f0"), PEACH = new THREE.Color("#c9bfb2"), HAZE = new THREE.Color("#e4ebf2"), NIGHT_HAZE = new THREE.Color("#2b2650");
+const KEY = new THREE.Color("#ffd9a6"), TEAL = new THREE.Color("#8ec8e8"), PEACH = new THREE.Color("#e4b48a"), HAZE = new THREE.Color("#d7e6f2"), NIGHT_HAZE = new THREE.Color("#2b2650");
 const hash = (a: number, b: number) => { const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return n - Math.floor(n); };
-/** a quiet real-day grade: a little contrast, no candy saturation and no teal-orange split */
+/** movie daylight: a little extra color, warm highlights, cool shadows */
 const GRADE = {
   uniforms: { tDiffuse: { value: null as THREE.Texture | null } },
   vertexShader: "varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }",
   fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c=texture2D(tDiffuse,vUv); float lu=dot(c.rgb,vec3(.299,.587,.114));
-    c.rgb=mix(vec3(lu),c.rgb,1.05); c.rgb=pow(max(c.rgb,0.0),vec3(.97));
-    float v=smoothstep(.72,1.25,length(vUv-.5)*1.15); c.rgb*=1.-v*.08; gl_FragColor=c; }`,
+    c.rgb=mix(vec3(lu),c.rgb,1.42); c.rgb=pow(max(c.rgb,0.0),vec3(.93));
+    c.rgb*=mix(vec3(.93,1.04,1.1),vec3(1.08,.98,.9),smoothstep(.08,.68,lu));
+    float v=smoothstep(.62,1.2,length(vUv-.5)*1.15); c.rgb*=1.-v*.1; gl_FragColor=c; }`,
 };
 
 export interface PxCtx { player: Person; playerSpec: AvatarSpec; camera: THREE.Camera; shown: boolean; first: boolean; seat: { pos: THREE.Vector3; ctr: THREE.Vector3 } | null; talkingTo: Person | null }
@@ -151,11 +152,11 @@ export class PixarHall {
     const tune = (m: THREE.Material | undefined, o: THREE.Mesh) => {
       if (!m || seen.has(m)) return; seen.add(m); const s = m as THREE.MeshStandardMaterial; if (!s.isMeshStandardMaterial) return;
       if (s.flatShading) { s.flatShading = false; s.needsUpdate = true; }
-      if (!s.map && !s.emissiveMap) { s.color.getHSL(hsl); if (hsl.s > 0.55) s.color.setHSL(hsl.h, hsl.s * 0.72, hsl.l); }
-      s.envMapIntensity = 0.35;
-      if (o === tags.floor) { s.roughness = 0.62; s.metalness = 0.02; s.envMapIntensity = 0.45; }
-      else if (lock.has(m)) { s.roughness = 0.55; s.metalness = 0.08; s.envMapIntensity = 0.3; }
-      else if (s.roughness < 0.5) s.roughness = 0.72;
+      if (!s.map && !s.emissiveMap) { s.color.getHSL(hsl); if (hsl.s > 0.04) s.color.setHSL(hsl.h, Math.min(0.82, hsl.s * 1.2), Math.min(0.72, hsl.l * 1.04)); }
+      s.envMapIntensity = 0.55;
+      if (o === tags.floor) { s.roughness = 0.42; s.metalness = 0.02; s.envMapIntensity = 0.7; }
+      else if (lock.has(m)) { s.roughness = 0.4; s.metalness = 0.12; s.envMapIntensity = 0.5; }
+      else if (s.roughness > 0.85) s.roughness = 0.62;
     };
     S.traverse((o) => {
       const l = o as THREE.LineSegments; if (l.isLineSegments) { l.visible = false; return; }

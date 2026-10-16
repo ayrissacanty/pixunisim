@@ -21,7 +21,7 @@ export const PALETTES: Record<string, Pal> = {
   candle: { hemi: "#fff4dc", gnd: "#e6d2a4", sun: "#ffe6b8", wash: "#F4E6C8", floor: "#E7D3A2", sky: "#f7e4c0", accent: "#7A2E3A", accent2: "#E2B657", w: 0.88 },
 };
 export const LOOKS: { id: string; name: string }[] = [
-  { id: "auto", name: "Real day" },
+  { id: "auto", name: "Movie" },
   { id: "story", name: "Storybook" },
   { id: "sky", name: "Sky Hall" },
   { id: "forest", name: "Forest" },
@@ -98,8 +98,8 @@ class MoodImpl {
     T.hemiK = 1 - 0.6 * n; T.sunK = 1 - 0.86 * n;
     T.win.set("#fff7e0").lerp(this.tmpA.set("#ffb45a"), n); T.winI = 0.16 + 0.78 * n;
     if (isPixar()) {
-      if (!this.override.id) { T.wash.set("#f3f0ea"); T.floor.set("#d7d1c6"); T.accent.set("#3d6d8c"); T.accent2.set("#8a7352"); T.hemiSky.lerp(this.tmpA.set("#dce6f1"), 0.4); T.sun.lerp(this.tmpA.set("#fff3e0"), 0.3); }
-      T.winI = 0.22 + 0.55 * n;
+      if (!this.override.id) { T.wash.set("#f6efe4"); T.floor.set("#e4d3b4"); T.accent.set("#d4654a"); T.accent2.set("#e2b14a"); T.hemiSky.lerp(this.tmpA.set("#cfe6f8"), 0.35); T.sun.lerp(this.tmpA.set("#ffd7a4"), 0.45); }
+      T.winI = 0.35 + 0.6 * n;
     }
   }
   private copyAll(k: number) {

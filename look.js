@@ -1,6 +1,6 @@
 /* Sets the app-wide look before anything else loads. The build for the Pixar app rewrites LOOK to "pixar". */
 (function () {
-  var LOOK = "papercut";
+  var LOOK = "pixar";
   window.UNIFY_LOOK = LOOK;
   document.documentElement.setAttribute("data-look", LOOK);
   if (LOOK === "pixar") {

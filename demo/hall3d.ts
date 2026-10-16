@@ -70,7 +70,7 @@ $("bView").onclick = () => { const v = hall.cycleView(); $("bView").textContent 
 setInterval(() => {
   const P = PERIODS[Math.max(0, hall.idx)]; $("clk").textContent = clockStr(hall.clock); $("per").textContent = P.name; ($("fill") as HTMLElement).style.width = `${((hall.clock - P.start) / P.len) * 100}%`;
   const seen = hall.students.filter((x) => !x.hidden).length; $("cnt").textContent = `${seen} in the hall, ${hall.students.length - seen} in class or away`;
-  const [r, g, b, a] = hall.tint; ($("tint") as HTMLElement).style.background = `rgba(${r | 0},${g | 0},${b | 0},${a})`;
+  const [r, g, b, a] = hall.tint; if (!isPixar()) ($("tint") as HTMLElement).style.background = `rgba(${r | 0},${g | 0},${b | 0},${a})`;
 }, 200);
 if (!isPixar()) (() => { const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d")!, d = x.createImageData(256, 256);
   for (let i = 0; i < d.data.length; i += 4) { const v = 226 + Math.random() * 29; d.data[i] = v; d.data[i + 1] = v * 0.965; d.data[i + 2] = v * 0.9; d.data[i + 3] = 255; }
