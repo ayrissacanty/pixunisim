@@ -61,8 +61,9 @@ export const PROPS: Prop[] = [
   { kind: "tv", x: 68, y: 40 },
   ...[[32, 36], [76, 36], [32, 58], [76, 58], [22, 42], [86, 42]].map(([x, y]) => ({ kind: "tree" as const, x, y })),
   ...tablesAt([28, 80], [40, 50]),
-  ...[[46, 44], [62, 44]].map(([x, y]) => ({ kind: "bench" as const, x, y, rot: Math.PI / 2 })),
+  ...[[46, 44], [62, 44], [8, 34], [100, 40]].map(([x, y]) => ({ kind: "bench" as const, x, y, rot: x < 20 || x > 90 ? 0 : Math.PI / 2 })),
   { kind: "planter", x: 48, y: 42 }, { kind: "planter", x: 60, y: 42 }, { kind: "planter", x: 48, y: 50 }, { kind: "planter", x: 60, y: 50 },
+  { kind: "planter", x: 22, y: 8 }, { kind: "planter", x: 86, y: 8 }, { kind: "planter", x: 22, y: 74 }, { kind: "planter", x: 86, y: 74 },
   ...[[10, 6], [30, 6], [78, 6], [98, 6], [10, 76], [98, 76], [6, 24], [6, 58], [102, 24], [102, 58]].map(([x, y]) => ({ kind: "lamp" as const, x, y })),
 ];
 

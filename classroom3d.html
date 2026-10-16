@@ -53,6 +53,12 @@ button.tag:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 #cap{position:absolute;z-index:31;left:50%;bottom:calc(58px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(760px,92%);display:none;text-align:left;padding:10px 16px;font-size:17px;line-height:1.35;pointer-events:none}
 #cap.show{display:block}#cap b{color:var(--acc);margin-right:6px}
 #steps{position:absolute;z-index:30;left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));font-size:13px;pointer-events:none}
+#gradeCard{position:absolute;z-index:30;left:10px;top:calc(58px + env(safe-area-inset-top,0px));max-width:min(300px,86vw);font-size:13px;line-height:1.35;pointer-events:none}
+#gradeCard p{margin:4px 0 6px;color:var(--soft)}
+#gradeWho{list-style:none;display:flex;flex-direction:column;gap:3px;max-height:26vh;overflow:auto}
+#gradeWho li{background:rgba(255,249,240,.72);border-radius:8px;padding:3px 8px}
+#gradeWho li.same{background:#d6ecd6}
+#gradeWho li.other{color:var(--soft)}
 #lessonSel{font:inherit;font-size:14px;color:var(--ink);border:1px solid rgba(255,255,255,.7);min-height:36px}
 #tip{position:absolute;z-index:34;display:none;pointer-events:none;font-size:13px;padding:4px 10px}
 .dimmed #vig{background:radial-gradient(ellipse at center,rgba(0,0,0,0) 40%,rgba(10,14,30,.55) 100%)}
@@ -96,6 +102,11 @@ button.tag:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
   <button id="bLab">Try the 3D example</button><button id="bNext" hidden>Next lesson (get ahead)</button><button id="bExtra" hidden>Extra lesson</button><button id="bTimes">Class times</button><button id="bBook">Textbook</button><button id="bElect">Electives</button><button id="bPacks">Curriculum packs</button>
   <button id="bFriends">Friends</button><button id="bAvatar">Avatar</button><button id="bCloset">Closet (5 outfits)</button><button id="bVoice">&#128266; Voice on</button><button id="bTake">Take the new-student assessment</button><button id="bAssess">Ask new students: off</button></div>
 <div class="tag" id="steps"></div>
+<aside class="tag" id="gradeCard" hidden>
+  <b id="gradeHead">Your lesson</b>
+  <p id="gradeLine"></p>
+  <ul id="gradeWho"></ul>
+</aside>
 <div class="tag" id="cap"></div><div class="tag" id="tip"></div>
 <div id="labHost"></div>
 <script src="demo/dist/classroom3d.js"></script>

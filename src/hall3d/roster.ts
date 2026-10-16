@@ -76,5 +76,5 @@ export const STAFF: NpcDef[] = [
 ];
 const T_ = (id: string) => STAFF.find((s) => s.faculty === id)!;
 export const TEACHER_BY_SUBJECT: Record<Subj, NpcDef> = { math: T_("tanaka"), ela: T_("ayrissa"), science: T_("okafor"), history: T_("obrien"), careers: T_("haddad"), life: T_("larsen") };
-export const HALL_COUNT = 36;
+export const HALL_COUNT = 56;
 void OPTIONS;

@@ -489,16 +489,16 @@ export class HallScene {
       const gait = GAIT_BY_PERSONALITY[def.personality] ?? "steady"; return Object.assign(p, { gait, hidden: true, path: [], speed: rnd(2.3, 3.1) * GAITS[gait].speed * (age === "k2" ? 0.8 : age === "g35" ? 0.9 : age === "g68" ? 0.97 : 1), pending: null, lastDoor: { x: Math.floor(d.approach.x), y: Math.floor(d.approach.y) }, hideOnArrive: false, fade: 1 }) as Stu;
     });
     this.player = this.makePerson(11, Events.dress({ ...toLook(Social.profile.avatar, 11), tag: true }, 11, true));
-    this.player.pos.copy(g2w(44, 50));
+    this.player.pos.copy(g2w(54, 40));
     // staff: a hall monitor and a teacher (adults, the tallest size class) walking loops of the plaza and ring corridor
     this.monitor = this.makePerson(STAFF[0].id, STAFF[0].look); this.monitor.def = STAFF[0]; this.monitor.pos.copy(g2w(18, 30));
     this.teacher = this.makePerson(STAFF[1].id, STAFF[1].look); this.teacher.def = STAFF[1]; this.teacher.pos.copy(g2w(64, 34));
     this.duty = STAFF.filter((d) => d.faculty === "park").map((d, i) => { const p = this.makePerson(d.id, d.look); p.def = d; p.pos.copy(g2w(i ? 70 : 18, i ? 60 : 4)); return p; });
-    const ring = [[16, 4], [44, 4], [80, 16], [80, 40], [70, 60], [44, 60], [4, 50], [4, 28]];
+    const ring = [[8, 8], [54, 6], [100, 22], [100, 52], [90, 74], [54, 74], [8, 58], [8, 30]];
     this.walkers = [
       ...(this.duty[0] ? [{ p: this.duty[0], stops: ring, path: [] as THREE.Vector3[], leg: 0, speed: 0.95 }] : []),
-      { p: this.monitor, stops: [[18, 30], [58, 30], [58, 40], [18, 40], [44, 32], [16, 4], [72, 4]], path: [], leg: 0, speed: 1.15 },
-      { p: this.teacher, stops: [[64, 36], [28, 36], [4, 50], [44, 60], [82, 50], [54, 32]], path: [], leg: 0, speed: 1.0 },
+      { p: this.monitor, stops: [[36, 40], [72, 40], [72, 56], [36, 56], [54, 36], [10, 8]], path: [], leg: 0, speed: 1.15 },
+      { p: this.teacher, stops: [[70, 48], [36, 48], [8, 50], [54, 68], [96, 50], [54, 36]], path: [], leg: 0, speed: 1.0 },
     ];
   }
   /** the class-times bulletin board: a free-standing corkboard on the plaza that shows today's picked times and lesson numbers */
@@ -769,7 +769,10 @@ export class HallScene {
     const P = PERIODS[i], spots = shuffle(this.open), ent = ENTRANCE.tile, pt = { x: Math.floor(this.player.pos.x + W / 2), y: Math.floor(this.player.pos.z + H / 2) };
     const near = shuffle(this.open.filter((t) => Math.hypot(t.x - pt.x, t.y - pt.y) <= 3.6 && Math.hypot(t.x - pt.x, t.y - pt.y) >= 1.2)); let ni = 0;
     this.students.forEach((s, n) => {
-      if (P.kind === "class") { const d = DOORS[(n + (P.swap ? 1 : 0)) % 4], t = { x: Math.floor(d.approach.x), y: Math.floor(d.approach.y) }; s.lastDoor = t; s.pending = { delay: rnd(0, 8), dest: t, hide: true }; }
+      if (P.kind === "class") {
+        if (n % 5 < 2) { const spot = spots[(n * 3) % Math.max(1, spots.length)] || ent; s.pending = { delay: rnd(0, 6), dest: spot, hide: false, appear: s.hidden ? (s.lastDoor || ent) : undefined }; }
+        else { const d = DOORS[(n + (P.swap ? 1 : 0)) % DOORS.length], t = { x: Math.floor(d.approach.x), y: Math.floor(d.approach.y) }; s.lastDoor = t; s.pending = { delay: rnd(0, 8), dest: t, hide: true }; }
+      }
       else if (P.kind === "lunch") { const buddy = s.def && Social.peek(s.def.id)?.lunchBuddy && near[ni]; s.pending = { delay: rnd(0, 10), dest: buddy ? near[ni++] : spots[n], hide: false, appear: s.hidden ? s.lastDoor : undefined }; }
       else if (P.kind === "arrive") { s.hidden = true; s.sprite.visible = false; s.blob.visible = false; s.path = []; s.pending = { delay: rnd(0, 20), dest: spots[n], hide: false, appear: ent }; }
       else s.pending = { delay: rnd(0, 12), dest: ent, hide: true, appear: s.hidden ? s.lastDoor : undefined };

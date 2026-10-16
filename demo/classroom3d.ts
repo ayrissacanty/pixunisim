@@ -1,7 +1,7 @@
 import { Classroom3D, type CamMode } from "../src/class3d/Classroom3D";
 import { Director } from "../src/class3d/director";
 import { ALL_LESSONS, CURRICULUM, type LessonDef } from "../src/class3d/curriculum";
-import { bandLessons, gradeLesson, parentGrade, studentBand } from "../src/class3d/gradeband";
+import { bandLessons, gradeLesson, gradesLabel, parentGrade, studentBand } from "../src/class3d/gradeband";
 import { Progress, SUBJECT_NAME } from "../src/game/progress";
 import { openTimes } from "../src/game/timesui";
 import { Placement, runPlacement } from "../src/game/placement";
@@ -66,10 +66,35 @@ const ui = {
 const director = new Director(room, ui); (window as any).__dir = director;
 
 /* ---- the lesson follows the grade a parent set. Same grade shares it. A different grade in this room does not. ---- */
+function showGradeLogic(title: string | null) {
+  const card = $("gradeCard"), mine = parentGrade(), band = studentBand();
+  card.hidden = false;
+  const who = $("gradeWho"); who.innerHTML = "";
+  if (mine == null || !title) {
+    $("gradeHead").textContent = "No grade yet";
+    $("gradeLine").textContent = "Only the main account can set a grade. Until then this room has no lesson. A classmate with a grade still sees theirs.";
+    return;
+  }
+  const label = mine === 0 ? "K" : String(mine);
+  $("gradeHead").textContent = `Grade ${label} sees this lesson`;
+  $("gradeLine").textContent = `${title}. Same grade in this room sees it too. A different grade sits here, but their lesson stays hidden.`;
+  const seen = new Map<string, number>();
+  for (const d of room.seatedDefs()) {
+    const same = gradesLabel(d.grade) === band;
+    const key = d.grade + (same ? "s" : "o");
+    if ((seen.get(key) ?? 0) >= 2) continue;
+    seen.set(key, (seen.get(key) ?? 0) + 1);
+    const li = document.createElement("li");
+    li.className = same ? "same" : "other";
+    li.textContent = same ? `${d.name} · grade ${d.grade} · sees this lesson` : `${d.name} · grade ${d.grade} · own lesson, hidden`;
+    who.appendChild(li);
+  }
+}
 function needGrade() {
   director.stop(); ui.setTitle("Grade not set"); $("steps").textContent = "";
-  $("subj").textContent = "A parent sets the grade";
-  ui.caption("Class", "Open the account button and choose this student's grade. You can still sit in this room. A classmate in another grade sees their own lesson, not yours.", 20000);
+  $("subj").textContent = "The main account sets the grade";
+  showGradeLogic(null);
+  ui.caption("Class", "Only the main account can choose the grade. You can still sit here. A classmate in another grade sees their own lesson, not yours.", 20000);
 }
 async function start(s: Subject, att: number[] = lastAtt) {
   const tok = ++startTok; lastAtt = att; subject = s; const band = studentBand(); const list = band ? bandLessons(CURRICULUM[s], band) : [];
@@ -81,7 +106,7 @@ async function start(s: Subject, att: number[] = lastAtt) {
 /** run one lesson: a regular one, or an extra (catch-up) lesson that sits beside regular classes */
 function begin(l: LessonDef, att: number[] = lastAtt) {
   lesson = l; subject = l.subject as Subject; const mine = parentGrade(); $("subj").textContent = (l.elective ? "Elective · " + l.elective : l.extra ? "Extra · " + SUBJECT_NAME[subject] : SUBJECT_NAME[subject]) + (mine != null ? ` · grade ${mine === 0 ? "K" : mine}` : "") + " · only your grade"; curRef = l.bookRef ?? ""; $("bBook").classList.remove("on"); ($("bLab") as HTMLButtonElement).hidden = !l.lab.id;
-  room.assign(att); life.stop(); life.lesson = lesson; chat.close(); $("bLab").classList.remove("on"); $("moreDot").classList.remove("on"); ($("bNext") as HTMLButtonElement).hidden = true; room.auto = true; markCam("auto"); room.refreshBoard(subject); paintExtra();
+  room.assign(att); life.stop(); life.lesson = lesson; chat.close(); $("bLab").classList.remove("on"); $("moreDot").classList.remove("on"); ($("bNext") as HTMLButtonElement).hidden = true; room.auto = true; markCam("auto"); room.refreshBoard(subject); paintExtra(); showGradeLogic(l.title);
   void director.run(lesson); void life.start(subject);
 }
 /** the extra lesson button: shows this student's next catch-up lesson for this class, if their assessment found a gap */
