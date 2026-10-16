@@ -69,10 +69,9 @@ export function hairMaterial(base: THREE.Material, shell: boolean, hi: THREE.Col
     sh.uniforms.uHi = uHi; sh.uniforms.uSway = sway; sh.uniforms.uAmp = amp;
     const vert = "uniform float uSway; uniform float uAmp;\n" + (paint ? "varying vec3 vHp;\n" : "");
     const begin = `#include <begin_vertex>
-      float tip = clamp((0.25 - position.y) * 1.05, 0.0, 1.7);
-      transformed.x += sin(uSway * 1.2 + position.x * 2.2) * tip * 0.46 * uAmp;
-      transformed.z += cos(uSway * 0.86 + position.z) * tip * 0.55 * uAmp;
-      transformed.y -= abs(sin(uSway * 1.4)) * tip * 0.08 * uAmp;
+      float tip = clamp((-0.2 - position.y) * 0.85, 0.0, 1.0);
+      transformed.x += sin(uSway + position.x) * tip * 0.1 * uAmp;
+      transformed.z += cos(uSway * 0.8) * tip * 0.14 * uAmp;
       ${paint ? "vHp = position;" : ""}`;
     sh.vertexShader = vert + sh.vertexShader.replace("#include <begin_vertex>", begin);
     if (paint) {

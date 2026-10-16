@@ -965,24 +965,25 @@ export class HallScene {
     for (const o of all) {
       if (!o || o === self || (o as Stu).hidden) continue;
       if (Math.abs((o.pos.y || 0) - (self.pos.y || 0)) > 2.2) continue;
-      if (Math.hypot(o.pos.x - x, o.pos.z - z) < 0.3) return true;
+      if (Math.hypot(o.pos.x - x, o.pos.z - z) < 0.46) return true;
     }
     return false;
   }
   /** step toward a point. Walls always win. People slide aside instead of freezing in the doorway. */
   private approach(p: Person, tx: number, tz: number, step: number, floor: number) {
     const dx = tx - p.pos.x, dz = tz - p.pos.z, len = Math.hypot(dx, dz);
-    if (len < 0.08) return true;
-    if (len < 0.55 && !this.wallAt(tx, tz, floor)) return true;
-    const k = Math.min(step, len) / len, nx = p.pos.x + dx * k, nz = p.pos.z + dz * k;
+    if (len < 0.15) return true;
+    if (len < 0.85 && !this.wallAt(tx, tz, floor)) return true;
+    const k = Math.min(step, len) / Math.max(len, 1e-4), nx = p.pos.x + dx * k, nz = p.pos.z + dz * k;
     const climbing = this.stairTop(p.pos.x, p.pos.z) != null || this.stairTop(nx, nz) != null;
-    const open = (x: number, z: number) => (climbing || !this.wallAt(x, z, floor)) && !this.tooClose(x, z, p);
-    if (open(nx, nz)) { p.pos.x = nx; p.pos.z = nz; return len <= step + 0.02; }
-    if ((climbing || !this.wallAt(nx, p.pos.z, floor)) && !this.tooClose(nx, p.pos.z, p)) { p.pos.x = nx; return false; }
-    if ((climbing || !this.wallAt(p.pos.x, nz, floor)) && !this.tooClose(p.pos.x, nz, p)) { p.pos.z = nz; return false; }
-    const side = ((p.id ?? 0) % 2 ? 1 : -1) * 0.2, ox = p.pos.x + (-dz / len) * side, oz = p.pos.z + (dx / len) * side;
-    if (!this.wallAt(ox, oz, floor)) { p.pos.x = ox; p.pos.z = oz; }
-    return false;
+    const wall = (x: number, z: number) => !climbing && this.wallAt(x, z, floor);
+    if (!wall(nx, nz) && !this.tooClose(nx, nz, p)) { p.pos.x = nx; p.pos.z = nz; return len <= step + 0.05; }
+    if (!wall(nx, p.pos.z) && !this.tooClose(nx, p.pos.z, p)) { p.pos.x = nx; return false; }
+    if (!wall(p.pos.x, nz) && !this.tooClose(p.pos.x, nz, p)) { p.pos.z = nz; return false; }
+    const side = ((p.id ?? 0) & 1 ? 1 : -1) * 0.55, inv = 1 / Math.max(len, 0.01);
+    const ox = p.pos.x + (-dz * inv) * side + dx * 0.4, oz = p.pos.z + (dx * inv) * side + dz * 0.4;
+    if (!wall(ox, oz)) { p.pos.x = ox; p.pos.z = oz; }
+    return len < 1.6;
   }
   planNav(gxGoal: number, gyGoal: number, label: string, tail: THREE.Vector3 | null) {
     if (this.sitting != null) this.standUp();
@@ -1026,7 +1027,7 @@ export class HallScene {
       else if (P.kind === "lunch") { const buddy = s.def && Social.peek(s.def.id)?.lunchBuddy && near[ni]; s.pending = { delay: rnd(0, 10), dest: buddy ? near[ni++] : spots[n], hide: false, appear: s.hidden ? s.lastDoor : undefined }; }
       else if (P.kind === "arrive") {
         if (this.bus && this.busState) { this.bus.visible = true; this.bus.position.set(this.busState.to, 0, OUTSIDE.busStop.y - H / 2); if (this.busState.mode === "idle") this.busState.mode = "wait"; }
-        const door = { x: OUTSIDE.busDoor.x + (n % 5) * 0.7 - 1.4, y: OUTSIDE.busDoor.y };
+        const door = { x: OUTSIDE.busDoor.x + (n % 8) * 1.15 - 4, y: OUTSIDE.busDoor.y + (n % 3) * 0.6 };
         const board = { x: OUTSIDE.board.x + (n % 4) * 0.4 - 0.6, y: OUTSIDE.board.y + 1.2 };
         s.hidden = true; s.sprite.visible = false; s.blob.visible = false; s.path = []; s.after = "board";
         s.pending = { delay: 0.12 + n * 0.1, dest: board, hide: false, appear: door, after: "board" };

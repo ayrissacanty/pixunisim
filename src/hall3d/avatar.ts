@@ -106,8 +106,8 @@ export function normalizeAvatar(a: Partial<AvatarSpec> | null | undefined): Avat
   n.regions = normalizeRegions(n.regions);
   return n as AvatarSpec;
 }
-/** chibi default for the youngest bands, stylised from middle school up */
-export const defaultProp = (age: string): "chibi" | "stylised" | "realistic" => (age === "k2" || age === "g35" ? "chibi" : age === "g68" ? "stylised" : "realistic");
+/** film proportions: kids a little bigger-headed, everyone else a person, never a doll */
+export const defaultProp = (age: string): "chibi" | "stylised" | "realistic" => (age === "k2" || age === "g35" ? "stylised" : "realistic");
 export const CLOSET_SLOTS = 12;
 /** pad an older (5-slot) closet with nulls up to CLOSET_SLOTS; always returns a fresh array */
 export const padCloset = (c?: (Outfit | null)[] | null): (Outfit | null)[] => { const n = (c ?? []).slice(0, CLOSET_SLOTS); while (n.length < CLOSET_SLOTS) n.push(null); return n; };

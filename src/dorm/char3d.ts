@@ -14,7 +14,7 @@ import { buildHat, buildGlasses, buildHeadExtra, buildBodyExtra, buildPack } fro
 const H: Record<string, number> = AGE_H;
 /** head-heights tall (body height / head height) per proportion style and age: kids have big heads, adults realistic ones (Sims-1-like at the stylised end) */
 const HEADS: Record<string, Record<string, number>> = {
-  chibi: { k2: 3.1, g35: 3.4, g68: 3.7, hs: 5.2, adult: 5.7 }, stylised: { k2: 3.5, g35: 3.8, g68: 4.1, hs: 5.2, adult: 5.7 }, realistic: { k2: 4.4, g35: 4.7, g68: 5.0, hs: 5.5, adult: 5.75 },
+  chibi: { k2: 3.6, g35: 4.0, g68: 4.4, hs: 5.6, adult: 6.2 }, stylised: { k2: 4.8, g35: 5.2, g68: 5.7, hs: 6.4, adult: 6.8 }, realistic: { k2: 5.3, g35: 5.7, g68: 6.3, hs: 6.9, adult: 7.2 },
 };
 /** per-age motion: v = gesture amplitude, f = tempo, b = bounce (kids bouncier and fidgety, adults calmer) */
 const AGEV: Record<string, { v: number; f: number; b: number }> = { k2: { v: 1.3, f: 1.15, b: 1.8 }, g35: { v: 1.2, f: 1.08, b: 1.4 }, g68: { v: 1.0, f: 1.0, b: 1.0 }, hs: { v: 0.92, f: 0.97, b: 0.7 }, adult: { v: 0.78, f: 0.9, b: 0.5 } };
@@ -319,19 +319,19 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
     const bt = manualBrow !== null ? manualBrow : af[1] + (browPulse > 0 ? Math.sin(Math.PI * (1 - browPulse)) * 0.4 : 0); brow += (bt - brow) * (1 - Math.exp(-dt * 12));
     face?.set({ blink, gx, gy, mouth: mCur.o, mw: mCur.w, mc: mCur.c, mp: mCur.p, brow, squint: sat(mCur.c * 2.2, 0, 0.35) });
     if (packG) { const sitting = anim === "sit" || anim === "type" || anim === "raise" || anim === "lean"; packG.position.z += ((sitting ? -0.05 : 0) - packG.position.z) * 0.2; packG.position.y += ((sitting ? 0.03 : 0) - packG.position.y) * 0.2; }
-    const walking = anim === "walk" || anim === "cheer", moving = walking ? 1.4 : 0.72, phase = time * (walking ? 11 : 3.6);
+    const loose = hairYr[0] < -0.4, fast = anim === "walk", amp = loose && fast ? 0.65 : 0, phase = time * 6.5;
     for (const o of parts.hair ?? []) {
-      o.rotation.x = Math.sin(phase) * 0.2; o.rotation.z = Math.sin(phase * 0.68 + 0.5) * 0.15; o.rotation.y = Math.sin(phase * 0.42) * 0.12;
-      o.traverse((c) => { const mesh = c as THREE.Mesh; if (!mesh.isMesh || !mesh.material) return; const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]; for (const mat of mats) { const u = mat.userData; if (u?.sway) u.sway.value = phase; if (u?.amp) u.amp.value = moving; } });
+      o.rotation.x = Math.sin(phase) * 0.035 * amp; o.rotation.z = Math.sin(phase * 0.7 + 0.4) * 0.025 * amp; o.rotation.y = 0;
+      o.traverse((c) => { const mesh = c as THREE.Mesh; if (!mesh.isMesh || !mesh.material) return; const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]; for (const mat of mats) { const u = mat.userData; if (u?.sway) u.sway.value = phase; if (u?.amp) u.amp.value = amp; } });
     }
-    const flutter = (name: string, amp: number, ph: number) => {
+    const flutter = (name: string, a: number, ph: number) => {
       for (const o of parts[name] ?? []) {
         const u = o.userData; if (u.rx0 == null) { u.rx0 = o.rotation.x; u.rz0 = o.rotation.z; }
-        o.rotation.x = u.rx0 + Math.sin(time * (moving > 0.5 ? 12 : 2.5) + ph) * amp * moving;
-        o.rotation.z = u.rz0 + Math.cos(time * (moving > 0.5 ? 8 : 1.7) + ph) * amp * 0.7 * moving;
+        o.rotation.x = u.rx0 + Math.sin(time * 8 + ph) * a * (fast ? 1 : 0);
+        o.rotation.z = u.rz0 + Math.cos(time * 6 + ph) * a * 0.6 * (fast ? 1 : 0);
       }
     };
-    flutter("top", 0.05, 0); flutter("outer", 0.08, 0.7); flutter("bottom", 0.07, 1.3);
+    flutter("top", 0.018, 0); flutter("outer", 0.03, 0.7); flutter("bottom", 0.025, 1.3);
     if (hi) hiMat.opacity = 0.11 + 0.08 * Math.sin(time * 6);
     for (const o of parts.hextra ?? []) if (o.userData.spin) o.rotation.y += dt * o.userData.spin;
     for (let i = 0; i < 2; i++) { rig.ankle[i].getWorldPosition(tmp); rig.root.worldToLocal(tmp); contact[i].position.set(tmp.x, 0.006, tmp.z + 0.05); (contact[i].material as THREE.MeshBasicMaterial).opacity = 0.7 * sat(1 - tmp.y / (0.28 * rootS)); }

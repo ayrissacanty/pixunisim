@@ -46,7 +46,9 @@ export class PixarCrowd {
   has(p: Person) { return this.ents.has(p); }
   private drop(p: Person) { const e = this.ents.get(p); if (!e) return; e.c.dispose(); this.ents.delete(p); }
   private make(p: Person, spec: AvatarSpec, cam: THREE.Camera): Ent | null {
-    let c: Char3DEx; try { c = createChar3D(this.style, spec); } catch (err) { console.warn("3D character failed", err); return null; }
+    const young = spec.age === "k2" || spec.age === "g35";
+    const film: AvatarSpec = { ...spec, prop: spec.prop === "realistic" ? "realistic" : "stylised", headSize: Math.min(spec.headSize || 1, young ? 1 : 0.96) };
+    let c: Char3DEx; try { c = createChar3D(this.style, film); } catch (err) { console.warn("3D character failed", err); return null; }
     const yaw = Math.atan2(cam.position.x / IS - p.pos.x, cam.position.z / IS - p.pos.z); c.root.position.set(p.pos.x, 0, p.pos.z); c.root.rotation.y = yaw; this.scene.add(c.root);
     const e = { c, spec, lx: p.pos.x, lz: p.pos.z, yaw, ty: yaw }; this.ents.set(p, e); return e;
   }
@@ -62,7 +64,7 @@ export class PixarCrowd {
     for (const { p, spec, d } of cand) {
       if (!keep.has(p)) continue; let e = this.ents.get(p);
       if (!e) { if (p !== x.player && made >= 8) continue; e = this.make(p, spec, x.camera) ?? undefined; made++; if (!e) { keep.delete(p); continue; } }
-      else if (e.spec !== spec) { e.c.setSpec(spec); e.spec = spec; }
+      else if (e.spec !== spec) { const young = spec.age === "k2" || spec.age === "g35"; e.c.setSpec({ ...spec, prop: spec.prop === "realistic" ? "realistic" : "stylised", headSize: Math.min(spec.headSize || 1, young ? 1 : 0.96) }); e.spec = spec; }
       this.step(dt, p, e, x); this.shade(e, p === x.player || d < 16);
     }
     for (const p of keep) if (this.ents.has(p)) { p.sprite.visible = false; p.blob.visible = false; }
@@ -87,7 +89,7 @@ export class PixarCrowd {
     c.play(anim); c.speak(!!p.speaking); const st = p.moving ? Math.min(1.7, Math.max(0.75, (isP ? 4.3 : (p as Stu).speed ?? 2.4) / 2.4)) : 1; c.update(dt * st);
     c.root.position.set(p.pos.x, (seated ? 0.46 - c.seatHeight * CHAR_K : 0) + p.pos.y, p.pos.z); c.root.rotation.y = e.yaw;
     const f = (p as Stu).fade ?? 1, grown = !x.first && (p.def?.role === "staff" || p.look.age === "adult");
-    c.root.scale.setScalar(Math.max(0.02, f) * CHAR_K * (grown ? 1.62 : 1));
+    c.root.scale.setScalar(Math.max(0.02, f) * CHAR_K * (grown ? 1.08 : 1));
     c.root.visible = isP ? x.shown : !(x.first && this.tmp.set(p.pos.x, 0, p.pos.z).distanceTo(this.camLocal.copy(x.camera.position).divideScalar(IS)) < 1.1 / IS);
     void anim;
   }
