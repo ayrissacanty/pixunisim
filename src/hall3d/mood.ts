@@ -21,7 +21,7 @@ export const PALETTES: Record<string, Pal> = {
   candle: { hemi: "#fff4dc", gnd: "#e6d2a4", sun: "#ffe6b8", wash: "#F4E6C8", floor: "#E7D3A2", sky: "#f7e4c0", accent: "#7A2E3A", accent2: "#E2B657", w: 0.88 },
 };
 export const LOOKS: { id: string; name: string }[] = [
-  { id: "auto", name: "Vivid" },
+  { id: "auto", name: "Real day" },
   { id: "story", name: "Storybook" },
   { id: "sky", name: "Sky Hall" },
   { id: "forest", name: "Forest" },
@@ -97,10 +97,9 @@ class MoodImpl {
     T.lamp.set("#ffd9a0"); T.night = n; T.glow = Math.max(n, tod > 17 && tod <= 18 ? tod - 17 : 0) * 0.9 + (tod > 18 && tod < 20.5 ? 0.1 : 0);
     T.hemiK = 1 - 0.6 * n; T.sunK = 1 - 0.86 * n;
     T.win.set("#fff7e0").lerp(this.tmpA.set("#ffb45a"), n); T.winI = 0.16 + 0.78 * n;
-    if (isPixar()) {   // movie look: keep the painted colours, just a hint of sun, and push the accents
-      if (!this.override.id) { T.wash.set("#ffffff"); T.floor.set("#ffffff").lerp(this.tmpA.set("#7ecfff"), 0.4); T.accent.set("#FF2D55"); T.accent2.set("#FFE14A"); }
-      const hs = { h: 0, s: 0, l: 0 }; for (const c of [T.wash, T.floor, T.accent, T.accent2]) { c.getHSL(hs); c.setHSL(hs.h, Math.min(1, hs.s * 1.7 + 0.12), Math.min(0.82, hs.l * 1.06)); }
-      T.winI = 0.7 + 0.7 * n;
+    if (isPixar()) {
+      if (!this.override.id) { T.wash.set("#f3f0ea"); T.floor.set("#d7d1c6"); T.accent.set("#3d6d8c"); T.accent2.set("#8a7352"); T.hemiSky.lerp(this.tmpA.set("#dce6f1"), 0.4); T.sun.lerp(this.tmpA.set("#fff3e0"), 0.3); }
+      T.winI = 0.22 + 0.55 * n;
     }
   }
   private copyAll(k: number) {

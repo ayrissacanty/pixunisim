@@ -128,7 +128,7 @@ export class HallScene {
 
   /* ------------------------------------------------------------ building blocks */
   private std(map: THREE.Texture | null, color = "#ffffff") { return new THREE.MeshStandardMaterial({ map, color, roughness: 0.95, metalness: 0 }); }
-  private plain(color: string) { return new THREE.MeshStandardMaterial({ color, roughness: this.px ? 0.46 : 1 }); }
+  private plain(color: string) { return new THREE.MeshStandardMaterial({ color, roughness: this.px ? 0.78 : 1 }); }
   /** a soft clay box in the movie look, a plain box otherwise */
   private clay(w: number, h: number, d: number, rad = 0.22) {
     if (!this.px) return new THREE.BoxGeometry(w, h, d);

@@ -14,7 +14,7 @@ import { buildHat, buildGlasses, buildHeadExtra, buildBodyExtra, buildPack } fro
 const H: Record<string, number> = AGE_H;
 /** head-heights tall (body height / head height) per proportion style and age: kids have big heads, adults realistic ones (Sims-1-like at the stylised end) */
 const HEADS: Record<string, Record<string, number>> = {
-  chibi: { k2: 3.1, g35: 3.4, g68: 3.7, hs: 5.2, adult: 5.7 }, stylised: { k2: 3.8, g35: 4.2, g68: 4.8, hs: 5.6, adult: 6.1 }, realistic: { k2: 4.4, g35: 4.8, g68: 5.2, hs: 6.0, adult: 6.4 },
+  chibi: { k2: 3.1, g35: 3.4, g68: 3.7, hs: 5.2, adult: 5.7 }, stylised: { k2: 3.8, g35: 4.2, g68: 4.8, hs: 5.6, adult: 6.1 }, realistic: { k2: 5.0, g35: 5.5, g68: 6.0, hs: 6.6, adult: 7.0 },
 };
 /** per-age motion: v = gesture amplitude, f = tempo, b = bounce (kids bouncier and fidgety, adults calmer) */
 const AGEV: Record<string, { v: number; f: number; b: number }> = { k2: { v: 1.3, f: 1.15, b: 1.8 }, g35: { v: 1.2, f: 1.08, b: 1.4 }, g68: { v: 1.0, f: 1.0, b: 1.0 }, hs: { v: 0.92, f: 0.97, b: 0.7 }, adult: { v: 0.78, f: 0.9, b: 0.5 } };

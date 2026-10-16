@@ -19,12 +19,14 @@ const bevel = (c: CanvasRenderingContext2D, x: number, y: number, w: number, h: 
 };
 
 export const floorTex = () => mk(256, 256, (c) => {
-  for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
-    const x = i * 128, y = j * 128; c.fillStyle = (i + j) & 1 ? "#3EABDF" : "#D7F3FF"; c.fillRect(x, y, 128, 128);
-    const g = c.createLinearGradient(x, y, x + 128, y + 128); g.addColorStop(0, "rgba(255,255,255,.28)"); g.addColorStop(1, "rgba(60,90,110,.10)"); c.fillStyle = g; c.fillRect(x, y, 128, 128);
-    for (let k = 0; k < 26; k++) { c.fillStyle = k & 1 ? "rgba(255,255,255,.55)" : "rgba(80,110,130,.18)"; c.fillRect(x + hash(i, j, k) * 124, y + hash(j, i, k + 40) * 124, 2.4, 2.4); }
+  c.fillStyle = "#cfc8bc"; c.fillRect(0, 0, 256, 256);
+  for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) {
+    const x = i * 64, y = j * 64, n = hash(i, j);
+    c.fillStyle = n > 0.5 ? "#d8d2c6" : "#c6bfb2"; c.fillRect(x + 1, y + 1, 62, 62);
+    c.fillStyle = "rgba(255,255,255,.08)"; c.fillRect(x + 2, y + 2, 28, 8);
   }
-  c.strokeStyle = "rgba(90,120,140,.45)"; c.lineWidth = 3; c.strokeRect(1.5, 1.5, 253, 253); c.beginPath(); c.moveTo(128, 0); c.lineTo(128, 256); c.moveTo(0, 128); c.lineTo(256, 128); c.stroke();
+  c.strokeStyle = "rgba(90,84,74,.55)"; c.lineWidth = 2;
+  for (let i = 0; i <= 4; i++) { c.beginPath(); c.moveTo(i * 64, 0); c.lineTo(i * 64, 256); c.moveTo(0, i * 64); c.lineTo(256, i * 64); c.stroke(); }
 }, true);
 
 export const rugTex = () => mk(256, 256, (c) => {
@@ -34,19 +36,14 @@ export const rugTex = () => mk(256, 256, (c) => {
   c.fillStyle = "rgba(255,255,255,.55)"; for (let i = 0; i < 2; i++) { c.beginPath(); c.moveTo(128, i * 128 + 16); c.lineTo(160, i * 128 + 64); c.lineTo(128, i * 128 + 112); c.lineTo(96, i * 128 + 64); c.closePath(); c.fill(); }
 }, true);
 
-/** wall face: crown, scalloped paper garland, striped paint, chair rail, sage wainscot, baseboard. Maps 4 units of length x 4.2 of height. */
+/** painted school wall: off-white above a quiet wainscot, wood baseboard. No paper garland. */
 export const wallTex = () => mk(512, 540, (c, w, h) => {
-  c.fillStyle = "#FFF7EA"; c.fillRect(0, 0, w, h);
-  const paint = c.createLinearGradient(0, 0, 0, h); paint.addColorStop(0, "#FFF3B0"); paint.addColorStop(0.55, "#C8F2FF"); paint.addColorStop(1, "#B6F0D8"); c.fillStyle = paint; c.fillRect(0, 60, w, 300);
-  for (let x = 0; x < w; x += 32) { c.fillStyle = x % 64 === 0 ? "rgba(255,90,70,.28)" : "rgba(40,170,255,.22)"; c.fillRect(x, 60, 16, 300); }
-  c.fillStyle = "#FFF9F0"; c.fillRect(0, 0, w, 40);
-  const cols = ["#FF5A45", "#FFC107", "#29B6F6", "#26C281"];
-  for (let i = 0; i < 8; i++) { c.beginPath(); c.arc(32 + i * 64, 42, 30, 0, Math.PI); fillStroke(c, cols[i % 4], 3); }
-  c.fillStyle = "#FFC233"; c.fillRect(0, 340, w, 22); c.fillStyle = "rgba(255,255,255,.55)"; c.fillRect(0, 340, w, 5);
-  c.fillStyle = "#12A37A"; c.fillRect(0, 362, w, 150);
-  for (let p = 0; p < 2; p++) { rr(c, 24 + p * 256, 384, 208, 104, 8); fillStroke(c, "#17B890", 3); bevel(c, 24 + p * 256, 384, 208, 104, 5); }
-  c.fillStyle = "#9A653D"; c.fillRect(0, 512, w, 28); c.fillStyle = "rgba(255,255,255,.3)"; c.fillRect(0, 512, w, 4);
-  c.strokeStyle = OUT; c.lineWidth = 3; c.beginPath(); c.moveTo(0, 361); c.lineTo(w, 361); c.moveTo(0, 512); c.lineTo(w, 512); c.stroke();
+  c.fillStyle = "#f4f1eb"; c.fillRect(0, 0, w, h);
+  c.fillStyle = "#e4ddd2"; c.fillRect(0, 360, w, 152);
+  c.fillStyle = "#c8bfb2"; c.fillRect(0, 348, w, 10);
+  c.fillStyle = "#8d7355"; c.fillRect(0, 508, w, 32);
+  c.strokeStyle = "rgba(120,110,98,.35)"; c.lineWidth = 2; c.beginPath(); c.moveTo(0, 348); c.lineTo(w, 348); c.moveTo(0, 508); c.lineTo(w, 508); c.stroke();
+  for (let i = 0; i < 40; i++) { c.fillStyle = "rgba(255,255,255,.04)"; c.fillRect(hash(i, 2) * w, hash(i, 5) * 340, 3, 2); }
 }, true);
 
 export const lockerTex = (col: string, n: number) => mk(264, 640, (c, w, h) => {
