@@ -22,6 +22,7 @@ import { getStyle } from "../dorm/style";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { ACTIONS, POSE_KEYS, POSE_IX, GAITS, GAIT_BY_PERSONALITY, FIDGETS, bakeActions, frameAt } from "./actions";
 
+import { INTERIOR_SCALE as IS, CHAR_K, PROP_H, scaleScene } from "../shared/scale";
 import { makeBody, stepBody } from "../shared/body3d";
 const DR = PROP_H.hallDoor;   // door height (design units)
 const UNIT = 1.75 / 45;                                              // one drawing unit of the chibi art in world units

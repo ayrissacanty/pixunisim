@@ -21,7 +21,7 @@ const lerpA = (a: number, b: number, k: number) => { let d = (b - a) % (Math.PI 
 export function setupPixarClass(r: Classroom3D, G: ClassGeo, L: ClassLights, bodiesOnly = false): ClassPx {
   const { scene, camera, renderer } = r, style = getStyle(bodiesOnly || !isPixar() ? "papercut" : "pixar");
   const look = bodiesOnly ? null : usePixarLook(renderer, scene, camera, { exposure: 0.88, bloom: 0.18, radius: 0.6, threshold: 1.25, env: 0.12 });
-  let fill!: THREE.DirectionalLight, rim!: THREE.DirectionalLight, warmPt!: THREE.PointLight, shafts!: THREE.MeshBasicMaterial[], dust!: { tick(t: number): void };
+  let fill!: THREE.DirectionalLight, rim!: THREE.DirectionalLight, warmPt!: THREE.PointLight, shafts!: THREE.MeshBasicMaterial[], dust!: { tick(t: number): void; points: THREE.Object3D };
   let hemiSky!: THREE.Color, hemiGnd!: THREE.Color, sunC!: THREE.Color;
   if (!bodiesOnly) {
   scene.fog = new THREE.Fog(0xe8c9a0, 40, 110);
