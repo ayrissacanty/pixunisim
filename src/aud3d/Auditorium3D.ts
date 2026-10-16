@@ -42,12 +42,12 @@ export class Auditorium3D {
   screenCv = document.createElement("canvas"); screenTex!: THREE.CanvasTexture; mode: ScreenMode = "bulletin"; screenTitle = "UNIFY ACADEMY"; screenLines: string[] = []; newsCanvas: HTMLCanvasElement | null = null;
   curtainL!: THREE.Mesh; curtainR!: THREE.Mesh; curtainOpen = 1; curtainTarget = 1;
   view = "audience"; yaw = 0; pitch = 0; zoom = 1; camPos = new THREE.Vector3(0, 6, 22); camLook = new THREE.Vector3(0, 5, -30);
-  onSeatChosen: (i: number) => void = () => {}; private pBeam!: Beam; private px: AudPx | null = null;
+  onSeatChosen: (i: number) => void = () => {}; private pBeam!: Beam; private px: AudPx | null = null; private candles: THREE.Object3D[] = [];
   private ray = new THREE.Raycaster(); private tween: { from: THREE.Vector3; to: THREE.Vector3; t: number } | null = null; private hover = -1; private fx!: { tick(t: number): void }; private hemi!: THREE.HemisphereLight; private dl!: THREE.DirectionalLight; private tod = Mood.queryTod() ?? Mood.realTod(); private spotL!: THREE.SpotLight; private spotR!: THREE.SpotLight;
 
   constructor(host: HTMLElement) {
     this.host = host; const r = this.renderer = new THREE.WebGLRenderer({ antialias: true }); r.setPixelRatio(dprCap()); r.outputColorSpace = THREE.SRGBColorSpace; r.shadowMap.enabled = false;
-    scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#171528"); this.scene.fog = new THREE.Fog("#171528", 60 * IS, 150 * IS);
+    scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#d7ecff"); this.scene.fog = new THREE.Fog("#c5dff6", 70 * IS, 170 * IS);
     vignette(host, 0.3); this.buildRoom(); this.buildStage(); this.buildSeats(); this.buildScreen(); this.buildPeople(); this.bind();
     this.fx = buildAudExtras(this.scene, { hemi: this.hemi, dl: this.dl, spots: [this.spotL, this.spotR], bg: this.scene.background as THREE.Color, fog: this.scene.fog as THREE.Fog, baseMesh: this.baseMesh, backMesh: this.backMesh, seatCount: this.seats.length });
     if (isPixar()) this.px = setupPixarAud(this, { hemi: this.hemi, dl: this.dl, spotL: this.spotL, spotR: this.spotR });
@@ -60,16 +60,31 @@ export class Auditorium3D {
   private buildRoom() {
     const S = this.scene, wood = canvasTex(512, 512, (c) => { for (let i = 0; i < 16; i++) { c.fillStyle = i % 2 ? "#a8723f" : "#b57c46"; c.fillRect(0, i * 32, 512, 32); c.fillStyle = "rgba(60,30,10,.25)"; c.fillRect(0, i * 32, 512, 2); for (let k = 0; k < 14; k++) { c.fillStyle = `rgba(70,40,15,${0.04 + Math.random() * 0.06})`; c.fillRect(Math.random() * 512, i * 32 + 4, 40 + Math.random() * 120, 2); } } }, [10, 14]);
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(70, 90), new THREE.MeshStandardMaterial({ map: wood, roughness: 0.8 })); floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, -5); S.add(floor);
-    const wallTex = canvasTex(256, 256, (c) => { c.fillStyle = "#2d2a52"; c.fillRect(0, 0, 256, 256); for (let i = 0; i < 4; i++) { c.fillStyle = "#38346a"; c.fillRect(i * 64 + 6, 8, 52, 240); c.strokeStyle = "#c9a44e"; c.lineWidth = 2; c.strokeRect(i * 64 + 6, 8, 52, 240); } }, [14, 1]);
+    const wallTex = canvasTex(256, 256, (c) => { c.fillStyle = "#e7d7b8"; c.fillRect(0, 0, 256, 256); for (let i = 0; i < 4; i++) { c.fillStyle = "#f4e7cf"; c.fillRect(i * 64 + 6, 8, 52, 240); c.strokeStyle = "#c9a44e"; c.lineWidth = 3; c.strokeRect(i * 64 + 6, 8, 52, 240); } }, [14, 1]);
     const wm = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.95 });
-    const side = (x: number, rot: number) => { const w = new THREE.Mesh(new THREE.PlaneGeometry(95, 17), wm); w.position.set(x, 8.5, -5); w.rotation.y = rot; S.add(w); const base = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3, 95), new THREE.MeshStandardMaterial({ color: "#6b4a2a" })); base.position.set(x - Math.sign(x) * 0.2, 1.5, -5); S.add(base); };
+    const side = (x: number, rot: number) => { const w = new THREE.Mesh(new THREE.PlaneGeometry(95, 26), wm); w.position.set(x, 13, -5); w.rotation.y = rot; S.add(w); const base = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3.2, 95), new THREE.MeshStandardMaterial({ color: "#8d6844" })); base.position.set(x - Math.sign(x) * 0.25, 1.6, -5); S.add(base); };
     side(-35, Math.PI / 2); side(35, -Math.PI / 2);
-    const back = new THREE.Mesh(new THREE.PlaneGeometry(70, 17), wm); back.position.set(0, 8.5, 40); back.rotation.y = Math.PI; S.add(back);
-    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(70, 95), new THREE.MeshStandardMaterial({ color: "#1d1a38", roughness: 1 })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, 17, -5); S.add(ceil);
-    const beamM = new THREE.MeshStandardMaterial({ color: "#5a3f27", roughness: 0.9 }); for (let z = -38; z < 40; z += 8) { const b = new THREE.Mesh(new THREE.BoxGeometry(70, 0.7, 0.8), beamM); b.position.set(0, 16.6, z); S.add(b); }
-    // chandeliers / ceiling lights (warm, colourful)
-    const cols = ["#ffd98a", "#ffb3a0", "#a8d8ff", "#cdb4ff"]; for (let z = -30, i = 0; z < 36; z += 9, i++) for (const x of [-22, -8, 8, 22]) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 8), new THREE.MeshBasicMaterial({ color: cols[(i + (x > 0 ? 1 : 0)) % 4] })); l.position.set(x, 15.4, z); S.add(l); }
-    this.hemi = new THREE.HemisphereLight("#ffe9c9", "#3a2b55", 0.85); S.add(this.hemi); const dl = this.dl = new THREE.DirectionalLight("#fff1d6", 0.55); dl.position.set(8, 20, 30); S.add(dl);
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(70, 26), wm); back.position.set(0, 13, 40); back.rotation.y = Math.PI; S.add(back);
+    const sky = canvasTex(512, 512, (c) => {
+      const g = c.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, "#163a72"); g.addColorStop(0.45, "#3d7ec4"); g.addColorStop(1, "#f0c27a"); c.fillStyle = g; c.fillRect(0, 0, 512, 512);
+      c.fillStyle = "rgba(255,255,255,.55)"; c.beginPath(); c.ellipse(140, 360, 90, 28, 0, 0, 7); c.ellipse(250, 340, 70, 22, 0, 0, 7); c.fill();
+      c.fillStyle = "#fff8d0"; for (let i = 0; i < 80; i++) { const x = (i * 97) % 500 + 6, y = (i * 53) % 280 + 8; c.fillRect(x, y, i % 5 === 0 ? 3 : 1.5, i % 5 === 0 ? 3 : 1.5); }
+    });
+    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(70, 95), new THREE.MeshBasicMaterial({ map: sky })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, 26, -5); S.add(ceil);
+    const beamM = new THREE.MeshStandardMaterial({ color: "#6b4428", roughness: 0.8 }); for (let z = -38; z < 40; z += 8) { const b = new THREE.Mesh(new THREE.BoxGeometry(70, 0.55, 0.7), beamM); b.position.set(0, 25.6, z); S.add(b); }
+    const cols = ["#ffd98a", "#ffb3a0", "#7ec8f0", "#ffd45a"]; for (let z = -30, i = 0; z < 36; z += 9, i++) for (const x of [-18, -6, 6, 18]) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), new THREE.MeshBasicMaterial({ color: cols[(i + (x > 0 ? 1 : 0)) % 4] })); l.position.set(x, 22.5, z); l.userData.candle = 1 + (i % 5) * 0.4; S.add(l); this.candles.push(l); }
+    const stone = new THREE.MeshStandardMaterial({ color: "#f3ead7", roughness: 0.7 });
+    for (let z = -32; z <= 28; z += 10) for (const x of [-30, 30]) {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.85, 22, 12), stone); col.position.set(x, 11, z); col.castShadow = true; S.add(col);
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.45, 2.1), new THREE.MeshStandardMaterial({ color: "#e8c56b" })); cap.position.set(x, 22.2, z); S.add(cap);
+    }
+    const banners = [["#C0392B", "COURAGE"], ["#1F8A4C", "GROWTH"], ["#1F6FB2", "WONDER"], ["#E0A100", "HONOR"]];
+    banners.forEach(([col, word], i) => {
+      const cv = document.createElement("canvas"); cv.width = 160; cv.height = 420; const g = cv.getContext("2d")!; g.fillStyle = col; g.fillRect(0, 0, 160, 420); g.fillStyle = "#fff8e6"; g.font = "700 42px Georgia, serif"; g.textAlign = "center"; g.save(); g.translate(80, 230); g.rotate(-Math.PI / 2); g.fillText(word, 0, 0); g.restore();
+      const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+      for (const sideX of [-28.2, 28.2]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 4.2), new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide })); m.position.set(sideX, 16, -24 + i * 12); m.rotation.y = sideX > 0 ? -Math.PI / 2 : Math.PI / 2; S.add(m); }
+    });
+    this.hemi = new THREE.HemisphereLight("#d7ecff", "#e7c48a", 1.05); S.add(this.hemi); const dl = this.dl = new THREE.DirectionalLight("#fff6df", 0.7); dl.position.set(8, 28, 30); S.add(dl);
     this.spotL = new THREE.SpotLight("#fff0cf", 90 * IS, 70 * IS, 0.5, 0.5, 1); this.spotL.position.set(-8, 15, -10); this.spotL.target.position.set(-3, SY, -33); S.add(this.spotL, this.spotL.target);
     this.spotR = new THREE.SpotLight("#cfe4ff", 90 * IS, 70 * IS, 0.5, 0.5, 1); this.spotR.position.set(8, 15, -10); this.spotR.target.position.set(3, SY, -33); S.add(this.spotR, this.spotR.target);
     rimLight(S, 0.4, [-6, 10, -30]); aoStrips(S, [{ x0: -35, z0: -50, x1: 35, z1: 40 }], { inward: true, width: 2.4, opacity: 0.45, y: 0.03 });   // cool rim + wall/floor occlusion
@@ -89,7 +104,7 @@ export class Auditorium3D {
     const pro = new THREE.Mesh(new THREE.BoxGeometry(40, 2.2, 1), new THREE.MeshStandardMaterial({ color: "#7a1f2b", roughness: 0.8 })); pro.position.set(0, 15.2, -27.3); S.add(pro);
     const trim = new THREE.Mesh(new THREE.BoxGeometry(40.2, 0.3, 1.1), new THREE.MeshStandardMaterial({ color: "#d9b25a", metalness: 0.5, roughness: 0.35 })); trim.position.set(0, 14.0, -27.3); S.add(trim);
     for (const sx of [-20.5, 20.5]) { const col = new THREE.Mesh(new THREE.BoxGeometry(1.4, 17, 1.4), new THREE.MeshStandardMaterial({ color: "#7a5230", roughness: 0.8 })); col.position.set(sx, 8.5, -27.3); S.add(col); }
-    const back = new THREE.Mesh(new THREE.PlaneGeometry(42, 17), new THREE.MeshStandardMaterial({ color: "#2a2650" })); back.position.set(0, 8.5, -40.9); S.add(back);
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(42, 24), new THREE.MeshStandardMaterial({ color: "#f4e7cf" })); back.position.set(0, 12, -40.9); S.add(back);
     // velvet curtains (pleated) that open and close
     const velvet = canvasTex(256, 64, (c) => { for (let i = 0; i < 16; i++) { const g = c.createLinearGradient(i * 16, 0, i * 16 + 16, 0); g.addColorStop(0, "#5e1520"); g.addColorStop(0.5, "#b32a3c"); g.addColorStop(1, "#5e1520"); c.fillStyle = g; c.fillRect(i * 16, 0, 16, 64); } }, [1, 1]);
     const cm = new THREE.MeshStandardMaterial({ map: velvet, roughness: 0.9, side: THREE.DoubleSide });
@@ -98,7 +113,9 @@ export class Auditorium3D {
     // podium with microphone, flags
     const pod = new THREE.Group(); const pb = new THREE.Mesh(new THREE.BoxGeometry(1.2, LH - 0.1, 0.8), new THREE.MeshStandardMaterial({ color: "#7a5230", roughness: 0.7 })); pb.position.y = (LH - 0.1) / 2; pod.add(pb); const pt = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.1, 0.95), new THREE.MeshStandardMaterial({ color: "#9a6b3c" })); pt.position.y = LH - 0.05; pod.add(pt);
     const mic = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.45, 6), new THREE.MeshStandardMaterial({ color: "#333" })); mic.position.set(0, LH + 0.2, 0.1); mic.rotation.x = 0.4; pod.add(mic); const emb = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.6), new THREE.MeshBasicMaterial({ map: canvasTex(128, 128, (c) => { c.fillStyle = "#3b2f6b"; c.beginPath(); c.arc(64, 64, 60, 0, 7); c.fill(); c.fillStyle = "#f6c85f"; c.font = "700 54px sans-serif"; c.textAlign = "center"; c.fillText("U", 64, 84); }), transparent: true })); emb.position.set(0, (LH - 0.1) / 2, 0.41); pod.add(emb);
-    pod.position.set(0, SY, -32); S.add(pod);
+    pod.position.set(-6, SY, -32); S.add(pod);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(18, 0.18, 2.2), new THREE.MeshStandardMaterial({ color: "#6b3a22", roughness: 0.45 })); head.position.set(4, SY + 0.95, -36); S.add(head);
+    for (const x of [-2, 2, 6, 10]) { const candle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.35, 6), new THREE.MeshStandardMaterial({ color: "#f4e2c4" })); candle.position.set(x, SY + 1.25, -36); S.add(candle); const flame = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), new THREE.MeshBasicMaterial({ color: "#ffd36a" })); flame.position.set(x, SY + 1.5, -36); flame.userData.candle = 1; S.add(flame); this.candles.push(flame); }
     const flag = (x: number, usa: boolean) => { const g = new THREE.Group(); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 6.6, 6), new THREE.MeshStandardMaterial({ color: "#d9b25a", metalness: 0.6 })); pole.position.y = 3.3; g.add(pole); const fl = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 2.1), new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: canvasTex(320, 210, (c) => { if (usa) { for (let i = 0; i < 13; i++) { c.fillStyle = i % 2 ? "#fff" : "#b22234"; c.fillRect(0, i * 16.15, 320, 16.2); } c.fillStyle = "#3c3b6e"; c.fillRect(0, 0, 140, 113); c.fillStyle = "#fff"; for (let r = 0; r < 5; r++) for (let q = 0; q < 6; q++) c.fillRect(10 + q * 22, 8 + r * 20, 5, 5); } else { c.fillStyle = "#3b2f6b"; c.fillRect(0, 0, 320, 210); c.fillStyle = "#f6c85f"; c.font = "700 120px sans-serif"; c.textAlign = "center"; c.fillText("U", 160, 140); } }) })); fl.position.set(1.7, 5.4, 0); g.add(fl); g.position.set(x, 1.5, -36.5); S.add(g); };
     flag(-6.5, true); flag(6.5, false);
     // stage wings / backdrop lights
@@ -209,6 +226,7 @@ export class Auditorium3D {
   /* ---------------------------------------------------------------- frame */
   private frame = (now: number) => {
     const raw = now - this.last, dt = Math.min(0.05, raw / 1000); this.last = now; this.t += dt; Gfx.tick(raw); Mood.update(dt, this.tod); this.fx.tick(this.t);
+    for (const c of this.candles) { const b = c.userData.baseY ?? (c.userData.baseY = c.position.y); c.position.y = b + Math.sin(this.t * 1.4 + (c.userData.candle || 0)) * 0.08; }
     // curtains
     this.curtainTarget = this.curtainTarget; this.curtainOpen += (this.curtainTarget - this.curtainOpen) * Math.min(1, dt * 1.6); const cw = 1 + (1 - this.curtainOpen) * 9; this.curtainL.scale.x = this.curtainR.scale.x = 0.35 + (1 - this.curtainOpen) * 1.3; this.curtainL.position.x = -20 + (1 - this.curtainOpen) * 10 - (this.curtainL.scale.x - 1) * 10; this.curtainR.position.x = 20 - (1 - this.curtainOpen) * 10 + (this.curtainR.scale.x - 1) * 10; void cw;
     // principals

@@ -4,7 +4,7 @@ import { Beam } from "../shared/beam";
 import { dprCap, shadowSize, vignette, rimLight, smallScreen } from "../shared/polish";
 import { PERIODS, DAY, DAY_START, periodAt, astar, rnd, shuffle } from "./logic";
 import { bakeSheet, DIRS, COLS, FW, FH, SCALE, FEET, SKINS, SHIRTS, HAIRS, AGE_SCALE, type Age, type Look } from "./characters";
-import { SUBJECTS, W, H, WALL_H, LOCK_D, FLOOR_Y, BLOCKS, DOORS, NEWS, OPEN, LOCKERS, PROPS, ENTRANCE, OUTSIDE, NAV, NAV_UP, LIB_SHELL, LIB_SHELVES, LIBRARY, WEST_HALL, EAST_HALL, AUDITORIUM, NEWSROOM, UP_DOORS, STAIR_BLOCK, STAIR_UP, STAIR_DOWN, STAIR_GROUND, STAIR_TOP, LIB_READ, LIB_DESK, AUD_DOOR, NEWS_DOOR, underUpper, hit, solidAt, type Subject, type Room, type Rect, type Face } from "./campus";
+import { SUBJECTS, W, H, WALL_H, LOCK_D, FLOOR_Y, BLOCKS, DOORS, NEWS, OPEN, LOCKERS, PROPS, ENTRANCE, OUTSIDE, NAV, NAV_UP, LIB_SHELL, LIB_SHELVES, LIBRARY, WEST_HALL, EAST_HALL, AUDITORIUM, NEWSROOM, UP_DOORS, STAIR_BLOCK, STAIR_UP, STAIR_DOWN, STAIR_GROUND, STAIR_TOP, LIB_READ, LIB_DESK, AUD_DOOR, NEWS_DOOR, COLUMNS, underUpper, hit, solidAt, type Subject, type Room, type Rect, type Face } from "./campus";
 import * as T from "./textures";
 import { ROSTER, STAFF, HALL_COUNT, type NpcDef } from "./roster";
 import { drawBoard } from "../game/timesui";
@@ -178,8 +178,10 @@ export class HallScene {
     const g0 = ENTRANCE.gap.x0 - W / 2, g1 = ENTRANCE.gap.x1 - W / 2, sz = H / 2 + 0.15;
     wall(g0 + W / 2 + 0.3, (-W / 2 - 0.3 + g0) / 2, sz, true, 5); wall(W / 2 + 0.3 - g1, (g1 + W / 2 + 0.3) / 2, sz, true, 5);
     this.box(g1 - g0, 0.9, 0.3, [outer, outer, cap, outer, outer, this.std(this.rep("wall", () => T.wallTex(), 2))], (g0 + g1) / 2, WALL_H - 0.45, sz, { outline: false });
-    this.card(this.tex("banner", () => T.bannerTex("UNIFY ACADEMY")), 7.6, 1.2, (g0 + g1) / 2, 3.2, H / 2 - 0.05, Math.PI, true);
-    this.card(this.tex("exit", () => T.bannerTex("WELCOME")), 5.2, 0.8, (g0 + g1) / 2, 3.2, H / 2 + 0.35, 0, true);
+    this.card(this.tex("banner", () => T.bannerTex("UNIFY ACADEMY")), 7.6, 1.2, (g0 + g1) / 2, 3.35, H / 2 - 0.05, Math.PI, true);
+    this.card(this.tex("exit", () => T.bannerTex("WELCOME")), 5.2, 0.8, (g0 + g1) / 2, 3.35, H / 2 + 0.35, 0, true);
+    this.card(this.tex("vista", () => this.vistaTex()), 2.4, 1.7, g0 - 2.2, 2.3, H / 2 - 0.2, Math.PI, true);
+    this.card(this.tex("vista", () => this.vistaTex()), 2.4, 1.7, g1 + 2.2, 2.3, H / 2 - 0.2, Math.PI, true);
     this.card(this.tex("clock", () => T.clockTex()), 1.1, 1.1, -9, 3.05, -H / 2 + 0.17, 0);
     // windows along the outer walls (above the lockers), skipping the entrance
     for (let x = 4; x < W - 3; x += 6) if (Math.abs(x - W / 2) > 1.5) this.win(x - W / 2, 3.05, -H / 2 + 0.17, 0);
@@ -249,6 +251,47 @@ export class HallScene {
       else if (p.kind === "bench") this.bench(x, z, p.rot ?? 0); else if (p.kind === "planter") this.plant(x, z); else if (p.kind === "tv" || p.kind === "bboard") { /* built by buildNewsTV / buildHallDetails */ } else this.lamp(x, z, i2c(p.x + p.y));
     }
     this.buildLibrary();
+    this.buildColumns();
+  }
+  /** a scenic panel over the front doors: sky, hills, and the school, so the entry has a view */
+  private vistaTex() {
+    const cv = document.createElement("canvas"); cv.width = 640; cv.height = 280; const c = cv.getContext("2d")!;
+    const sky = c.createLinearGradient(0, 0, 0, 280); sky.addColorStop(0, "#2E9FE8"); sky.addColorStop(0.55, "#8FD4FF"); sky.addColorStop(1, "#FFE3A3"); c.fillStyle = sky; c.fillRect(0, 0, 640, 280);
+    c.fillStyle = "#F8E27A"; c.beginPath(); c.arc(520, 64, 28, 0, 7); c.fill();
+    c.fillStyle = "#2F9A56"; c.beginPath(); c.moveTo(0, 190); c.lineTo(80, 120); c.lineTo(170, 188); c.lineTo(260, 100); c.lineTo(360, 190); c.lineTo(470, 130); c.lineTo(560, 188); c.lineTo(640, 150); c.lineTo(640, 280); c.lineTo(0, 280); c.fill();
+    c.fillStyle = "#1F7A48"; c.fillRect(0, 200, 640, 80);
+    c.fillStyle = "#F4E2C4"; c.fillRect(250, 150, 140, 70); c.fillStyle = "#C45A4A"; c.beginPath(); c.moveTo(240, 150); c.lineTo(320, 108); c.lineTo(400, 150); c.fill();
+    c.fillStyle = "#3DB7E8"; for (const x of [270, 310, 350]) c.fillRect(x, 168, 18, 22);
+    c.fillStyle = "#fff"; c.font = "700 28px Georgia, serif"; c.textAlign = "center"; c.fillText("Walk in", 320, 40);
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+  }
+  /** limestone columns with a jewel band, flanking the entry and the stairs */
+  private buildColumns() {
+    const jewel = ["#E23B4A", "#1F9A78", "#2E86C1", "#F0B429"];
+    const stone = this.plain("#F7F1E6"), gold = this.plain("#E8C56B"), foot = this.plain("#C9843A");
+    COLUMNS.forEach((c, i) => {
+      const x = c.x - W / 2, z = c.y - H / 2, g = new THREE.Group();
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.46, 3.5, 14), stone); shaft.position.y = 1.9; shaft.castShadow = true; g.add(shaft);
+      const base = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.28, 1.05), foot); base.position.y = 0.14; base.castShadow = true; g.add(base);
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.28, 1.05), gold); cap.position.y = 3.78; cap.castShadow = true; g.add(cap);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.14, 14), this.plain(jewel[i % 4])); band.position.y = 3.5; g.add(band);
+      g.position.set(x, 0, z); this.scene.add(g);
+      if (i < 4) this.plant(x + (x < 0 ? -0.9 : 0.9), z, 0);
+    });
+    const banner = (x: number, z: number, col: string, word: string) => {
+      const cv = document.createElement("canvas"); cv.width = 128; cv.height = 320; const c = cv.getContext("2d")!;
+      c.fillStyle = col; c.fillRect(0, 0, 128, 320); c.fillStyle = "#fff8e8"; c.font = "700 36px Georgia, serif"; c.textAlign = "center";
+      c.save(); c.translate(64, 170); c.rotate(-Math.PI / 2); c.fillText(word, 0, 0); c.restore();
+      const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 1.7), new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide }));
+      m.position.set(x, 3.15, z); this.scene.add(m);
+    };
+    banner(44 - W / 2, 73.5 - H / 2, "#E23B4A", "WELCOME"); banner(64 - W / 2, 73.5 - H / 2, "#2E86C1", "WELCOME");
+    banner(43 - W / 2, 38.5 - H / 2, "#1F9A78", "UPSTAIRS"); banner(65 - W / 2, 38.5 - H / 2, "#F0B429", "UPSTAIRS");
+    const med = new THREE.Mesh(new THREE.CircleGeometry(2.4, 28), new THREE.MeshBasicMaterial({ color: "#F0B429", transparent: true, opacity: 0.85 }));
+    med.rotation.x = -Math.PI / 2; med.position.set(0, 0.02, 74 - H / 2); this.scene.add(med);
+    const med2 = new THREE.Mesh(new THREE.CircleGeometry(1.5, 24), new THREE.MeshBasicMaterial({ color: "#E23B4A" }));
+    med2.rotation.x = -Math.PI / 2; med2.position.set(0, 0.025, 74 - H / 2); this.scene.add(med2);
   }
   /** the second floor: library, side halls, auditorium and newsroom, finished like the ground floor */
   private buildLibrary() {
@@ -302,6 +345,9 @@ export class HallScene {
     for (const [x, y] of [[12, 40], [96, 40], [30, 70], [86, 70]] as const) this.lamp(gx(x), gz(y), "#F8D977", y0);
     this.bench(gx(18), gz(62), Math.PI / 2, y0); this.bench(gx(40), gz(62), Math.PI / 2, y0);
     this.box(16, 0.45, 5, wood, gx(32), y0 + 0.28, gz(70), { outline: false });
+    for (const x of [14, 46]) { this.box(0.55, 4.05, 0.55, this.plain("#F7F1E6"), gx(x), y0 + 2.05, gz(60), { outline: false, shadow: false }); this.box(0.9, 0.18, 0.9, this.plain("#E8C56B"), gx(x), y0 + 4.15, gz(60), { outline: false, shadow: false }); }
+    this.card(this.tex("sg-courage", () => T.signTex("COURAGE", "#C0392B")), 0.7, 1.6, gx(14), y0 + 2.6, gz(64), 0, true);
+    this.card(this.tex("sg-wonder", () => T.signTex("WONDER", "#1F6FB2")), 0.7, 1.6, gx(46), y0 + 2.6, gz(64), 0, true);
     this.card(this.tex("stagesign", () => T.signTex("WALK UP TO OPEN THE SHOW", "#6B5AA8")), 3.4, 0.5, gx(32), y0 + 1.3, gz(67.6), Math.PI, true);
     this.box(2.2, 0.9, 1.0, ink, gx(80), y0 + 0.45, gz(68), { outline: false });
     this.card(this.tex("newsset", () => T.bannerTex("THE NEWSROOM")), 3.2, 1.6, gx(80), y0 + 2.2, gz(72.6), Math.PI, true);

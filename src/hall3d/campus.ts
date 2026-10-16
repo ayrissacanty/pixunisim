@@ -71,6 +71,11 @@ export const LOCKERS: LockerRun[] = [
 
 export type PropKind = "tree" | "bench" | "table" | "fountain" | "planter" | "lamp" | "tv" | "bboard";
 export interface Prop { kind: PropKind; x: number; y: number; rot?: number }
+/** tall columns in the main hall: a pair by the front doors and a pair by the stairs */
+export const COLUMNS: { x: number; y: number }[] = [
+  { x: 44, y: 76 }, { x: 64, y: 76 }, { x: 44, y: 71 }, { x: 64, y: 71 },
+  { x: 43, y: 36 }, { x: 65, y: 36 }, { x: 43, y: 41 }, { x: 65, y: 41 },
+];
 export const ENTRANCE = { gap: { x0: 50, x1: 58 }, tile: { x: 54, y: H - 1 } };
 const tablesAt = (xs: number[], ys: number[]): Prop[] => xs.flatMap((x) => ys.map((y) => ({ kind: "table" as const, x, y })));
 export const PROPS: Prop[] = [
@@ -91,6 +96,7 @@ const SIZE: Record<PropKind, [number, number]> = { tree: [1.2, 1.2], bench: [0.7
 export function blockers(): Rect[] {
   const r: Rect[] = BLOCKS.map((b) => ({ ...b.rect }));
   r.push(STAIR_BLOCK);
+  for (const c of COLUMNS) r.push({ x: c.x - 0.55, y: c.y - 0.55, w: 1.1, h: 1.1 });
   for (const l of LOCKERS) r.push(l.rect);
   for (const p of PROPS) { const [w, h] = SIZE[p.kind]; if (p.kind === "lamp") continue; r.push({ x: p.x - w / 2, y: p.y - h / 2, w, h }); }
   return r;

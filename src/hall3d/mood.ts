@@ -19,7 +19,7 @@ export const PALETTES: Record<string, Pal> = {
   paper: { hemi: "#fff6e8", gnd: "#e4d3b4", sun: "#fff0d8", wash: "#ffffff", floor: "#ffffff", sky: "#EADFCB", accent: "#E07A66", accent2: "#EAB94E", w: 0 },
 };
 /** time of day (hours) -> [hemi, sun, sky] keyframes; the last two entries fade into night */
-const TOD: [number, string, string, string][] = [[0, "#8a90d0", "#9fb0ff", "#1d1f44"], [5.5, "#8a90d0", "#9fb0ff", "#1d1f44"], [6.8, "#ffd2b0", "#ffe9d0", "#f7c9a8"], [10.5, "#fff6e8", "#fff0d8", "#efe3c6"], [15, "#ffe2b0", "#ffd49a", "#f3d6a6"], [18, "#ffc2a8", "#ffb48c", "#d9b8e0"], [20.5, "#8a90d0", "#9fb0ff", "#1d1f44"], [24, "#8a90d0", "#9fb0ff", "#1d1f44"]];
+const TOD: [number, string, string, string][] = [[0, "#8a90d0", "#9fb0ff", "#1d1f44"], [5.5, "#8a90d0", "#9fb0ff", "#1d1f44"], [6.8, "#ffc8b0", "#ffe0c0", "#f29a78"], [10.5, "#c9e6ff", "#fff8e4", "#7ec8f0"], [15, "#ffe0b8", "#ffd09a", "#f0b48a"], [18, "#ffb0c0", "#ffb48c", "#c98ad4"], [20.5, "#8a90d0", "#9fb0ff", "#1d1f44"], [24, "#8a90d0", "#9fb0ff", "#1d1f44"]];
 const SEASON: Record<string, string> = { winter: "#dbe8ff", spring: "#ffeaf0", summer: "#fff4c8", autumn: "#ffdcb0" };
 const KEY = "unify.mood.v1";
 const C = (h = "#ffffff") => new THREE.Color(h);
