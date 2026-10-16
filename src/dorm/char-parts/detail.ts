@@ -63,12 +63,20 @@ export function decorate(m: THREE.Material, o: { detail?: boolean; paint?: THREE
 export function hairMaterial(base: THREE.Material, shell: boolean, hi: THREE.Color, own: (x: THREE.Material) => void, paint?: THREE.Texture | null, yr: [number, number] = [-1, 1]): THREE.Material {
   const m = base.clone() as THREE.MeshStandardMaterial, s = strandTex(); m.map = shell ? s.shell : s.base; m.alphaTest = shell ? 0.5 : 0.08; m.side = THREE.DoubleSide; m.transparent = false;
   if (!shell) { m.normalMap = s.nrm; m.normalScale = new THREE.Vector2(0.55, 0.55); }
-  const uHi = { value: hi.clone() }, pk = base.customProgramCacheKey?.() ?? "";
+  const uHi = { value: hi.clone() }, sway = { value: 0 }, amp = { value: 1 }, pk = base.customProgramCacheKey?.() ?? "";
+  m.userData.sway = sway; m.userData.amp = amp;
   m.onBeforeCompile = (sh) => {
-    sh.uniforms.uHi = uHi;
-    if (paint) {   // brush layer, mapped around the head (u = angle, v = height) so strokes land where they are drawn whatever the strand uvs are
+    sh.uniforms.uHi = uHi; sh.uniforms.uSway = sway; sh.uniforms.uAmp = amp;
+    const vert = "uniform float uSway; uniform float uAmp;\n" + (paint ? "varying vec3 vHp;\n" : "");
+    const begin = `#include <begin_vertex>
+      float tip = clamp((0.25 - position.y) * 1.05, 0.0, 1.7);
+      transformed.x += sin(uSway * 1.2 + position.x * 2.2) * tip * 0.46 * uAmp;
+      transformed.z += cos(uSway * 0.86 + position.z) * tip * 0.55 * uAmp;
+      transformed.y -= abs(sin(uSway * 1.4)) * tip * 0.08 * uAmp;
+      ${paint ? "vHp = position;" : ""}`;
+    sh.vertexShader = vert + sh.vertexShader.replace("#include <begin_vertex>", begin);
+    if (paint) {
       sh.uniforms.uPaint = { value: paint }; sh.uniforms.uYr = { value: new THREE.Vector2(yr[0], yr[1]) };
-      sh.vertexShader = "varying vec3 vHp;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n vHp = position;");
       sh.fragmentShader = "uniform sampler2D uPaint; uniform vec2 uYr; varying vec3 vHp;\n" + sh.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>\n { vec4 pt = texture2D(uPaint, vec2(atan(vHp.x, vHp.z) / 6.2831853 + 0.5, clamp((vHp.y - uYr.x) / (uYr.y - uYr.x), 0.0, 1.0))); diffuseColor.rgb = mix(diffuseColor.rgb, pt.rgb * (0.55 + 0.45 * texture2D(map, vMapUv).r), pt.a); }");
     }
     sh.fragmentShader = "uniform vec3 uHi;\n" + sh.fragmentShader.replace("#include <opaque_fragment>", `
@@ -77,5 +85,5 @@ export function hairMaterial(base: THREE.Material, shell: boolean, hi: THREE.Col
         float st = texture2D(map, vMapUv).r; outgoingLight += uHi * (band * (0.2 + 0.9 * st) * 0.6 + pow(sp, 7.0) * 0.05); }
       #include <opaque_fragment>`);
   };
-  m.customProgramCacheKey = () => pk + "hairspec" + (shell ? "S" : "B") + (paint ? "P" : ""); own(m); return m;
+  m.customProgramCacheKey = () => pk + "hairspec" + (shell ? "S" : "B") + (paint ? "P" : "") + "whip"; own(m); return m;
 }

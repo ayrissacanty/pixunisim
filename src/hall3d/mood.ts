@@ -89,8 +89,8 @@ class MoodImpl {
     T.hemiK = 1 - 0.6 * n; T.sunK = 1 - 0.86 * n;
     T.win.set("#fff7e0").lerp(this.tmpA.set("#ffb45a"), n); T.winI = 0.16 + 0.78 * n;
     if (isPixar()) {   // movie look: keep the painted colours, just a hint of sun, and push the accents
-      if (!this.override.id) { T.wash.set("#ffffff").lerp(this.tmpA.set("#ffe7c2"), 0.1); T.floor.set("#ffffff").lerp(this.tmpA.set("#9ad8ff"), 0.28); T.accent.set("#FF4D6A"); T.accent2.set("#FFD23A"); }
-      const hs = { h: 0, s: 0, l: 0 }; for (const c of [T.wash, T.floor, T.accent, T.accent2]) { c.getHSL(hs); c.setHSL(hs.h, Math.min(1, hs.s * 1.55 + 0.08), Math.min(0.8, hs.l * 1.04)); }
+      if (!this.override.id) { T.wash.set("#ffffff"); T.floor.set("#ffffff").lerp(this.tmpA.set("#7ecfff"), 0.4); T.accent.set("#FF2D55"); T.accent2.set("#FFE14A"); }
+      const hs = { h: 0, s: 0, l: 0 }; for (const c of [T.wash, T.floor, T.accent, T.accent2]) { c.getHSL(hs); c.setHSL(hs.h, Math.min(1, hs.s * 1.7 + 0.12), Math.min(0.82, hs.l * 1.06)); }
       T.winI = 0.7 + 0.7 * n;
     }
   }

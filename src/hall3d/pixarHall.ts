@@ -19,15 +19,15 @@ import { Mood, Gfx } from "./mood";
 import { smallScreen, dprCap } from "../shared/polish";
 import { W, H, PROPS } from "./campus";
 
-const KEY = new THREE.Color("#ffc878"), TEAL = new THREE.Color("#a9dff0"), PEACH = new THREE.Color("#f4a77a"), HAZE = new THREE.Color("#f3d2bb"), NIGHT_HAZE = new THREE.Color("#2b2650");
+const KEY = new THREE.Color("#ffc878"), TEAL = new THREE.Color("#7ee0ff"), PEACH = new THREE.Color("#ffb07a"), HAZE = new THREE.Color("#d7f0ff"), NIGHT_HAZE = new THREE.Color("#2b2650");
 const hash = (a: number, b: number) => { const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return n - Math.floor(n); };
 /** warm highlights / cool shadows, a little extra saturation and a soft vignette (linear HDR, before the output pass) */
 const GRADE = {
   uniforms: { tDiffuse: { value: null as THREE.Texture | null } },
   vertexShader: "varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }",
   fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c=texture2D(tDiffuse,vUv); float lu=dot(c.rgb,vec3(.299,.587,.114));
-    c.rgb=mix(vec3(lu),c.rgb,1.62); c.rgb=pow(max(c.rgb,0.0),vec3(.9));
-    c.rgb*=mix(vec3(.97,1.03,1.08),vec3(1.05,1.0,.94),smoothstep(.05,.78,lu));
+    c.rgb=mix(vec3(lu),c.rgb,2.15); c.rgb=pow(max(c.rgb,0.0),vec3(.94));
+    c.rgb*=mix(vec3(.9,1.08,1.16),vec3(1.12,.98,.88),smoothstep(.06,.72,lu));
     float v=smoothstep(.55,1.15,length(vUv-.5)*1.2); c.rgb*=1.-v*.16; gl_FragColor=c; }`,
 };
 
@@ -101,7 +101,7 @@ export class PixarHall {
     r.shadowMap.type = THREE.PCFShadowMap; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05; r.outputColorSpace = THREE.SRGBColorSpace;
     const pm = new THREE.PMREMGenerator(r), env = new RoomEnvironment(), rt = pm.fromScene(env, 0.04); scene.environment = rt.texture; scene.environmentIntensity = 0.28; pm.dispose(); env.dispose();
     this.skyCv.width = 4; this.skyCv.height = 128; this.skyTex = new THREE.CanvasTexture(this.skyCv); this.skyTex.colorSpace = THREE.SRGBColorSpace; scene.background = this.skyTex;
-    this.fog = scene.fog = new THREE.Fog(HAZE.getHex(), 55 * IS, 210 * IS);
+    this.fog = scene.fog = new THREE.Fog(HAZE.getHex(), 90 * IS, 280 * IS);
     sun.color.copy(KEY); sun.intensity = 1.85; hemi.color.copy(TEAL); hemi.groundColor.copy(PEACH); hemi.intensity = 0.5; sun.shadow.radius = 6; sun.shadow.normalBias = 0.03;
     this.rim1 = new THREE.DirectionalLight("#9fd4ea", 0.55); this.rim1.position.set(-12, 9, -15); this.rim2 = new THREE.DirectionalLight("#ffe2b8", 0.35); this.rim2.position.set(14, 7, -12);
     this.warm = new THREE.PointLight("#ff9a5a", 5 * IS * IS, 9 * IS, 2); this.cool = new THREE.PointLight("#6fc6ff", 3 * IS * IS, 10 * IS, 2);
@@ -144,7 +144,7 @@ export class PixarHall {
     const tune = (m: THREE.Material, o: THREE.Mesh) => {
       if (seen.has(m)) return; seen.add(m); const s = m as THREE.MeshStandardMaterial; if (!s.isMeshStandardMaterial) return;
       if (s.flatShading) { s.flatShading = false; s.needsUpdate = true; }
-      if (!s.map && !s.emissiveMap) { s.color.getHSL(hsl); if (hsl.s > 0.04) s.color.setHSL(hsl.h, Math.min(1, hsl.s * 1.48 + 0.06), Math.min(0.74, hsl.l * 1.06)); }
+      if (!s.map && !s.emissiveMap) { s.color.getHSL(hsl); if (hsl.s > 0.02) s.color.setHSL(hsl.h, Math.min(1, hsl.s * 1.85 + 0.1), Math.min(0.78, hsl.l * 1.08)); }
       s.envMapIntensity = 1;
       if (o === tags.floor) { s.roughness = 0.25; s.metalness = 0.04; s.envMapIntensity = 2.2; }          // waxed floor with a soft reflection gradient
       else if (lock.has(m)) { s.roughness = 0.3; s.metalness = 0.35; s.envMapIntensity = 1.4; }          // satin painted-metal lockers

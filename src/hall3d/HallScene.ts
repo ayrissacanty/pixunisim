@@ -299,7 +299,7 @@ export class HallScene {
   private buildLibrary() {
     const y0 = FLOOR_Y, wh = WALL_H;
     const gx = (x: number) => x - W / 2, gz = (y: number) => y - H / 2;
-    const upper = this.plain("#F6E4C4"), wain = this.plain("#2C6B62"), crown = this.plain("#E2A84A"), wood = this.plain("#A86B3C"), ink = this.plain("#6B4228"), cream = this.plain("#F3E2C4");
+    const upper = this.plain("#D7F4FF"), wain = this.plain("#14986A"), crown = this.plain("#FFC233"), wood = this.plain("#E08A3C"), ink = this.plain("#7A3E22"), cream = this.plain("#FFF3C4");
     const slab = (r: Rect, floorCol: THREE.Material) => {
       this.box(r.w, 0.2, r.h, floorCol, gx(r.x + r.w / 2), y0 + 0.02, gz(r.y + r.h / 2), { outline: false, shadow: false });
       this.box(Math.max(0.4, r.w - 1.4), 0.08, Math.max(0.4, r.h - 1.4), cream, gx(r.x + r.w / 2), y0 + wh - 0.06, gz(r.y + r.h / 2), { outline: false, shadow: false });

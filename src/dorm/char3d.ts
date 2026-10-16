@@ -319,9 +319,11 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
     const bt = manualBrow !== null ? manualBrow : af[1] + (browPulse > 0 ? Math.sin(Math.PI * (1 - browPulse)) * 0.4 : 0); brow += (bt - brow) * (1 - Math.exp(-dt * 12));
     face?.set({ blink, gx, gy, mouth: mCur.o, mw: mCur.w, mc: mCur.c, mp: mCur.p, brow, squint: sat(mCur.c * 2.2, 0, 0.35) });
     if (packG) { const sitting = anim === "sit" || anim === "type" || anim === "raise" || anim === "lean"; packG.position.z += ((sitting ? -0.05 : 0) - packG.position.z) * 0.2; packG.position.y += ((sitting ? 0.03 : 0) - packG.position.y) * 0.2; }
-    const moving = anim === "walk" || anim === "cheer" ? 1 : 0.28, hz = moving > 0.5 ? 11 : 2.4, long = Math.max(0.55, Math.min(1.8, (hairYr[1] - hairYr[0]) * 0.85));
-    const hx = Math.sin(time * hz) * 0.09 * moving * long, hzr = Math.sin(time * hz * 0.72 + 1.1) * 0.06 * moving * long;
-    for (const o of parts.hair ?? []) { o.rotation.x = hx; o.rotation.z = hzr; }
+    const walking = anim === "walk" || anim === "cheer", moving = walking ? 1.4 : 0.72, phase = time * (walking ? 11 : 3.6);
+    for (const o of parts.hair ?? []) {
+      o.rotation.x = Math.sin(phase) * 0.2; o.rotation.z = Math.sin(phase * 0.68 + 0.5) * 0.15; o.rotation.y = Math.sin(phase * 0.42) * 0.12;
+      o.traverse((c) => { const mesh = c as THREE.Mesh; if (!mesh.isMesh || !mesh.material) return; const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]; for (const mat of mats) { const u = mat.userData; if (u?.sway) u.sway.value = phase; if (u?.amp) u.amp.value = moving; } });
+    }
     const flutter = (name: string, amp: number, ph: number) => {
       for (const o of parts[name] ?? []) {
         const u = o.userData; if (u.rx0 == null) { u.rx0 = o.rotation.x; u.rz0 = o.rotation.z; }

@@ -36,14 +36,14 @@ export const rugTex = () => mk(256, 256, (c) => {
 
 /** wall face: crown, scalloped paper garland, striped paint, chair rail, sage wainscot, baseboard. Maps 4 units of length x 4.2 of height. */
 export const wallTex = () => mk(512, 540, (c, w, h) => {
-  c.fillStyle = "#F4EBDB"; c.fillRect(0, 0, w, h);
-  const paint = c.createLinearGradient(0, 0, 0, h); paint.addColorStop(0, "#FBF1DD"); paint.addColorStop(1, "#EAF1E8"); c.fillStyle = paint; c.fillRect(0, 60, w, 300);
-  for (let x = 0; x < w; x += 32) { c.fillStyle = "rgba(255,255,255,.55)"; c.fillRect(x, 60, 14, 300); c.fillStyle = "rgba(110,120,110,.10)"; c.fillRect(x + 14, 60, 3, 300); }
+  c.fillStyle = "#FFF7EA"; c.fillRect(0, 0, w, h);
+  const paint = c.createLinearGradient(0, 0, 0, h); paint.addColorStop(0, "#FFF3B0"); paint.addColorStop(0.55, "#C8F2FF"); paint.addColorStop(1, "#B6F0D8"); c.fillStyle = paint; c.fillRect(0, 60, w, 300);
+  for (let x = 0; x < w; x += 32) { c.fillStyle = x % 64 === 0 ? "rgba(255,90,70,.28)" : "rgba(40,170,255,.22)"; c.fillRect(x, 60, 16, 300); }
   c.fillStyle = "#FFF9F0"; c.fillRect(0, 0, w, 40);
   const cols = ["#FF5A45", "#FFC107", "#29B6F6", "#26C281"];
   for (let i = 0; i < 8; i++) { c.beginPath(); c.arc(32 + i * 64, 42, 30, 0, Math.PI); fillStroke(c, cols[i % 4], 3); }
-  c.fillStyle = "#EAB94E"; c.fillRect(0, 340, w, 22); c.fillStyle = "rgba(255,255,255,.45)"; c.fillRect(0, 340, w, 5);
-  c.fillStyle = "#1F9A78"; c.fillRect(0, 362, w, 150);
+  c.fillStyle = "#FFC233"; c.fillRect(0, 340, w, 22); c.fillStyle = "rgba(255,255,255,.55)"; c.fillRect(0, 340, w, 5);
+  c.fillStyle = "#12A37A"; c.fillRect(0, 362, w, 150);
   for (let p = 0; p < 2; p++) { rr(c, 24 + p * 256, 384, 208, 104, 8); fillStroke(c, "#17B890", 3); bevel(c, 24 + p * 256, 384, 208, 104, 5); }
   c.fillStyle = "#9A653D"; c.fillRect(0, 512, w, 28); c.fillStyle = "rgba(255,255,255,.3)"; c.fillRect(0, 512, w, 4);
   c.strokeStyle = OUT; c.lineWidth = 3; c.beginPath(); c.moveTo(0, 361); c.lineTo(w, 361); c.moveTo(0, 512); c.lineTo(w, 512); c.stroke();
