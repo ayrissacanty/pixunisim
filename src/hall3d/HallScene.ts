@@ -125,11 +125,17 @@ export class HallScene {
 
   /* ------------------------------------------------------------ building blocks */
   private std(map: THREE.Texture | null, color = "#ffffff") { return new THREE.MeshStandardMaterial({ map, color, roughness: 0.95, metalness: 0 }); }
-  private plain(color: string) { return new THREE.MeshStandardMaterial({ color, roughness: 1 }); }
+  private plain(color: string) { return new THREE.MeshStandardMaterial({ color, roughness: this.px ? 0.46 : 1 }); }
+  /** a soft clay box in the movie look, a plain box otherwise */
+  private clay(w: number, h: number, d: number, rad = 0.22) {
+    if (!this.px) return new THREE.BoxGeometry(w, h, d);
+    const r = Math.max(0.04, Math.min(rad, w / 2 - 0.02, h / 2 - 0.02, d / 2 - 0.02));
+    return new RoundedBoxGeometry(w, h, d, 4, r);
+  }
   private box(w: number, h: number, d: number, mats: THREE.Material | THREE.Material[], x: number, y: number, z: number, o: { outline?: boolean; occlude?: boolean; shadow?: boolean } = {}) {
     const { outline = !this.px, occlude = false, shadow = true } = o;
     if (occlude) mats = (Array.isArray(mats) ? mats : [mats]).map((m) => m.clone());       // own materials so each can fade alone
-    const m = new THREE.Mesh(this.px ? new RoundedBoxGeometry(w, h, d, 2, Math.min(0.08, w / 4, h / 4, d / 4)) : new THREE.BoxGeometry(w, h, d), mats); m.position.set(x, y, z); m.castShadow = shadow; m.receiveShadow = true; this.scene.add(m);
+    const m = new THREE.Mesh(this.px ? new RoundedBoxGeometry(w, h, d, 3, Math.min(0.18, w / 5, h / 5, d / 5)) : new THREE.BoxGeometry(w, h, d), mats); m.position.set(x, y, z); m.castShadow = shadow; m.receiveShadow = true; this.scene.add(m);
     if (outline) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({ color: 0x6d5a5f, transparent: true, opacity: 0.55 })));
     if (occlude) this.occl.push({ mats: Array.isArray(mats) ? mats : [mats], box: new THREE.Box3().setFromCenterAndSize(m.position, new THREE.Vector3(w + 0.05, h, d + 0.05)), o: 1 });
     return m;
@@ -273,7 +279,7 @@ export class HallScene {
     const stone = this.plain("#F7F1E6"), gold = this.plain("#E8C56B"), foot = this.plain("#C9843A");
     COLUMNS.forEach((c, i) => {
       const x = c.x - W / 2, z = c.y - H / 2, g = new THREE.Group();
-      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.46, 3.5, 14), stone); shaft.position.y = 1.9; shaft.castShadow = true; g.add(shaft);
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.48, 3.5, 24), stone); shaft.position.y = 1.9; shaft.castShadow = true; g.add(shaft);
       const base = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.28, 1.05), foot); base.position.y = 0.14; base.castShadow = true; g.add(base);
       const cap = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.28, 1.05), gold); cap.position.y = 3.78; cap.castShadow = true; g.add(cap);
       const band = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.14, 14), this.plain(jewel[i % 4])); band.position.y = 3.5; g.add(band);
@@ -386,12 +392,12 @@ export class HallScene {
     this.fx = buildHallDetails(this.scene, { wins: this.winSpots, doors, benches: PROPS.filter((p) => p.kind === "bench").map((p) => ({ x: p.x - W / 2, z: p.y - H / 2, rot: p.rot ?? 0 })) });
   }
   private tree(x: number, z: number, s = 1) {
-    const g = new THREE.Group();
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * s, 0.28 * s, 2.1 * s, 8), this.plain("#8A5A32")); trunk.position.y = 1.05 * s; trunk.castShadow = true; g.add(trunk);
-    const bark = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * s, 0.22 * s, 0.35 * s, 8), this.plain("#6B4228")); bark.position.y = 0.2 * s; g.add(bark);
-    const greens = ["#1F8A4C", "#3CB371", "#167A45", "#7DDE8A", "#0E6B3C"];
-    [[0, 2.5, 0, 1.15], [0.55, 2.15, 0.2, 0.72], [-0.5, 2.25, -0.25, 0.78], [0.15, 3.15, -0.1, 0.7], [-0.2, 2.0, 0.5, 0.62]].forEach(([dx, dy, dz, r], i) => {
-      const f = new THREE.Mesh(new THREE.IcosahedronGeometry(r * s, 1), new THREE.MeshStandardMaterial({ color: greens[i % greens.length], roughness: 0.85, flatShading: true }));
+    const g = new THREE.Group(), wood = this.plain("#8A5A32");
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * s, 0.36 * s, 2.35 * s, 16), wood); trunk.position.y = 1.05 * s; trunk.castShadow = true; g.add(trunk);
+    const root = new THREE.Mesh(new THREE.SphereGeometry(0.46 * s, 14, 10), this.plain("#6B4228")); root.scale.y = 0.42; root.position.y = 0.1 * s; g.add(root);
+    const greens = ["#18A84A", "#3DDC78", "#0E8A42", "#8CF2A0", "#067A38", "#46E08A"];
+    [[0, 2.75, 0, 1.22], [0.72, 2.3, 0.28, 0.8], [-0.68, 2.4, -0.32, 0.84], [0.18, 3.45, -0.12, 0.72], [-0.28, 2.05, 0.62, 0.68], [0.42, 2.95, -0.58, 0.56], [-0.1, 3.7, 0.22, 0.5]].forEach(([dx, dy, dz, r], i) => {
+      const f = new THREE.Mesh(new THREE.SphereGeometry(r * s, 16, 12), new THREE.MeshStandardMaterial({ color: greens[i % greens.length], roughness: 0.62 }));
       f.position.set(dx * s, dy * s, dz * s); f.castShadow = true; g.add(f);
     });
     g.position.set(x, 0, z); this.scene.add(g);
@@ -422,19 +428,20 @@ export class HallScene {
     const g = new THREE.Group(); g.add(this.part(0.62, 0.1, 1.8, "#F1C887", 0, 0.5, 0)); g.add(this.part(0.12, 0.45, 1.7, "#9A653D", -0.24, 0.25, 0)); g.add(this.part(0.1, 0.5, 1.8, "#F28F7E", -0.3, 0.8, 0));
     g.rotation.y = rot; g.position.set(x, y, z); this.scene.add(g);
   }
-  private part(w: number, h: number, d: number, col: string, x: number, y: number, z: number) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), this.plain(col)); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; return m; }
+  private part(w: number, h: number, d: number, col: string, x: number, y: number, z: number) { const m = new THREE.Mesh(this.clay(w, h, d, 0.08), this.plain(col)); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; return m; }
   private lamp(x: number, z: number, col: string, y = 0) {
     const g = new THREE.Group(); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 3.0, 6), this.plain("#9A653D")); pole.position.y = 1.5; pole.castShadow = true; g.add(pole);
     const l = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 12), Mood.lit(new THREE.MeshStandardMaterial({ map: this.tex(`lan-${col}`, () => T.lanternTex(col)), emissive: col, emissiveIntensity: 0.3, roughness: 1 }), 1.1, 0.3)); l.scale.y = 1.2; l.position.y = 3.2; l.castShadow = true; g.add(l);
     g.position.set(x, y, z); this.scene.add(g);
   }
   private plant(x: number, z: number, y = 0) {
-    const g = new THREE.Group(); const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.32, 0.55, 12), this.plain("#C46B4A")); pot.position.y = 0.28; pot.castShadow = true; g.add(pot);
-    const cols = ["#1F8A4C", "#3CB371", "#7DDE8A", "#0E6B3C"];
-    for (let i = 0; i < 9; i++) {
-      const a = (i / 9) * Math.PI * 2, h = 1.7 + (i % 3) * 0.35;
-      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.045, h, 5), this.plain("#2F6B32")); stem.position.set(Math.cos(a) * 0.16, 0.45 + h / 2, Math.sin(a) * 0.16); g.add(stem);
-      const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), this.plain(cols[i % 4])); leaf.scale.set(1.4, 0.45, 0.7); leaf.position.set(Math.cos(a) * 0.28, 0.4 + h, Math.sin(a) * 0.28); leaf.castShadow = true; g.add(leaf);
+    const g = new THREE.Group(); const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.3, 0.58, 20), this.plain("#E25B45")); pot.position.y = 0.3; pot.castShadow = true; g.add(pot);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.06, 8, 18), this.plain("#F2C14E")); rim.rotation.x = Math.PI / 2; rim.position.y = 0.58; g.add(rim);
+    const cols = ["#14A34A", "#3DDC78", "#8CF2A0", "#067A38"];
+    const crown = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 12), this.plain("#1FAE58")); crown.position.y = 1.85; crown.castShadow = true; g.add(crown);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2, h = 1.35 + (i % 3) * 0.28;
+      const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 10), this.plain(cols[i % 4])); leaf.position.set(Math.cos(a) * 0.38, h, Math.sin(a) * 0.38); leaf.castShadow = true; g.add(leaf);
     }
     g.position.set(x, y, z); this.scene.add(g);
   }
@@ -508,30 +515,38 @@ export class HallScene {
       if (Math.hypot(x, z - (H / 2 + 30)) < 11) continue;
       spots.push({ x, z, s: 0.8 + hash(i, 3) * 0.9 });
     }
-    const crown = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1.5, 0), new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true }), spots.length), trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.16, 0.24, 1.8, 6), this.plain("#9A653D"), spots.length);
-    const m4 = new THREE.Matrix4(), greens = ["#5E9C72", "#88B89A", "#3F7655", "#A9DCC0", "#EAB94E", "#F2A79B"];
+    const crown = new THREE.InstancedMesh(new THREE.SphereGeometry(1.45, 12, 9), new THREE.MeshStandardMaterial({ roughness: 0.62 }), spots.length);
+    const puff = new THREE.InstancedMesh(new THREE.SphereGeometry(0.85, 10, 8), new THREE.MeshStandardMaterial({ roughness: 0.62 }), spots.length);
+    const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.18, 0.32, 2.1, 10), this.plain("#8A5A32"), spots.length);
+    const m4 = new THREE.Matrix4(), greens = ["#1FAE58", "#46E08A", "#0E8A42", "#8CF2A0", "#F2C14E", "#FF7A59"];
     spots.forEach((p, i) => {
-      m4.compose(new THREE.Vector3(p.x, 2.7 * p.s, p.z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, hash(i, 5) * 6, 0)), new THREE.Vector3(p.s, p.s * 1.15, p.s)); crown.setMatrixAt(i, m4);
-      crown.setColorAt(i, new THREE.Color(greens[hash(i, 6) < 0.12 ? 4 + (i & 1) : Math.floor(hash(i, 7) * 4)]));
-      m4.compose(new THREE.Vector3(p.x, 0.9 * p.s, p.z), new THREE.Quaternion(), new THREE.Vector3(p.s, p.s, p.s)); trunk.setMatrixAt(i, m4);
+      m4.compose(new THREE.Vector3(p.x, 2.85 * p.s, p.z), new THREE.Quaternion(), new THREE.Vector3(p.s, p.s * 1.05, p.s)); crown.setMatrixAt(i, m4);
+      crown.setColorAt(i, new THREE.Color(greens[hash(i, 6) < 0.1 ? 4 + (i & 1) : Math.floor(hash(i, 7) * 4)]));
+      const side = hash(i, 8) * Math.PI * 2;
+      m4.compose(new THREE.Vector3(p.x + Math.cos(side) * 0.7 * p.s, 2.35 * p.s, p.z + Math.sin(side) * 0.7 * p.s), new THREE.Quaternion(), new THREE.Vector3(p.s * 0.85, p.s * 0.75, p.s * 0.85)); puff.setMatrixAt(i, m4);
+      puff.setColorAt(i, new THREE.Color(greens[(i + 2) % 4]));
+      m4.compose(new THREE.Vector3(p.x, 0.95 * p.s, p.z), new THREE.Quaternion(), new THREE.Vector3(p.s, p.s, p.s)); trunk.setMatrixAt(i, m4);
     });
-    crown.castShadow = trunk.castShadow = true; S.add(crown, trunk);
+    crown.castShadow = puff.castShadow = trunk.castShadow = true; S.add(crown, puff, trunk);
     for (const x of [-16, -26, -36, 16, 26, 36]) this.tree(x, H / 2 + 10, 1.35);
     for (const x of [-20, 20]) this.tree(x, H / 2 + 18, 1.6);
     // little paper houses and hills ringing the lawn
-    const wallCols = ["#F2A79B", "#F4D488", "#9FD0B0", "#9CC3E0", "#E8C39A", "#C9B7E8"], roofCols = ["#C98569", "#9A653D", "#7C94B0", "#B8604F"];
+    const wallCols = ["#FF8A78", "#FFD15C", "#5EE0A0", "#7EC8FF", "#FFB077", "#C9A6FF"], roofCols = ["#E25B45", "#C9843A", "#3D7CC9", "#D4536A"];
     for (let i = 0; i < 26; i++) {
       const a = (i / 26) * Math.PI * 2 + hash(i, 8) * 0.2, rx = 78 + hash(i, 9) * 18, x = Math.cos(a) * rx * 1.1, z = Math.sin(a) * rx * 0.85 + 6;
       if (Math.abs(x) < 8 && z > 0) continue;
       const w = 5 + hash(i, 10) * 4, h = 3.5 + hash(i, 11) * 2.5, g = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, w * 0.9), this.plain(wallCols[i % 6])); body.position.y = h / 2; body.castShadow = true; g.add(body);
-      body.add(new THREE.LineSegments(new THREE.EdgesGeometry(body.geometry), new THREE.LineBasicMaterial({ color: 0x6d5a5f, transparent: true, opacity: 0.45 })));
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(w * 0.82, h * 0.7, 4), this.plain(roofCols[i % 4])); roof.position.y = h + h * 0.35; roof.rotation.y = Math.PI / 4; roof.castShadow = true; g.add(roof);
+      const body = new THREE.Mesh(this.clay(w, h, w * 0.9, 0.55), this.plain(wallCols[i % 6])); body.position.y = h / 2; body.castShadow = true; g.add(body);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(w * 0.78, h * 0.62, 16), this.plain(roofCols[i % 4])); roof.position.y = h + h * 0.28; roof.castShadow = true; g.add(roof);
+      const door = new THREE.Mesh(this.clay(w * 0.22, h * 0.42, 0.12, 0.08), this.plain("#FFF6E4")); door.position.set(0, h * 0.22, w * 0.46); door.castShadow = true; g.add(door);
+      const win = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 8), new THREE.MeshStandardMaterial({ color: "#BFE9FF", roughness: 0.15, emissive: "#7EC8FF", emissiveIntensity: 0.25 })); win.position.set(w * 0.22, h * 0.62, w * 0.42); g.add(win);
+      const chim = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, h * 0.35, 10), this.plain("#E8D7C4")); chim.position.set(-w * 0.22, h + h * 0.42, 0); g.add(chim);
       g.position.set(x, 0, z); g.rotation.y = hash(i, 12) * 6; S.add(g);
     }
     for (let i = 0; i < 14; i++) {
-      const a = (i / 14) * Math.PI * 2 + 0.2, r = 118 + hash(i, 13) * 30, s = 14 + hash(i, 14) * 14, hill = new THREE.Mesh(new THREE.ConeGeometry(s * 1.5, s, 6), new THREE.MeshStandardMaterial({ color: ["#A9CDB8", "#B7D8A4", "#9CC3A8"][i % 3], roughness: 1, flatShading: true }));
-      hill.position.set(Math.cos(a) * r * 1.15, s / 2 - 0.5, Math.sin(a) * r * 0.9 + 6); S.add(hill);
+      const a = (i / 14) * Math.PI * 2 + 0.2, r = 118 + hash(i, 13) * 30, s = 14 + hash(i, 14) * 14;
+      const hill = new THREE.Mesh(new THREE.SphereGeometry(s, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: ["#7ED9A0", "#B6F2C4", "#5EBE88"][i % 3], roughness: 0.8 }));
+      hill.scale.y = 0.62; hill.position.set(Math.cos(a) * r * 1.15, -0.4, Math.sin(a) * r * 0.9 + 6); S.add(hill);
     }
   }
 
@@ -614,10 +629,10 @@ export class HallScene {
 
   /* ------------------------------------------------------------ the school bus, arrival, and Chat Chow seats */
   private buildBus() {
-    const g = new THREE.Group(), yel = this.plain("#F2B632"), blk = this.plain("#2b2b34"), win = new THREE.MeshStandardMaterial({ color: "#8FC9E8", roughness: 0.3, emissive: "#355a70", emissiveIntensity: 0.25 });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(8.6, 2.5, 2.7), yel); body.position.set(0.7, 1.85, 0); body.castShadow = true; g.add(body);
-    const hood = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.4, 2.5), yel); hood.position.set(-4.6, 1.3, 0); hood.castShadow = true; g.add(hood);
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(8.4, 0.12, 2.5), this.plain("#F8D977")); roof.position.set(0.7, 3.14, 0); g.add(roof);
+    const g = new THREE.Group(), yel = this.plain("#FFC233"), blk = this.plain("#2b2b34"), win = new THREE.MeshStandardMaterial({ color: "#9EE7FF", roughness: 0.08, metalness: 0.15, emissive: "#3D8FD4", emissiveIntensity: 0.35 });
+    const body = new THREE.Mesh(this.clay(8.6, 2.5, 2.7, 0.42), yel); body.position.set(0.7, 1.9, 0); body.castShadow = true; g.add(body);
+    const hood = new THREE.Mesh(this.clay(2.1, 1.35, 2.45, 0.32), yel); hood.position.set(-4.55, 1.35, 0); hood.castShadow = true; g.add(hood);
+    const roof = new THREE.Mesh(this.clay(8.2, 0.28, 2.35, 0.12), this.plain("#FFE27A")); roof.position.set(0.7, 3.15, 0); g.add(roof);
     for (const sz of [-1.36, 1.36]) { const strip = new THREE.Mesh(new THREE.BoxGeometry(8.62, 0.14, 0.02), blk); strip.position.set(0.7, 1.55, sz); g.add(strip); const strip2 = strip.clone(); strip2.position.y = 2.4; g.add(strip2);
       for (let i = 0; i < 8; i++) { const w = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.7, 0.03), win); w.position.set(-2.55 + i * 0.99, 2.7 - 0.0, sz); w.position.y = 2.72; g.add(w); } }
     for (const [wx, wz] of [[-4.6, -1.15], [-4.6, 1.15], [2.9, -1.2], [2.9, 1.2], [0.5, -1.2], [0.5, 1.2]].slice(0, 4)) { const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.34, 14), blk); wh.rotation.x = Math.PI / 2; wh.position.set(wx, 0.62, wz); wh.castShadow = true; wh.userData.wheel = 1; g.add(wh); }
