@@ -75,6 +75,7 @@ export interface Prop { kind: PropKind; x: number; y: number; rot?: number }
 export const COLUMNS: { x: number; y: number }[] = [
   { x: 44, y: 76 }, { x: 64, y: 76 }, { x: 44, y: 71 }, { x: 64, y: 71 },
   { x: 43, y: 36 }, { x: 65, y: 36 }, { x: 43, y: 41 }, { x: 65, y: 41 },
+  { x: 34, y: 46 }, { x: 74, y: 46 }, { x: 34, y: 60 }, { x: 74, y: 60 },
 ];
 export const ENTRANCE = { gap: { x0: 50, x1: 58 }, tile: { x: 54, y: H - 1 } };
 const tablesAt = (xs: number[], ys: number[]): Prop[] => xs.flatMap((x) => ys.map((y) => ({ kind: "table" as const, x, y })));

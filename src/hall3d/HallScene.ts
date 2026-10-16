@@ -347,10 +347,10 @@ export class HallScene {
   private buildLibrary() {
     const y0 = FLOOR_Y, wh = WALL_H;
     const gx = (x: number) => x - W / 2, gz = (y: number) => y - H / 2;
-    const upper = this.plain("#D7F4FF"), wain = this.plain("#14986A"), crown = this.plain("#FFC233"), wood = this.plain("#E08A3C"), ink = this.plain("#7A3E22"), cream = this.plain("#FFF3C4");
+    const upper = this.plain("#f3efe6"), wain = this.plain("#d7cbb8"), crown = this.plain("#c4a574"), wood = this.plain("#8d6844"), ink = this.plain("#5c4632"), cream = this.plain("#f7f1e6"), plaster = this.plain("#efe6d6");
     const slab = (r: Rect, floorCol: THREE.Material) => {
-      this.box(r.w + 0.28, 0.16, r.h + 0.28, wood, gx(r.x + r.w / 2), y0 - 0.06, gz(r.y + r.h / 2), { outline: false, shadow: false });
-      this.box(r.w, 0.22, r.h, floorCol, gx(r.x + r.w / 2), y0 + 0.06, gz(r.y + r.h / 2), { outline: false, shadow: false });
+      this.box(r.w, 0.46, r.h, plaster, gx(r.x + r.w / 2), y0 - 0.28, gz(r.y + r.h / 2), { outline: false, shadow: false });
+      this.box(r.w, 0.18, r.h, floorCol, gx(r.x + r.w / 2), y0 + 0.08, gz(r.y + r.h / 2), { outline: false, shadow: false });
       this.box(Math.max(0.4, r.w - 1.6), 0.04, Math.max(0.4, r.h - 1.6), cream, gx(r.x + r.w / 2), y0 + 0.18, gz(r.y + r.h / 2), { outline: false, shadow: false });
       this.box(Math.max(0.4, r.w - 1.4), 0.08, Math.max(0.4, r.h - 1.4), cream, gx(r.x + r.w / 2), y0 + wh - 0.06, gz(r.y + r.h / 2), { outline: false, shadow: false });
     };
