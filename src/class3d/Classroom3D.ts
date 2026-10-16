@@ -13,7 +13,7 @@ import * as CT from "./tex";
 import { Board } from "./board";
 import { Projector } from "./projector";
 import { drawPicFinal, picsFor, picTitle } from "../game/wallart";
-import { makeBillboard, setPose, dirIndex, SEAT, SEAT_POSES, TEACH, TEACH_POSES, GESTURE, emoPose, type Billboard } from "./sprites";
+import { makeBillboard, setPose, dirIndex, placeBody, SEAT, SEAT_POSES, TEACH, TEACH_POSES, GESTURE, emoPose, type Billboard } from "./sprites";
 import { personaOf, type Persona, type Emotion, type Reaction } from "./persona";
 import { voice } from "./voice";
 import { drawBoard } from "../game/timesui";
@@ -389,7 +389,7 @@ export class Classroom3D {
     }
     if (moving && t.talking) pose = TEACH.walk1 + (Math.floor(t.walkPh) % 4);
     setPose(b, pose, dir); b.sprite.position.copy(t.pos); if (this.plate) this.plate.position.set(t.pos.x, t.pos.y + 3.55 * (b.h ?? 1) / 1.4 + 0.5, t.pos.z);
-    { const T2 = this.t, k = moving ? 0 : 1; let rot = 0, sy = 1, dy = 0; if (!moving) { if (t.idle === "bounce") dy = Math.abs(Math.sin(T2 * (t.talking ? 5 : 3.2))) * 0.05; else if (t.idle === "sway") rot = Math.sin(T2 * 1.6) * 0.035; else if (t.idle === "nod") sy = 1 + Math.sin(T2 * (t.talking ? 3.4 : 1.8)) * 0.012; else if (t.idle === "tilt") rot = 0.03 + Math.sin(T2 * 0.8) * 0.012; } b.mat.rotation += (rot * k - b.mat.rotation) * 0.15; b.sprite.scale.set(t.base.x, t.base.y * sy, 1); b.sprite.position.y += dy; } b.blob.position.set(t.pos.x, t.pos.y + 0.02, t.pos.z);
+    { const T2 = this.t, k = moving ? 0 : 1; let rot = 0, sy = 1, dy = 0; if (!moving) { if (t.idle === "bounce") dy = Math.abs(Math.sin(T2 * (t.talking ? 5 : 3.2))) * 0.05; else if (t.idle === "sway") rot = Math.sin(T2 * 1.6) * 0.035; else if (t.idle === "nod") sy = 1 + Math.sin(T2 * (t.talking ? 3.4 : 1.8)) * 0.012; else if (t.idle === "tilt") rot = 0.03 + Math.sin(T2 * 0.8) * 0.012; } b.mat.rotation += (rot * k - b.mat.rotation) * 0.15; b.sprite.scale.set(t.base.x, t.base.y * sy, 1); b.sprite.position.y += dy; } b.blob.position.set(t.pos.x, t.pos.y + 0.02, t.pos.z); placeBody(b, moving, this.t, false);
   }
 
   /* ------------------------------------------------------------ cameras */
@@ -454,7 +454,7 @@ export class Classroom3D {
       const b = s.bb; if (!b.sprite) continue; b.sprite.visible = b.blob.visible = !s.c3; b.mat.color.setScalar(tint);
       s.handT += dt; s.actT -= dt; if (s.actT <= 0) { s.actT = 1.5 + Math.random() * 4; s.act = Math.random() < 0.28 ? 1 : 0; }
       let pose = SEAT.sit; if (s.hand === 1) { pose = s.handT < 0.25 ? SEAT.raiseHalf : SEAT.raiseFull; } else if (s.act && !s.player) pose = Math.floor(this.t * 2.2 + s.c) % 2 ? SEAT.writeA : SEAT.writeB; else if (s.player) pose = SEAT.sit;
-      setPose(b, pose, dirIndex(b.facing, cam, 1));
+      setPose(b, pose, dirIndex(b.facing, cam, 1)); placeBody(b, false, this.t, true);
     }
     this.teacher.bb.mat.color.setScalar(1 - 0.35 * d);
     if (this.demoModel) { this.demoModel.rotation.y += dt * 0.7; const moon = this.demoModel.getObjectByName("moon"); if (moon) moon.position.set(Math.cos(this.t * 1.3) * 0.6, 0, Math.sin(this.t * 1.3) * 0.6); }

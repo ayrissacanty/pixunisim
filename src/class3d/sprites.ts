@@ -1,5 +1,6 @@
 /** Billboard people for the 3D classroom: pose sheets baked from the shared chibi rig (4 directions x N poses). */
 import { CHAR_K } from "../shared/scale";
+import { makeBody, stepBody } from "../shared/body3d";
 import * as THREE from "three";
 import { drawChar, setOutline, getOutline } from "../hall3d/rig";
 import { AGE_SCALE, type Look } from "../hall3d/characters";
@@ -42,13 +43,14 @@ export function bakePoses(look: Look, poses: Pose[]): HTMLCanvasElement {
   }));
   return cv;
 }
-export interface Billboard { sprite: THREE.Sprite; mat: THREE.SpriteMaterial; tex: THREE.Texture; poses: number; look: Look; h: number; def?: NpcDef; facing: THREE.Vector3; pose: number; blob: THREE.Mesh }
+export interface Billboard { sprite: THREE.Sprite; body: THREE.Group; mat: THREE.SpriteMaterial; tex: THREE.Texture; poses: number; look: Look; h: number; def?: NpcDef; facing: THREE.Vector3; pose: number; blob: THREE.Mesh }
 export function makeBillboard(scene: THREE.Scene, look: Look, poses: Pose[], blobTex: THREE.Texture): Billboard {
   const tex = new THREE.CanvasTexture(bakePoses(look, poses)); tex.colorSpace = THREE.SRGBColorSpace; tex.repeat.set(1 / poses.length, 1 / DIRS.length); tex.anisotropy = 4;
-  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true }), sprite = new THREE.Sprite(mat), h = (AGE_SCALE[look.age ?? "hs"] ?? 1) * ((look as any).hScale ?? 1);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false }), sprite = new THREE.Sprite(mat), h = (AGE_SCALE[look.age ?? "hs"] ?? 1) * ((look as any).hScale ?? 1);
   sprite.center.set(0.5, CFEET / CFH); sprite.scale.set((CFW / CSCALE) * UNIT * h * CHAR_K, (CFH / CSCALE) * UNIT * h * CHAR_K, 1); scene.add(sprite);
-  const blob = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.55), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false })); blob.rotation.x = -Math.PI / 2; scene.add(blob);
-  return { sprite, mat, tex, poses: poses.length, look, h, facing: new THREE.Vector3(0, 0, -1), pose: 0, blob };
+  const body = makeBody(look, sprite.scale.y * 0.9); scene.add(body);
+  const blob = new THREE.Mesh(new THREE.CircleGeometry(0.22, 12), new THREE.MeshBasicMaterial({ color: "#000", transparent: true, opacity: 0.16, depthWrite: false })); blob.rotation.x = -Math.PI / 2; scene.add(blob);
+  return { sprite, body, mat, tex, poses: poses.length, look, h, facing: new THREE.Vector3(0, 0, -1), pose: 0, blob };
 }
 /** which of the 4 sheet rows to show for a facing vector seen from the camera */
 export function dirIndex(face: THREE.Vector3, camFwd: THREE.Vector3, keep = 0) {
@@ -56,3 +58,9 @@ export function dirIndex(face: THREE.Vector3, camFwd: THREE.Vector3, keep = 0) {
   return Math.abs(a) >= Math.abs(b) ? (a > 0 ? 1 : 0) : b > 0 ? 3 : 2;
 }
 export function setPose(b: Billboard, pose: number, dir: number) { b.pose = pose; b.tex.offset.set(pose / b.poses, 1 - (dir + 1) / DIRS.length); }
+/** show the solid body where the (invisible) sprite stands, facing the way the character is looking */
+export function placeBody(b: Billboard, moving: boolean, t: number, seated = false) {
+  b.body.visible = b.sprite.visible; stepBody(b.body, b.sprite.position, moving, t, seated);
+  if (!moving && !seated) b.body.rotation.y = Math.atan2(b.facing.x, b.facing.z);
+  if (seated && (b.pose === 3 || b.pose === 4)) { const arm = (b.body.userData.bits as { armR: THREE.Group }).armR; arm.rotation.x = b.pose === 4 ? -2.6 : -1.4; }
+}

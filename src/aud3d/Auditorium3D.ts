@@ -16,6 +16,7 @@ import { isPixar } from "../shared/look";
 import { setupPixarAud, type AudPx } from "./pixarAud";
 
 import { INTERIOR_SCALE as IS, CHAR_K, PROP_H, scaleScene } from "../shared/scale";
+import { makeBody, stepBody } from "../shared/body3d";
 const SY = PROP_H.audStage, LH = PROP_H.lectern;   // stage riser + lectern heights (design units)
 const UNIT = 1.75 / 45;
 export const ROWS = 18, PER_SIDE = 12, SEAT_W = 0.95, ROW_D = 1.55, RISE = 0.2, AUD_Z0 = -18;
@@ -153,7 +154,12 @@ export class Auditorium3D {
   }
 
   /* ---------------------------------------------------------------- people */
-  private sprite(tex: THREE.Texture, h: number) { const mat = new THREE.SpriteMaterial({ map: tex, transparent: true }), sp = new THREE.Sprite(mat); sp.center.set(0.5, FEET / FH); sp.scale.set((FW / SCALE) * UNIT * h * CHAR_K, (FH / SCALE) * UNIT * h * CHAR_K, 1); this.scene.add(sp); return { sp, mat }; }
+  private sprite(tex: THREE.Texture, h: number, look?: Look, seated = false) {
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false }), sp = new THREE.Sprite(mat);
+    sp.center.set(0.5, FEET / FH); sp.scale.set((FW / SCALE) * UNIT * h * CHAR_K, (FH / SCALE) * UNIT * h * CHAR_K, 1); this.scene.add(sp);
+    const body = makeBody(look || {}, sp.scale.y * 0.9); body.userData.seated = seated; this.scene.add(body);
+    return { sp, mat, body };
+  }
   /** one character's audience frames: columns sit, stand with hand on heart, head bowed; rows front, back */
   private bakeAud(look: Look): THREE.CanvasTexture {
     const cols = [{ sitting: true, arms: { R: [2, -11], L: [-2, -11] } }, { arms: { R: [3, -19.5], L: [-9, -11] } }, { arms: { R: [2, -13.5], L: [-2, -13.5] }, hdy: 1.4, tilt: 0.1 }, { sitting: true, mouth: 0.5, arms: { R: [2, -11], L: [-2, -11] } }], cv = document.createElement("canvas"); cv.width = FW * cols.length; cv.height = FH * 2; const c = cv.getContext("2d")!;
@@ -169,16 +175,16 @@ export class Auditorium3D {
   private buildPeople() {
     for (const k of ["ayrissa", "marcus"] as Who[]) {
       const look = PRINCIPALS[k].look(), tex = this.bakeStage(look), wt = new THREE.CanvasTexture(bakeSheet(look)); wt.colorSpace = THREE.SRGBColorSpace; wt.repeat.set(1 / COLS, 1 / DIRS.length);
-      const { sp, mat } = this.sprite(tex, AGE_SCALE.adult * ((look as any).hScale ?? 1)); const pos = new THREE.Vector3(k === "ayrissa" ? -2.6 : 2.6, SY, -33.4);
-      this.stage.set(k, { sprite: sp, mat, tex, walkTex: wt, pos: new THREE.Vector3(k === "ayrissa" ? -26 : 26, SY, -33.4), target: pos, frame: 0, dir: 0 }); sp.position.copy(this.stage.get(k)!.pos);
+      const { sp, mat, body } = this.sprite(tex, AGE_SCALE.adult * ((look as any).hScale ?? 1), look, false); const pos = new THREE.Vector3(k === "ayrissa" ? -2.6 : 2.6, SY, -33.4);
+      const stand = { sprite: sp, mat, tex, walkTex: wt, pos: new THREE.Vector3(k === "ayrissa" ? -26 : 26, SY, -33.4), target: pos, frame: 0, dir: 0, body }; this.stage.set(k, stand); sp.position.copy(stand.pos);
     }
     // the audience: classmates from the roster (every look different), the player in the middle of the front rows
     const looks: { look: Look; name: string; h: number }[] = ROSTER.slice(0, 36).map((d) => ({ look: d.look, name: d.first, h: AGE_SCALE[d.age] * ((d.look as any).hScale ?? 1) }));
     const pickSeats: number[] = []; for (let r = 0; r < 17; r++) for (let i = 0; i < this.seats.length; i++) if (this.seats[i].row === r && rngSeed(i * 13 + r) < 0.7) pickSeats.push(i);
     const me = this.seats.findIndex((s) => s.row === 8 && s.col === -3); this.mySeat = me;
-    pickSeats.filter((i) => i !== me).slice(0, 150).forEach((si, n) => { const L = looks[n % looks.length]; const look = { ...L.look, shirt: n >= looks.length ? ["#e8789a", "#4f91c7", "#88b89a", "#eab94e", "#b8a8da"][n % 5] : L.look.shirt }; const tex = this.bakeAud(look); const { sp, mat } = this.sprite(tex, L.h); const s = this.seats[si]; sp.position.set(s.x, s.y + 0.4, s.z + 0.1); this.audience.push({ sprite: sp, mat, tex, seat: si, scaleH: L.h }); });
-    const look = { ...toLook(Social.profile.avatar, 11) } as Look, tex = this.bakeAud(look), { sp, mat } = this.sprite(tex, AGE_SCALE[(look.age ?? "hs") as keyof typeof AGE_SCALE] * ((look as any).hScale ?? 1)); const ms = this.seats[me]; sp.position.set(ms.x, ms.y + 0.4, ms.z + 0.1);
-    this.me = { sprite: sp, mat, tex, seat: me, scaleH: 1, me: true, name: Social.profile.name || "You" };
+    pickSeats.filter((i) => i !== me).slice(0, 150).forEach((si, n) => { const L = looks[n % looks.length]; const look = { ...L.look, shirt: n >= looks.length ? ["#e8789a", "#4f91c7", "#88b89a", "#eab94e", "#b8a8da"][n % 5] : L.look.shirt }; const tex = this.bakeAud(look); const { sp, mat, body } = this.sprite(tex, L.h, look, true); const s = this.seats[si]; sp.position.set(s.x, s.y + 0.4, s.z + 0.1); this.audience.push({ sprite: sp, mat, tex, seat: si, scaleH: L.h, body } as Aud); });
+    const look = { ...toLook(Social.profile.avatar, 11) } as Look, tex = this.bakeAud(look), { sp, mat, body } = this.sprite(tex, AGE_SCALE[(look.age ?? "hs") as keyof typeof AGE_SCALE] * ((look as any).hScale ?? 1), look, true); const ms = this.seats[me]; sp.position.set(ms.x, ms.y + 0.4, ms.z + 0.1);
+    this.me = { sprite: sp, mat, tex, seat: me, scaleH: 1, me: true, name: Social.profile.name || "You", body } as Aud;
     // name tag over the player
     const tag = canvasTex(256, 64, (c) => { c.fillStyle = "#F3E7CF"; c.beginPath(); c.roundRect(4, 8, 248, 48, 20); c.fill(); c.fillStyle = "#4A3B3F"; c.font = "700 30px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.fillText((this.me.name || "You").slice(0, 12), 128, 42); });
     const ts = new THREE.Sprite(new THREE.SpriteMaterial({ map: tag, transparent: true, depthTest: false })); ts.scale.set(0.9, 0.225, 1); ts.position.set(ms.x, ms.y + 2.6, ms.z); this.scene.add(ts); (this.me as any).tagSprite = ts;
@@ -235,6 +241,7 @@ export class Auditorium3D {
       p.sprite.position.copy(p.pos);
       if (walking) { if (p.mat.map !== p.walkTex) { p.mat.map = p.walkTex; p.mat.needsUpdate = true; } const col = 1 + (Math.floor(this.t * 8) % 4); p.walkTex.offset.set(col / COLS, 1 - 1 / DIRS.length); p.sprite.position.y += Math.abs(Math.sin(this.t * 9)) * 0.06; }
       else { if (p.mat.map !== p.tex) { p.mat.map = p.tex; p.mat.needsUpdate = true; } const talking = this.speaking === k || this.speaking === "both"; let f = 0; if (talking) f = [1, 2, 1, 0, 2, 1][Math.floor(this.t * 9) % 6]; else if (this.bowing) f = 5; else if (this.standing) f = 4; else if (this.gesture === k) f = this.gestureFrame; p.tex.offset.set(f / 8, 0); }
+      const body = (p as Stand & { body?: THREE.Group }).body; if (body) stepBody(body, p.sprite.position, walking, this.t, false);
     }
     // audience faces the stage; show the front or back by where the camera is
     const camZ = this.camera.position.z / IS; let ai = 0; for (const a of [...this.audience, this.me]) {
@@ -243,6 +250,7 @@ export class Auditorium3D {
       if (col === 0 && !a.me) { if (this.cheer) col = Math.sin(this.t * 9 + ph * 20) > -0.2 ? 3 : 0; else if (this.chatter && ph < 0.4) col = (this.t * (0.9 + ph) + ph * 9) % 1 < 0.55 ? 3 : 0; }
       if (!a.me && !this.tween) { const by: number = aa.by ?? (aa.by = a.sprite.position.y); a.sprite.position.y = by + (this.cheer ? Math.abs(Math.sin(this.t * 7 + ph * 12)) * 0.35 : 0); }
       a.tex.offset.set(col / 4, row === 0 ? 0.5 : 0);
+      const body = (a as Aud & { body?: THREE.Group }).body; if (body) { stepBody(body, a.sprite.position, false, this.t, true); body.rotation.y = Math.PI; }
     }
     if (this.tween) { const tw = this.tween; tw.t += dt / 0.7; const k = Math.min(1, tw.t), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; this.me.sprite.position.lerpVectors(tw.from, tw.to, e); this.me.sprite.position.y += Math.sin(k * Math.PI) * 0.8; if (k >= 1) this.tween = null; }
     const mp = this.me.sprite.position, ts = (this.me as any).tagSprite as THREE.Sprite; ts.position.set(mp.x, mp.y + 2.4, mp.z); ts.visible = this.view !== "audience";   // from your own seat the tag would sit right on the camera
