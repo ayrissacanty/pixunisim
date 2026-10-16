@@ -3,6 +3,7 @@
  *  avatar, grades and phone data follow them to any device the parent signs in on. Guests can still play with nothing saved online.
  *  Locker PHOTOS never leave the device. The backend is swappable (window.__FAMILY_BACKEND) so the whole flow can be tested without a cloud back end. */
 import { gradesFromState } from "../src/hall3d/lockerui";
+import { parentGrade, setParentGrade } from "../src/class3d/gradeband";
 import { SUBJECT_NAME } from "../src/game/progress";
 
 interface User { uid: string; email: string | null; verified: boolean }
@@ -156,11 +157,19 @@ async function pull(uid: string, kid: string, force: boolean): Promise<boolean> 
   for (const k of SYNC) { const d = await B.getData(uid, kid, k); if (d && d.at > seen) { if (readKey(k) !== d.json) changed = true; writeKey(k, d.json); newest = Math.max(newest, d.at); } }
   if (newest > seen) writeKey("unify.family.at." + kid, String(newest)); restoreStash(kid); return changed;
 }
-const paintBtn = () => { btn.textContent = activeKid ? `👪 ${lget().kidName ?? "Family"}` : USER ? "👪 Who's playing?" : "👪 Sign in"; btn.title = activeKid ? syncMsg || "Family account" : "Family accounts: save your progress and use it on any device"; };
+const paintBtn = () => {
+  if (!(window as any).__SUPABASE && !(window as any).__FAMILY_BACKEND && !USER) {
+    const g = parentGrade();
+    btn.textContent = g == null ? "👪 Set grade" : `👪 Grade ${g === 0 ? "K" : g}`;
+    btn.title = "A parent or the account holder sets the grade for this student";
+    return;
+  }
+  btn.textContent = activeKid ? `👪 ${lget().kidName ?? "Family"}` : USER ? "👪 Who's playing?" : "👪 Sign in"; btn.title = activeKid ? syncMsg || "Family account" : "Family accounts: save your progress and use it on any device";
+};
 
 /** switch the device to a kid (or to guest): save the current one, swap the local data, then reload so every part of the game re-reads it */
 async function activate(kid: KidDoc | null, importLocal = false): Promise<void> {
-  try { const kd = kid ?? null; if (kd && USER) localStorage.setItem("unify.family.link", JSON.stringify({ uid: USER.uid, kid: kd.id, band: (kd as any).age ?? (kd as any).band ?? "hs", grade: gradeOf(kd) })); else localStorage.removeItem("unify.family.link"); } catch { /* private mode */ }
+  try { const kd = kid ?? null; if (kd && USER) { localStorage.setItem("unify.family.link", JSON.stringify({ uid: USER.uid, kid: kd.id, band: (kd as any).age ?? (kd as any).band ?? "hs", grade: gradeOf(kd) })); setParentGrade(gradeOf(kd)); } else localStorage.removeItem("unify.family.link"); } catch { /* private mode */ }
   if (USER && activeKid) await pushNow();
   const before = lget();
   if (kid && USER) {
@@ -239,7 +248,7 @@ function welcome(tab: "in" | "up" | "kid" = "up") {
 function applyKid(s: KidSession, email: string) {
   USER = { uid: s.family, email, verified: true }; kidLogin = true; KIDS = [s.kid]; activeKid = s.kid.id; setRole("kid");
   lset({ mode: "family", kid: s.kid.id, kidName: s.kid.name });
-  try { localStorage.setItem("unify.family.link", JSON.stringify({ uid: s.family, kid: s.kid.id, band: s.kid.age, grade: gradeOf(s.kid), kidLogin: true })); } catch { /* private mode */ }
+  try { localStorage.setItem("unify.family.link", JSON.stringify({ uid: s.family, kid: s.kid.id, band: s.kid.age, grade: gradeOf(s.kid), kidLogin: true })); setParentGrade(gradeOf(s.kid)); } catch { /* private mode */ }
 }
 async function enterKid(s: KidSession, email: string): Promise<void> {
   if (lget().mode !== "family" && anyLocal()) { const g: Record<string, string | null> = {}; for (const k of SYNC) g[k] = readKey(k); writeKey(GUEST_BACKUP, JSON.stringify(g)); }   // never lose guest progress
@@ -392,7 +401,7 @@ function editKid(k: KidDoc) {
   swatches(panel, "Icon", ICONS, icon, false, (v) => { icon = v; }); swatches(panel, "Color", COLORS, color, true, (v) => { color = v; });
   const err = E("div", "fm-err", panel), row = E("div", "fm-row", panel), save = E("button", "fm-b pri", row, "Save"), back = E("button", "fm-b", row, "Back"); back.onclick = () => void tools(k);
   save.onclick = async () => { const name = nm.value.trim().slice(0, 14); if (!name) { err.textContent = "Type a nickname."; return; } if (KIDS.some((x) => x.id !== k.id && x.name.toLowerCase() === name.toLowerCase())) { err.textContent = "Another child already has that nickname."; return; }
-    try { k.name = name; k.grade = +ag.value; k.age = bandOf(k.grade); k.color = color; k.icon = icon; await B.saveKid(USER!.uid, k); if (activeKid === k.id) lset({ ...lget(), kidName: name }); paintBtn(); void tools(k); } catch (e) { err.textContent = errText(e); } };
+    try { k.name = name; k.grade = +ag.value; k.age = bandOf(k.grade); k.color = color; k.icon = icon; await B.saveKid(USER!.uid, k); if (activeKid === k.id) { lset({ ...lget(), kidName: name }); setParentGrade(k.grade); } paintBtn(); void tools(k); } catch (e) { err.textContent = errText(e); } };
 }
 
 async function tools(k: KidDoc) {
@@ -461,13 +470,22 @@ async function netSection(parent: HTMLElement, k: KidDoc, msg: HTMLElement) {
   E("button", "fm-b", w, "Live chats").onclick = () => { window.open("parent.html?live=1", "_blank"); };
 }
 
+function localGrade() {
+  card("Set the student's grade");
+  E("p", "", panel, "Only a parent or the account holder sets this. Students can share a classroom. Each one is taught the lesson for their own grade, and they do not see a classmate's lesson unless that classmate is in the same grade.");
+  const ag = gradeSelect(panel, parentGrade() ?? 4);
+  const row = E("div", "fm-row", panel), go = E("button", "fm-b pri", row, "Save grade"), back = E("button", "fm-b", row, "Close");
+  back.onclick = () => close();
+  go.onclick = () => { setParentGrade(+ag.value); close(); paintBtn(); };
+}
+
 /* ---------------- start ---------------- */
 function start() {
   const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
   root = E("div", "", document.body); root.id = "fam"; panel = E("div", "fm-p", root); root.addEventListener("keydown", (e) => e.stopPropagation()); root.addEventListener("click", (e) => { if (e.target === root && (USER || lget().mode)) close(); });
   const nav = document.querySelector("nav"), phone = document.getElementById("tPhone"); btn = E("button", "") as HTMLButtonElement; btn.id = "tFam"; if (nav && phone) nav.insertBefore(btn, phone.nextSibling); else document.body.appendChild(btn); btn.onclick = () => { if (USER && role() === "kid" && activeKid) void kidHome(); else if (USER && !role()) void checkin(); else open(); };
   activeKid = lget().mode === "family" ? lget().kid ?? null : null; paintBtn();
-  if (!(window as any).__SUPABASE && !(window as any).__FAMILY_BACKEND) { btn.style.display = "none"; return; }       // no cloud configured: guest play only
+  if (!(window as any).__SUPABASE && !(window as any).__FAMILY_BACKEND) { btn.textContent = parentGrade() == null ? "👪 Set grade" : `👪 Grade ${parentGrade() === 0 ? "K" : parentGrade()}`; btn.onclick = () => localGrade(); return; }       // no cloud: the account holder still sets the grade on this device
   B = (window as any).__FAMILY_BACKEND ?? supabaseBackend();
   B.onUser(async (u) => {
     if (kidSigningIn) return;

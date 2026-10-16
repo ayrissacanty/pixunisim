@@ -534,7 +534,7 @@ function openSettingsReal(){const cb=(id,label,on)=>`<label style="flex-directio
  inp=([k,l])=>`<label>${l}<input data-f data-k="${k}" value="${esc(S[k])}" ${k==='ghToken'?'type="password"':''} autocomplete="off"></label>`;
  push({id:'set',title:'Settings',
  render:()=>`<div class="kv">
-  ${[['name','Your name'],['grade','Grade for news (K, 1 to 12)']].map(inp).join('')}
+  ${[['name','Your name'],['grade','News grade only (class lessons ignore this)']].map(inp).join('')}
   <div class="sgrp">Look</div>
   <label>Theme<select data-f id="th"><option value="auto" ${S.theme==='auto'?'selected':''}>Match my device</option><option value="light" ${S.theme==='light'?'selected':''}>Light</option><option value="dark" ${S.theme==='dark'?'selected':''}>Dark</option></select></label>
   ${cb('bg','Larger text',S.big)}

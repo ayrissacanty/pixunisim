@@ -1,7 +1,7 @@
 import { Classroom3D, type CamMode } from "../src/class3d/Classroom3D";
 import { Director } from "../src/class3d/director";
 import { ALL_LESSONS, CURRICULUM, type LessonDef } from "../src/class3d/curriculum";
-import { bandLessons } from "../src/class3d/gradeband";
+import { bandLessons, gradeLesson, parentGrade, studentBand } from "../src/class3d/gradeband";
 import { Progress, SUBJECT_NAME } from "../src/game/progress";
 import { openTimes } from "../src/game/timesui";
 import { Placement, runPlacement } from "../src/game/placement";
@@ -65,15 +65,22 @@ const ui = {
 };
 const director = new Director(room, ui); (window as any).__dir = director;
 
-/* ---- the lesson is set by the class you walked into (today's lesson for that subject); students can't pick one ---- */
+/* ---- the lesson follows the grade a parent set. Same grade shares it. A different grade in this room does not. ---- */
+function needGrade() {
+  director.stop(); ui.setTitle("Grade not set"); $("steps").textContent = "";
+  $("subj").textContent = "A parent sets the grade";
+  ui.caption("Class", "Open the account button and choose this student's grade. You can still sit in this room. A classmate in another grade sees their own lesson, not yours.", 20000);
+}
 async function start(s: Subject, att: number[] = lastAtt) {
-  const tok = ++startTok; lastAtt = att; subject = s; const list = bandLessons(CURRICULUM[s]);
+  const tok = ++startTok; lastAtt = att; subject = s; const band = studentBand(); const list = band ? bandLessons(CURRICULUM[s], band) : [];
+  const today = gradeLesson(list);
+  if (!today) { needGrade(); return; }
   if (Progress.assessOn && !Progress.assessment()) { room.inputLocked = true; await runPlacement(); room.inputLocked = false; if (tok !== startTok) return; }
-  begin(list[Progress.index(s, list.length)], att);
+  begin(today, att);
 }
 /** run one lesson: a regular one, or an extra (catch-up) lesson that sits beside regular classes */
 function begin(l: LessonDef, att: number[] = lastAtt) {
-  lesson = l; subject = l.subject as Subject; $("subj").textContent = (l.elective ? "Elective · " + l.elective : l.extra ? "Extra · " + SUBJECT_NAME[subject] : SUBJECT_NAME[subject]) + (l.grades ? ` · grades ${l.grades}` : ""); curRef = l.bookRef ?? ""; $("bBook").classList.remove("on"); ($("bLab") as HTMLButtonElement).hidden = !l.lab.id;
+  lesson = l; subject = l.subject as Subject; const mine = parentGrade(); $("subj").textContent = (l.elective ? "Elective · " + l.elective : l.extra ? "Extra · " + SUBJECT_NAME[subject] : SUBJECT_NAME[subject]) + (mine != null ? ` · grade ${mine === 0 ? "K" : mine}` : "") + " · only your grade"; curRef = l.bookRef ?? ""; $("bBook").classList.remove("on"); ($("bLab") as HTMLButtonElement).hidden = !l.lab.id;
   room.assign(att); life.stop(); life.lesson = lesson; chat.close(); $("bLab").classList.remove("on"); $("moreDot").classList.remove("on"); ($("bNext") as HTMLButtonElement).hidden = true; room.auto = true; markCam("auto"); room.refreshBoard(subject); paintExtra();
   void director.run(lesson); void life.start(subject);
 }

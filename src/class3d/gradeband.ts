@@ -1,10 +1,8 @@
-/** Which grade band this student is in, and which lessons belong to that band.
- *  The phone's grade wins when it has been saved. Otherwise a saved avatar age.
- *  A first visit uses grades 6–8, where the newest seed lessons live. */
+/** The lesson band comes only from the grade a parent or the account holder saved.
+ *  A phone setting or an avatar age never chooses it. No grade means no lesson yet. */
 import type { LessonDef } from "./curriculum";
-import { Social } from "../hall3d/social";
 
-const AGE: Record<string, string> = { k2: "K-2", g35: "3-5", g68: "6-8", hs: "9-12" };
+const ACCOUNT_GRADE = "unify.account.grade";
 
 export function gradesLabel(grade: string): string {
   const g = String(grade).trim().toUpperCase();
@@ -18,29 +16,46 @@ export function gradesLabel(grade: string): string {
   return "9-12";
 }
 
-export function studentBand(): string {
+/** grade 0–12 set by a parent (family link) or the account holder. Null until someone sets it. */
+export function parentGrade(): number | null {
   try {
-    const phone = JSON.parse(localStorage.getItem("flip.settings") || "null") as { grade?: string } | null;
-    if (phone && phone.grade != null && String(phone.grade).trim() !== "") {
-      const b = gradesLabel(String(phone.grade));
-      if (b) return b;
-    }
+    const link = JSON.parse(localStorage.getItem("unify.family.link") || "null") as { grade?: number } | null;
+    if (link && typeof link.grade === "number" && link.grade >= 0 && link.grade <= 12) return link.grade;
   } catch { /* private mode */ }
   try {
-    const raw = JSON.parse(localStorage.getItem("unify.social.v1") || "null") as { profile?: { hasAvatar?: boolean; avatar?: { age?: string } } } | null;
-    if (raw?.profile?.hasAvatar) {
-      const b = AGE[raw.profile.avatar?.age || ""] || AGE[Social.profile.avatar?.age || ""];
-      if (b) return b;
-    }
-  } catch { /* ignore */ }
-  return "6-8";
+    const saved = JSON.parse(localStorage.getItem(ACCOUNT_GRADE) || "null") as { grade?: number } | null;
+    if (saved && typeof saved.grade === "number" && saved.grade >= 0 && saved.grade <= 12) return saved.grade;
+  } catch { /* private mode */ }
+  return null;
+}
+
+/** only a parent or the account holder should call this */
+export function setParentGrade(grade: number) {
+  const g = Math.max(0, Math.min(12, Math.round(grade)));
+  try { localStorage.setItem(ACCOUNT_GRADE, JSON.stringify({ grade: g, by: "account" })); } catch { /* private mode */ }
+  try {
+    const link = JSON.parse(localStorage.getItem("unify.family.link") || "null") as Record<string, unknown> | null;
+    if (link && typeof link === "object") { link.grade = g; localStorage.setItem("unify.family.link", JSON.stringify(link)); }
+  } catch { /* none */ }
+}
+
+export function studentBand(): string {
+  const g = parentGrade();
+  return g == null ? "" : gradesLabel(String(g));
 }
 
 export function lessonsForBand<T extends { grades?: string }>(list: T[], band = studentBand()): T[] {
-  const graded = list.filter((l) => l.grades && gradesLabel(l.grades) === band);
-  return graded.length ? graded : list.filter((l) => !l.grades);
+  if (!band) return [];
+  return list.filter((l) => l.grades && gradesLabel(l.grades) === band);
 }
 
 export function bandLessons(list: LessonDef[], band = studentBand()): LessonDef[] {
   return lessonsForBand(list, band);
+}
+
+/** same grade, same day, same class: the same lesson. A different grade gets a different list, so a different lesson. */
+export function gradeLesson<T>(list: T[], grade = parentGrade()): T | null {
+  if (grade == null || !list.length) return null;
+  const day = Math.floor(Date.now() / 864e5);
+  return list[(day + grade) % list.length];
 }

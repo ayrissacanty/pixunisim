@@ -74,8 +74,8 @@ export class HallScene {
   constructor(public host: HTMLElement) {
     const phone = smallScreen();
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: !phone, alpha: false, powerPreference: phone ? "low-power" : "high-performance" });
-    r.setPixelRatio(dprCap()); r.shadowMap.enabled = !phone; r.shadowMap.type = THREE.PCFShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
-    scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB"); this.scene.fog = new THREE.Fog("#EADFCB", 110 * IS, 260 * IS);
+    r.setPixelRatio(dprCap()); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
+    scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB"); this.scene.fog = new THREE.Fog("#EADFCB", 70 * IS, 340 * IS);
     this.reachable(); this.buildLights(); this.buildCampus(); this.buildDetails(); this.buildOutside(); this.buildRoad(); this.buildBus(); this.buildPeople();
     if (this.px) this.px.finish({ floor: this.floorMesh!, lockers: this.lockMats, winSpots: this.winSpots });
     addEventListener("resize", () => this.resize()); this.resize();
@@ -263,8 +263,9 @@ export class HallScene {
     if (left > 1) this.box(left, wh, 0.4, wall, gx(S.x + left / 2), wy, gz(south), { outline: false, occlude: true, shadow: false });
     if (right > 1) this.box(right, wh, 0.4, wall, gx(gap1 + right / 2), wy, gz(south), { outline: false, occlude: true, shadow: false });
     this.box(S.w - 2, 0.16, S.h - 2, this.plain("#E7D3B0"), cx, y0 + WALL_H - 0.08, cz, { outline: false, shadow: false });
-    this.card(this.tex("libsign", () => T.bannerTex("LIBRARY")), 6.4, 0.9, gx(44), y0 + 3.15, gz(south) + 0.28, Math.PI, true);
-    for (let x = 16; x < 74; x += 8) if (Math.abs(x - 44) > 6) this.card(this.tex("libwin", () => T.windowTex()), 1.5, 1.7, gx(x), y0 + 2.3, gz(S.y) + 0.28, 0);
+    const mid = STAIR_BLOCK.x + STAIR_BLOCK.w / 2;
+    this.card(this.tex("libsign", () => T.bannerTex("LIBRARY")), 6.4, 0.9, gx(mid), y0 + 3.15, gz(south) + 0.28, Math.PI, true);
+    for (let x = S.x + 8; x < S.x + S.w - 6; x += 10) if (Math.abs(x - mid) > 6) this.card(this.tex("libwin", () => T.windowTex()), 1.5, 1.7, gx(x), y0 + 2.3, gz(S.y) + 0.28, 0);
     const spines = this.tex("spines", () => {
       const cv = document.createElement("canvas"); cv.width = 256; cv.height = 128; const c = cv.getContext("2d")!;
       c.fillStyle = "#8A6239"; c.fillRect(0, 0, 256, 128);
@@ -277,8 +278,8 @@ export class HallScene {
       const wide = r.w > r.h, mats = wide ? [ink, ink, wood, ink, front, front] : [front, front, wood, ink, ink, ink];
       this.box(r.w, 2.15, r.h, mats, gx(r.x + r.w / 2), y0 + 1.08, gz(r.y + r.h / 2), { outline: false, shadow: true });
     }
-    this.flat(this.rep("librug", () => T.stoneTex(), 3, 2), 10, 6, gx(44), gz(12), y0 + 0.02);
-    for (const [x, y] of [[28, 11], [60, 11]] as const) {
+    this.flat(this.rep("librug", () => T.stoneTex(), 3, 2), 10, 6, gx(mid), gz(LIB_READ.y), y0 + 0.02);
+    for (const [x, y] of [[mid - 18, LIB_READ.y], [mid + 18, LIB_READ.y]] as const) {
       this.box(2.2, 0.08, 1.1, wood, gx(x), y0 + 0.78, gz(y), { outline: false });
       this.box(0.12, 0.74, 0.12, ink, gx(x), y0 + 0.37, gz(y), { outline: false, shadow: false });
       this.lamp(gx(x) + 1.8, gz(y), "#E7C98A", y0);
@@ -286,10 +287,10 @@ export class HallScene {
     const n = 8, z0 = gz(STAIR_BLOCK.y + STAIR_BLOCK.h), z1 = gz(STAIR_BLOCK.y);
     for (let i = 0; i < n; i++) {
       const t = (i + 0.5) / n, z = z0 + (z1 - z0) * t, h = 0.28 + t * (y0 - 0.28);
-      this.box(7.2, h, Math.abs(z1 - z0) / n + 0.02, wood, gx(44), h / 2, z, { outline: false, shadow: false });
+      this.box(7.2, h, Math.abs(z1 - z0) / n + 0.02, wood, gx(mid), h / 2, z, { outline: false, shadow: false });
     }
-    for (const side of [-1, 1]) this.box(0.12, 1.05, 8.2, ink, gx(44 + side * 3.7), y0 * 0.45 + 0.4, (z0 + z1) / 2, { outline: false, shadow: false });
-    this.box(7.4, 0.9, 0.12, ink, gx(44), y0 + 0.55, gz(south) - 0.2, { outline: false, shadow: false });
+    for (const side of [-1, 1]) this.box(0.12, 1.05, 8.2, ink, gx(mid + side * 3.7), y0 * 0.45 + 0.4, (z0 + z1) / 2, { outline: false, shadow: false });
+    this.box(7.4, 0.9, 0.12, ink, gx(mid), y0 + 0.55, gz(south) - 0.2, { outline: false, shadow: false });
   }
   private fx!: { tick(t: number, dt: number): void };
   private buildDetails() {
@@ -313,7 +314,8 @@ export class HallScene {
     const pil = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.42, 1.5, 14), cream); pil.position.y = 1.2; pil.castShadow = true; g.add(pil);
     const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.5, 0.3, 20), cream); bowl.position.y = 1.9; bowl.castShadow = true; g.add(bowl);
     const top = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.05, 20), new THREE.MeshStandardMaterial({ color: "#8FC9E8", emissive: "#8FC9E8", emissiveIntensity: 0.25 })); top.position.y = 2.05; g.add(top);
-    const spray = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.9, 10), new THREE.MeshStandardMaterial({ color: "#DDF3FB", emissive: "#DDF3FB", emissiveIntensity: 0.4, transparent: true, opacity: 0.85 })); spray.position.y = 2.55; g.add(spray);
+    const spray = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.9, 10), new THREE.MeshStandardMaterial({ color: "#DDF3FB", emissive: "#DDF3FB", emissiveIntensity: 0.4, transparent: true, opacity: 0.85 })); spray.position.y = 2.55; spray.userData.spray = 1; g.add(spray);
+    g.userData.water = water; g.userData.spray = spray; this.fountains.push(g);
     g.position.set(x, 0, z); this.scene.add(g);
   }
   private table(x: number, z: number, y = 0) {
@@ -363,7 +365,7 @@ export class HallScene {
     const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
     const bm = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })); this.scene.add(bm); this.buntMeshes.push(bm);
   }
-  private buntMeshes: THREE.Mesh[] = []; private tables: { x: number; z: number; cloth: THREE.Mesh; flag: THREE.Sprite; sign: THREE.Sprite; mat: THREE.MeshStandardMaterial }[] = []; private decorG = new THREE.Group(); private emoCache = new Map<string, THREE.CanvasTexture>();
+  private buntMeshes: THREE.Mesh[] = []; private tables: { x: number; z: number; cloth: THREE.Mesh; flag: THREE.Sprite; sign: THREE.Sprite; mat: THREE.MeshStandardMaterial }[] = []; private decorG = new THREE.Group(); private emoCache = new Map<string, THREE.CanvasTexture>(); private fountains: THREE.Group[] = [];
   /** a small emoji picture (or short text) as a billboard */
   private emo(ch: string, size: number, text = false): THREE.Sprite {
     const key = ch + (text ? "t" : ""); let t = this.emoCache.get(key);
@@ -388,7 +390,7 @@ export class HallScene {
     for (const [cx, cz] of [[10, 6], [W - 10, 6], [10, H - 8], [W - 10, H - 8]] as const) { const p = g2w(cx, cz); put(3, p.x, 1.1, p.z, 1.3); put(0, p.x + 0.9, 0.6, p.z + 0.4, 0.7); }
   }
   /** per-frame life for the decorations (gentle sway and bobbing) */
-  tickDecor(t: number) { for (const sp of this.decorG.children) { const u = sp.userData; if (u.sway != null) sp.position.y += Math.sin(t * 2 + u.sway) * 0.0008; if (u.bob != null) sp.position.y = 0.55 + Math.abs(Math.sin(t * 1.6 + u.bob)) * 0.12; } }
+  tickDecor(t: number) { for (const sp of this.decorG.children) { const u = sp.userData; if (u.sway != null) sp.position.y += Math.sin(t * 2 + u.sway) * 0.0008; if (u.bob != null) sp.position.y = 0.55 + Math.abs(Math.sin(t * 1.6 + u.bob)) * 0.12; } for (const g of this.fountains) { const spray = g.userData.spray as THREE.Object3D, water = g.userData.water as THREE.Object3D; if (spray) { spray.position.y = 2.55 + Math.sin(t * 3) * 0.08; spray.rotation.y = t * 1.4; } if (water) water.scale.x = water.scale.z = 1 + Math.sin(t * 2.2) * 0.015; } }
   /** Chat Chow crew look: the table you sit at gets your cloth colour, flag and crew name */
   applyChow(home: number, cloth: string, flag: string, crew: string) {
     this.tables.forEach((t, i) => { const mine = i === home; t.mat.color.set(mine ? cloth : "#F8EBD2"); t.flag.visible = mine; t.sign.visible = mine; if (mine) { const nf = this.emo(flag, 0.8), ns = this.emo(crew, 0.28, true); t.flag.material.map = nf.material.map; t.flag.material.needsUpdate = true; t.sign.material.map = ns.material.map; t.sign.material.needsUpdate = true; } });
@@ -831,7 +833,7 @@ export class HallScene {
   cycleView() { this.setView(this.view === "close" ? "overview" : this.view === "overview" ? "first" : "close"); return this.view; }
   private updateCamera(dt: number, snap = false) {
     const P = this.player.pos, st = Math.sin(this.yaw), ct = Math.cos(this.yaw); let pos: THREE.Vector3, look: THREE.Vector3;
-    if (this.view === "close") { const ap = this.arrivalCam, pit = ap ? 1.05 : this.pitch, d = (ap ? 12 : 7.2) * this.zoom, cp = Math.cos(pit); pos = new THREE.Vector3(P.x + st * cp * d, P.y + 1.0 + Math.sin(pit) * d, P.z + ct * cp * d); look = new THREE.Vector3(P.x - st * 1.8, P.y + 1.0, P.z - ct * 1.8); }
+    if (this.view === "close") { const ap = this.arrivalCam, pit = ap ? 1.05 : this.pitch, d = (ap ? 16 : 11) * this.zoom, cp = Math.cos(pit); pos = new THREE.Vector3(P.x + st * cp * d, P.y + 1.0 + Math.sin(pit) * d, P.z + ct * cp * d); look = new THREE.Vector3(P.x - st * 1.8, P.y + 1.0, P.z - ct * 1.8); }
     else if (this.view === "overview") { const d = Math.max(70, Math.max(W, H) * 0.92) * this.zoom, cp = Math.cos(this.pitch); pos = new THREE.Vector3(st * cp * d, P.y + Math.sin(this.pitch) * d, ct * cp * d + 3); look = new THREE.Vector3(P.x * 0.25, P.y, P.z * 0.25); }
     else { const ey = P.y + 1.7 / IS; pos = new THREE.Vector3(P.x, ey, P.z); look = new THREE.Vector3(P.x - st * 6, ey + Math.tan(this.fpitch) * 6, P.z - ct * 6); }
     if (this.view !== "overview") {
