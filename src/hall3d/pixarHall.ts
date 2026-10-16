@@ -127,27 +127,29 @@ export class PixarHall {
     this.warm.position.set(player.x + 1.6, 0.7, player.z + 1.2); this.cool.position.set(player.x - 2.4, 3.2, player.z - 2.6);
     if (this.shafts) (this.shafts.material as THREE.MeshBasicMaterial).color.setScalar((1 - n) * 0.35);
   }
-  resize(w: number, h: number) { this.w = w; this.h = h; if (this.composer) { this.composer.setPixelRatio(this.r.getPixelRatio()); this.composer.setSize(w, h); } }
+  loseContext() { this.failed = true; try { this.composer?.dispose(); } catch { /* context already gone */ } this.composer = null; this.r.setRenderTarget(null); }
+  resize(w: number, h: number) { this.w = Math.max(2, w); this.h = Math.max(2, h); if (this.composer) { try { this.composer.setPixelRatio(this.r.getPixelRatio()); this.composer.setSize(this.w, this.h); } catch { this.loseContext(); } } }
   /** true when the post stack drew the frame; false = caller renders normally (low graphics, phones that failed, no post support) */
   render(): boolean {
-    if (Gfx.low || this.failed) return false;
+    if (Gfx.low || this.failed || this.w < 2 || this.h < 2) return false;
     try {
       if (!this.composer) {
-        const pr = this.r.getPixelRatio(), small = smallScreen(), rt = new THREE.WebGLRenderTarget(this.w * pr, this.h * pr, { type: THREE.HalfFloatType, samples: small ? 0 : 4 });
+        const pr = this.r.getPixelRatio(), small = smallScreen();
+        const rt = new THREE.WebGLRenderTarget(Math.max(2, this.w * pr), Math.max(2, this.h * pr), { type: small ? THREE.UnsignedByteType : THREE.HalfFloatType, samples: 0 });
         const cp = this.composer = new EffectComposer(this.r, rt); cp.setPixelRatio(pr); cp.setSize(this.w, this.h);
-        cp.addPass(new RenderPass(this.scene, this.cam)); if (!small) { this.bloom = new UnrealBloomPass(new THREE.Vector2(this.w / 2, this.h / 2), 0.22, 0.45, 1.15); cp.addPass(this.bloom); }   // phones skip bloom
+        cp.addPass(new RenderPass(this.scene, this.cam)); if (!small) { this.bloom = new UnrealBloomPass(new THREE.Vector2(this.w / 2, this.h / 2), 0.22, 0.45, 1.15); cp.addPass(this.bloom); }
         cp.addPass(new ShaderPass(GRADE)); cp.addPass(new OutputPass());
         if (small) { const fx = new ShaderPass(FXAAShader); fx.uniforms.resolution.value.set(1 / (this.w * pr), 1 / (this.h * pr)); cp.addPass(fx); }
       }
       this.composer.render(); return true;
-    } catch (err) { console.warn("post-processing unavailable, using plain rendering", err); this.failed = true; this.composer?.dispose(); this.composer = null; this.r.setRenderTarget(null); return false; }
+    } catch (err) { console.warn("post-processing unavailable, using plain rendering", err); this.loseContext(); return false; }
   }
 
   /* ------------------------------------------------------------ one pass over everything the hall built: glossy satin materials, smooth shapes, no paper outlines */
   finish(tags: PxTags) {
     const S = this.scene, lock = new Set(tags.lockers), seen = new Set<THREE.Material>(), hsl = { h: 0, s: 0, l: 0 };
-    const tune = (m: THREE.Material, o: THREE.Mesh) => {
-      if (seen.has(m)) return; seen.add(m); const s = m as THREE.MeshStandardMaterial; if (!s.isMeshStandardMaterial) return;
+    const tune = (m: THREE.Material | undefined, o: THREE.Mesh) => {
+      if (!m || seen.has(m)) return; seen.add(m); const s = m as THREE.MeshStandardMaterial; if (!s.isMeshStandardMaterial) return;
       if (s.flatShading) { s.flatShading = false; s.needsUpdate = true; }
       if (!s.map && !s.emissiveMap) { s.color.getHSL(hsl); if (hsl.s > 0.55) s.color.setHSL(hsl.h, hsl.s * 0.72, hsl.l); }
       s.envMapIntensity = 0.35;

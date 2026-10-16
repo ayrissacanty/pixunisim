@@ -78,6 +78,7 @@ export class HallScene {
     const phone = smallScreen();
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: !phone, alpha: false, powerPreference: phone ? "low-power" : "high-performance" });
     r.setPixelRatio(dprCap()); r.shadowMap.enabled = true; r.shadowMap.type = phone ? THREE.BasicShadowMap : THREE.PCFShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
+    r.domElement.addEventListener("webglcontextlost", (ev) => { ev.preventDefault(); this.px?.loseContext(); }, false);
     scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB"); this.scene.fog = new THREE.Fog("#EADFCB", 70 * IS, 340 * IS);
     this.skyCv.width = 256; this.skyCv.height = 320; this.skyTex = new THREE.CanvasTexture(this.skyCv); this.skyTex.colorSpace = THREE.SRGBColorSpace; this.paintSky(10);
     this.reachable(); this.buildLights(); this.buildCampus(); this.buildDetails(); this.buildDoorLeaves(); this.buildOutside(); this.buildLife(); this.buildRoad(); this.buildBus(); this.buildPeople();
@@ -120,7 +121,7 @@ export class HallScene {
     const phone = smallScreen();
     sun.shadow.mapSize.set(shadowSize(phone ? 512 : 2048), shadowSize(phone ? 512 : 2048)); sun.shadow.camera.near = 1; sun.shadow.camera.far = 80 * IS; sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02; sun.shadow.radius = phone ? 0 : 2;
     this.scene.add(sun, sun.target);
-    if (isPixar()) this.px = new PixarHall(this.renderer, this.scene, this.camera, sun, hemi);   // golden key, teal fill, coloured rims, haze and post stack (lights follow Mood themselves)
+    if (isPixar()) { try { this.px = new PixarHall(this.renderer, this.scene, this.camera, sun, hemi); } catch (err) { console.warn("movie look failed, using the plain hall", err); this.px = null; } }
     else { Mood.rig({ hemi, sun, bg: this.scene.background as THREE.Color, fog: this.scene.fog as THREE.Fog });
       rimLight(this.scene, 0.5); vignette(this.host, 0.24); }   // cool back light + soft screen-edge darkening
     this.beam = new Beam(this.scene, Social.profile.avatar.shirt);   // light pillar over the player
@@ -131,12 +132,14 @@ export class HallScene {
   private plain(color: string) { return new THREE.MeshStandardMaterial({ color, roughness: this.px ? 0.78 : 1 }); }
   /** a soft clay box in the movie look, a plain box otherwise */
   private clay(w: number, h: number, d: number, rad = 0.22) {
-    if (!this.px) return new THREE.BoxGeometry(w, h, d);
-    const r = Math.max(0.04, Math.min(rad, w / 2 - 0.02, h / 2 - 0.02, d / 2 - 0.02));
-    return new RoundedBoxGeometry(w, h, d, 4, r);
+    w = Math.max(0.04, w); h = Math.max(0.04, h); d = Math.max(0.04, d);
+    const min = Math.min(w, h, d), r = Math.min(rad, min / 2 - 0.02);
+    if (!this.px || !(r > 0.01)) return new THREE.BoxGeometry(w, h, d);
+    return new RoundedBoxGeometry(w, h, d, 2, r);
   }
   private box(w: number, h: number, d: number, mats: THREE.Material | THREE.Material[], x: number, y: number, z: number, o: { outline?: boolean; occlude?: boolean; shadow?: boolean } = {}) {
     const { outline = !this.px, occlude = false, shadow = true } = o;
+    w = Math.max(0.02, w); h = Math.max(0.02, h); d = Math.max(0.02, d);
     if (occlude) mats = (Array.isArray(mats) ? mats : [mats]).map((m) => m.clone());       // own materials so each can fade alone
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mats); m.position.set(x, y, z); m.castShadow = shadow; m.receiveShadow = true; this.scene.add(m);
     if (outline) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({ color: 0x6d5a5f, transparent: true, opacity: 0.55 })));
@@ -735,7 +738,7 @@ export class HallScene {
     const walk = new THREE.Mesh(new THREE.PlaneGeometry(60, 4.2), this.std(this.rep("stoneW", () => T.stoneTex(), 14, 1))); walk.rotation.x = -Math.PI / 2; walk.position.set(0, -0.012, H / 2 + 3.0); this.scene.add(walk);
   }
   /** is a seat free (no one else is meant to be there) */
-  standUp() { if (this.sitting == null) return; const s = this.seats[this.sitting]; const out = s.pos.clone().sub(s.ctr).setY(0).normalize().multiplyScalar(0.7); this.player.pos.copy(s.pos).add(out); this.sitting = null; this.pendingSeat = null; }
+  standUp() { if (this.sitting == null) return; const s = this.seats[this.sitting]; this.sitting = null; this.pendingSeat = null; if (!s) return; const out = s.pos.clone().sub(s.ctr).setY(0).normalize().multiplyScalar(0.7); this.player.pos.copy(s.pos).add(out); }
   /** walk to a Chat Chow seat and sit; face the table */
   sitAt(i: number) {
     if (this.inputLocked || this.cine) return false; const s = this.seats[i]; if (!s) return false; this.standUp();
@@ -1139,7 +1142,7 @@ export class HallScene {
       return;
     }
     if (this.sitting != null) {                                    // seated: face the table; any movement input stands up
-      if (manual) this.standUp(); else { const s = this.seats[this.sitting], f = s.ctr.clone().sub(s.pos); f.y = 0; P.pos.copy(s.pos); P.dir = this.dirFrom(f, fwd, P.dir); P.moving = false; P.frame = 0; return; }
+      if (manual) this.standUp(); else { const s = this.seats[this.sitting!]; if (!s) { this.sitting = null; return; } const f = s.ctr.clone().sub(s.pos); f.y = 0; P.pos.copy(s.pos); P.dir = this.dirFrom(f, fwd, P.dir); P.moving = false; P.frame = 0; return; }
     }
     if (manual && this.nav) { this.cancelNav(); this.pendingSeat = null; }
     if (manual) {                                                  // controls follow the camera: up = away from the viewer
@@ -1204,7 +1207,7 @@ export class HallScene {
 
   /* ------------------------------------------------------------ frame */
   private lastClockMsg = 0; private todOverride: number | null = Mood.queryTod();
-  private frame = (now: number) => {
+  private frame = (now: number) => { try {
     const raw = now - this.last, dt = Math.min(0.05, raw / 1000); this.last = now; this.t += dt; this.tickDecor(this.t); if (this.beacon) { const a = this.beacon.getObjectByName("arr"); if (a) { a.position.y = 3.6 + Math.sin(this.t * 4) * 0.25; a.rotation.y = this.t * 2; } } const sim = dt * this.speed;
     this.clock += sim; if (this.clock >= DAY) this.clock -= DAY;
     // the day's colour comes from Mood: school-day clock mapped to a sunrise-to-dusk hour, season and any palette the academy sent
@@ -1221,7 +1224,7 @@ export class HallScene {
       if (s.talking) { s.moving = false; s.frame = 0; continue; }
       this.fidget(s, dt);
       if (s.act && !s.path.length) { s.moving = false; s.frame = 0; continue; }
-      if (s.fade < 1) { s.fade = Math.min(1, s.fade + sim * 3); s.mat.opacity = s.fade; }
+      if (s.fade < 1 && s.mat) { s.fade = Math.min(1, s.fade + sim * 3); s.mat.opacity = s.fade; }
       if (s.path.length) {
         const tgt = s.path[0], step = s.speed * sim, arrived = this.approach(s, tgt.x, tgt.z, step, s.pos.y > 2.2 ? 1 : 0);
         if (Math.abs(tgt.y - s.pos.y) > 0.03) s.pos.y += Math.sign(tgt.y - s.pos.y) * Math.min(Math.abs(tgt.y - s.pos.y), step * 1.8);
@@ -1251,10 +1254,12 @@ export class HallScene {
       if (this.px) this.px.tick(this.t, this.player.pos);
       crowd.update(dt, [this.player, ...this.students, this.monitor, this.teacher, ...this.duty], { player: this.player, playerSpec: this.playerSpec, camera: this.camera, shown: this.view !== "first" && !this.arrivalHide, first: this.view === "first", seat: this.sitting != null ? this.seats[this.sitting] : null, talkingTo: this.persons().find((q) => q.talking) ?? null });
     }
-    const tg = PERIODS[this.idx].tint, k = Math.min(1, dt * 1.5); for (let i = 0; i < 4; i++) this.tint[i] += (tg[i] - this.tint[i]) * k;
+    const tg = (PERIODS[this.idx] ?? PERIODS[0])?.tint; const k = Math.min(1, dt * 1.5); if (tg) for (let i = 0; i < 4; i++) this.tint[i] += (tg[i] - this.tint[i]) * k;
     if (this.sitting != null) this.player.sprite.position.y -= 0.12;
     this.beam.update(this.t, this.camera, this.player.pos, this.view !== "first" && !this.arrivalHide, IS);
-    if (!this.px?.render()) this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.frame);
+    if (!this.px?.render()) this.renderer.render(this.scene, this.camera);
+  } catch (err) { console.warn("hall frame", err); }
+    requestAnimationFrame(this.frame);
   };
 }
 const LAMP_COLS = ["#F8D977", "#F28F7E", "#8FC9E8", "#A9DCC0"];
