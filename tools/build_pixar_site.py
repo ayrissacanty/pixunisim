@@ -39,7 +39,7 @@ PAGES = [
     ("pixar/characters.html", "characters.html"),
     ("dorm.html", "dorm.html"),
 ]
-SUPPORT = ["phone-icon.svg", "phone-net.js"]
+SUPPORT = ["phone-icon.svg", "phone-net.js", "look.js", "pixar-ui.css"]
 BANNER_TEXT = "Look preview only. Nothing here is saved to any account."
 # preview pages: a strip at the top of the page; the full-screen dorm gets a small pill that never blocks taps
 BANNER = f'<div id="lookbanner" role="note" style="background:#ffd27a;color:#2b2f3a;font:700 12px/1.3 system-ui,sans-serif;text-align:center;padding:4px 8px">{BANNER_TEXT}</div>'

@@ -28,7 +28,7 @@ def write(p, t):
 
 
 look = read(os.path.join(ROOT, "look.js"))
-assert 'var LOOK = "papercut"' in look, "look.js no longer has the LOOK default line"
+assert 'var LOOK = "papercut"' in look or 'var LOOK = "pixar"' in look, "look.js no longer has the LOOK default line"
 look = look.replace('var LOOK = "papercut"', 'var LOOK = "pixar"')
 # stylesheet next to look.js, whatever the page depth
 look = look.replace('l.href = "pixar-ui.css"', 'l.href = document.currentScript.src.replace(/look\\.js.*$/, "pixar-ui.css")')
