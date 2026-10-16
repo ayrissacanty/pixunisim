@@ -15,7 +15,7 @@
 [[headers]]
   for = "/demo/dist/*"
   [headers.values]
-    Cache-Control = "public, max-age=3600"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 # Flip Phone web app: short URL, and the service worker must always revalidate.
 [[redirects]]
