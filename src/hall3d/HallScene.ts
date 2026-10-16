@@ -224,12 +224,48 @@ export class HallScene {
     this.doorMat(-W / 2 + 1.45, OPEN.cy - H / 2, Math.PI / 2, "#E8A33D"); this.doorMat(NEWS.cx - W / 2, -H / 2 + 1.45, 0, "#8E7CC3");
     this.bunting([[-W / 2 + 0.06, -H / 2 + 0.06, W / 2 - 0.06, -H / 2 + 0.06], [-W / 2 + 0.06, -H / 2 + 0.06, -W / 2 + 0.06, H / 2 - 0.06], [W / 2 - 0.06, -H / 2 + 0.06, W / 2 - 0.06, H / 2 - 0.06]], 3.95);
 
+    // layered shell: a stone pad under the tile, a raised border, then baseboard, wainscot, rail and crown on the inner walls
+    const pad = this.plain("#B9976A"), lip = this.plain("#E7D3A8"), baseM = this.plain("#F6E7C8"), wainM = this.plain("#E8C27A"), railM = this.plain("#C56A32"), crownM = this.plain("#FFE08A");
+    this.box(W + 2.6, 0.32, H + 2.6, pad, 0, -0.18, 0, { outline: false, shadow: false });
+    this.box(W - 0.2, 0.05, 0.7, lip, 0, 0.028, -H / 2 + 0.55, { outline: false, shadow: false });
+    this.box(W - 0.2, 0.05, 0.7, lip, 0, 0.028, H / 2 - 0.55, { outline: false, shadow: false });
+    this.box(0.7, 0.05, H - 1.6, lip, -W / 2 + 0.55, 0.028, 0, { outline: false, shadow: false });
+    this.box(0.7, 0.05, H - 1.6, lip, W / 2 - 0.55, 0.028, 0, { outline: false, shadow: false });
+    const layers = (len: number, cx: number, cz: number, horiz: boolean) => {
+      if (len < 0.9) return;
+      this.box(horiz ? len : 0.18, 0.26, horiz ? 0.18 : len, baseM, cx, 0.14, cz, { outline: false, shadow: false });
+      this.box(horiz ? len : 0.1, 0.92, horiz ? 0.1 : len, wainM, cx, 0.76, cz, { outline: false, shadow: false });
+      this.box(horiz ? len : 0.16, 0.09, horiz ? 0.16 : len, railM, cx, 1.28, cz, { outline: false, shadow: false });
+      this.box(horiz ? len : 0.2, 0.14, horiz ? 0.2 : len, crownM, cx, WALL_H - 0.12, cz, { outline: false, shadow: false });
+    };
+    const nd = NEWS.cx - W / 2, oz = OPEN.cy - H / 2;
+    layers(nd - 1.6 + W / 2, (-W / 2 + nd - 1.6) / 2, -H / 2 + 0.28, true);
+    layers(W / 2 - nd - 1.6, (nd + 1.6 + W / 2) / 2, -H / 2 + 0.28, true);
+    layers(g0 + W / 2 - 0.5, (-W / 2 + g0) / 2, H / 2 - 0.28, true);
+    layers(W / 2 - g1 - 0.5, (g1 + W / 2) / 2, H / 2 - 0.28, true);
+    layers(oz + H / 2 - 1.4, -W / 2 + 0.28, (-H / 2 + oz - 1.4) / 2, false);
+    layers(H / 2 - oz - 1.4, -W / 2 + 0.28, (oz + 1.4 + H / 2) / 2, false);
+    layers(H - 2, W / 2 - 0.28, 0, false);
+
     // subject blocks: solid paper boxes with a big roof label, windows, posters and one door each
     for (const b of BLOCKS) {
       const r = b.rect, s = b.subject, door = DOORS.find((d) => d.subject === s)!;
       const sx = Mood.tinted(this.std(this.rep("wall", () => T.wallTex(), r.h / 4)), "wash", 1), sz2 = Mood.tinted(this.std(this.rep("wall", () => T.wallTex(), r.w / 4)), "wash", 1);
       const roof = this.std(this.tex(`roof-${s}`, () => T.roofLabelTex(SUBJ_LABEL[s], SUBJ_COL[s], s === "science" ? "#3b3340" : "#FFF9F0")));
       this.box(r.w, WALL_H, r.h, [sx, sx, roof, outer, sz2, sz2], r.x + r.w / 2 - W / 2, WALL_H / 2, r.y + r.h / 2 - H / 2, { occlude: true });
+      this.box(r.w + 0.16, 0.16, r.h + 0.16, crownM, r.x + r.w / 2 - W / 2, WALL_H - 0.02, r.y + r.h / 2 - H / 2, { outline: false, shadow: false });
+      for (const f of (["N", "S", "E", "W"] as Face[])) {
+        const len = f === "N" || f === "S" ? r.w : r.h, horiz = f === "N" || f === "S";
+        const put = (t0: number, t1: number) => {
+          const span = (t1 - t0) * len; if (span < 0.8) return;
+          const p = this.onFace(r, f, (t0 + t1) / 2, 0.22);
+          this.box(horiz ? span : 0.12, 0.9, horiz ? 0.12 : span, wainM, p.x, 0.7, p.z, { outline: false, shadow: false });
+          this.box(horiz ? span : 0.16, 0.08, horiz ? 0.16 : span, railM, p.x, 1.2, p.z, { outline: false, shadow: false });
+          this.box(horiz ? span : 0.18, 0.2, horiz ? 0.18 : span, baseM, p.x, 0.11, p.z, { outline: false, shadow: false });
+        };
+        if (f !== door.face) put(0.03, 0.97);
+        else { const dt = Math.max(0, Math.min(1, (door.cx - r.x) / r.w)), gap = 2.4 / len; put(0.02, dt - gap / 2); put(dt + gap / 2, 0.98); }
+      }
       const faces: Face[] = ["N", "S", "E", "W"];
       for (const f of faces) {
         const len = f === "N" || f === "S" ? r.w : r.h, n = Math.round(len / 4.6);
@@ -322,7 +358,9 @@ export class HallScene {
     const gx = (x: number) => x - W / 2, gz = (y: number) => y - H / 2;
     const upper = this.plain("#D7F4FF"), wain = this.plain("#14986A"), crown = this.plain("#FFC233"), wood = this.plain("#E08A3C"), ink = this.plain("#7A3E22"), cream = this.plain("#FFF3C4");
     const slab = (r: Rect, floorCol: THREE.Material) => {
-      this.box(r.w, 0.2, r.h, floorCol, gx(r.x + r.w / 2), y0 + 0.02, gz(r.y + r.h / 2), { outline: false, shadow: false });
+      this.box(r.w + 0.28, 0.16, r.h + 0.28, wood, gx(r.x + r.w / 2), y0 - 0.06, gz(r.y + r.h / 2), { outline: false, shadow: false });
+      this.box(r.w, 0.22, r.h, floorCol, gx(r.x + r.w / 2), y0 + 0.06, gz(r.y + r.h / 2), { outline: false, shadow: false });
+      this.box(Math.max(0.4, r.w - 1.6), 0.04, Math.max(0.4, r.h - 1.6), cream, gx(r.x + r.w / 2), y0 + 0.18, gz(r.y + r.h / 2), { outline: false, shadow: false });
       this.box(Math.max(0.4, r.w - 1.4), 0.08, Math.max(0.4, r.h - 1.4), cream, gx(r.x + r.w / 2), y0 + wh - 0.06, gz(r.y + r.h / 2), { outline: false, shadow: false });
     };
     const oak = this.plain("#C4894A"), hallTile = this.std(this.rep("upfloor", () => T.floorTex(), 4, 3)), stone = this.plain("#F4E7CC");
@@ -400,8 +438,19 @@ export class HallScene {
     anchor(76, "#E07A66"); anchor(84, "#4F91C7");
     this.box(1.2, 0.7, 0.15, this.plain("#2b2b34"), gx(80), y0 + 1.35, gz(64.2), { outline: false });
     const n = 8, z0 = gz(STAIR_BLOCK.y + STAIR_BLOCK.h), z1 = gz(STAIR_BLOCK.y), mid = STAIR_BLOCK.x + STAIR_BLOCK.w / 2, tread = Math.abs(z1 - z0) / n;
-    for (let i = 0; i < n; i++) { const t = (i + 0.5) / n, z = z0 + (z1 - z0) * t, top = 0.18 + t * (y0 - 0.18); this.box(7.2, 0.16, tread + 0.05, wood, gx(mid), top - 0.08, z, { outline: false, shadow: false }); }
-    for (const side of [-1, 1]) this.box(0.14, 1.15, 8.2, ink, gx(mid + side * 3.7), y0 * 0.45 + 0.5, (z0 + z1) / 2, { outline: false, shadow: false });
+    const riser = this.plain("#C56A32"), nose = this.plain("#F6E2B8"), run = Math.abs(z1 - z0), rise = y0 - 0.18, ang = Math.atan2(rise, run), dir = z0 > z1 ? 1 : -1;
+    for (let i = 0; i < n; i++) {
+      const t = (i + 0.5) / n, z = z0 + (z1 - z0) * t, top = 0.18 + t * rise;
+      this.box(6.4, top, tread * 0.96, riser, gx(mid), top / 2, z, { outline: false });
+      this.box(6.7, 0.08, tread * 0.36, nose, gx(mid), top + 0.03, z + dir * tread * 0.36, { outline: false, shadow: false });
+    }
+    this.box(7.1, 0.24, 1.5, nose, gx(mid), y0 - 0.02, z1 - dir * 0.2, { outline: false, shadow: false });
+    for (const side of [-1, 1]) {
+      this.box(0.24, rise + 0.35, run + 0.4, ink, gx(mid + side * 3.42), (rise + 0.35) / 2, (z0 + z1) / 2, { outline: false });
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, run + 0.5), this.plain("#F7F1E6"));
+      rail.position.set(gx(mid + side * 3.55), 1.08 + rise / 2, (z0 + z1) / 2); rail.rotation.x = dir * ang; rail.castShadow = true; this.scene.add(rail);
+      for (let i = 0; i < 4; i++) { const t = (i + 0.5) / 4, z = z0 + (z1 - z0) * t, y = 0.2 + t * rise; this.box(0.08, 1.02, 0.08, ink, gx(mid + side * 3.55), y + 0.42, z, { outline: false, shadow: false }); }
+    }
     void UP_DOORS;
   }
   private fx!: { tick(t: number, dt: number): void };
