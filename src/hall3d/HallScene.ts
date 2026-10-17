@@ -1050,7 +1050,7 @@ export class HallScene {
     const subject = this.doorAnim?.subject; if (!subject || this.doorAnim?.sent) return;
     this.doorAnim!.sent = true;
     if (this.peek) { this.scene.remove(this.peek); (this.peek.material as THREE.Material).dispose(); this.peek = null; }
-    const si = SUBJECTS.indexOf(subject as Subject), swap = PERIODS[Math.max(0, this.idx)].swap ? 1 : 0, attendees = subject === "news" || subject === "open" ? [] : this.students.filter((_, n) => (n + swap) % 4 === si).map((x) => x.def!.id);
+    const si = SUBJECTS.indexOf(subject as Subject), swap = PERIODS[Math.max(0, this.idx)].swap ? 1 : 0, attendees = subject === "news" || subject === "open" ? [] : this.students.filter((_, n) => (n + swap) % 4 === si).map((x) => x.def?.id).filter((id) => id != null);
     if (parent !== window) parent.postMessage({ type: "unify:enter", subject, room: subject, attendees }, "*");
     else this.onToast(`${this.roomLabel(subject)}: open the school page to go inside`);
   }
@@ -1064,7 +1064,7 @@ export class HallScene {
         if (n % 5 < 2) { const spot = spots[(n * 3) % Math.max(1, spots.length)] || ent; s.pending = { delay: rnd(0, 6), dest: spot, hide: false, appear: s.hidden ? (s.lastDoor || ent) : undefined }; }
         else { const d = DOORS[(n + (P.swap ? 1 : 0)) % DOORS.length], t = { x: Math.floor(d.approach.x), y: Math.floor(d.approach.y) }; s.lastDoor = t; s.pending = { delay: rnd(0, 8), dest: t, hide: true }; }
       }
-      else if (P.kind === "lunch") { const buddy = s.def && Social.peek(s.def.id)?.lunchBuddy && near[ni]; s.pending = { delay: rnd(0, 10), dest: buddy ? near[ni++] : spots[n], hide: false, appear: s.hidden ? s.lastDoor : undefined }; }
+      else if (P.kind === "lunch") { const buddy = s.def && Social.peek(s.def.id)?.lunchBuddy && near[ni]; s.pending = { delay: rnd(0, 10), dest: buddy ? near[ni++]! : (spots[n % Math.max(1, spots.length)] || ent), hide: false, appear: s.hidden ? s.lastDoor : undefined }; }
       else if (P.kind === "arrive") {
         if (this.bus && this.busState) { this.bus.visible = true; this.bus.position.set(this.busState.to, 0, OUTSIDE.busStop.y - H / 2); if (this.busState.mode === "idle") this.busState.mode = "wait"; }
         const door = { x: OUTSIDE.busDoor.x + (n % 5) * 0.7 - 1.4, y: OUTSIDE.busDoor.y };

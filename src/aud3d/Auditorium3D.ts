@@ -230,7 +230,7 @@ export class Auditorium3D {
   private tap(cx: number, cy: number) { const i = this.pick(cx, cy); if (i >= 0) this.sitAt(i); }
 
   /* ---------------------------------------------------------------- frame */
-  private frame = (now: number) => {
+  private frame = (now: number) => { try {
     const raw = now - this.last, dt = Math.min(0.05, raw / 1000); this.last = now; this.t += dt; Gfx.tick(raw); Mood.update(dt, this.tod); this.fx.tick(this.t);
     for (const c of this.candles) { const b = c.userData.baseY ?? (c.userData.baseY = c.position.y); c.position.y = b + Math.sin(this.t * 1.4 + (c.userData.candle || 0)) * 0.08; }
     // curtains
@@ -256,7 +256,9 @@ export class Auditorium3D {
     const mp = this.me.sprite.position, ts = (this.me as any).tagSprite as THREE.Sprite; ts.position.set(mp.x, mp.y + 2.4, mp.z); ts.visible = this.view !== "audience";   // from your own seat the tag would sit right on the camera
     if (this.mode === "news" || this.mode === "assembly") { if (this.mode === "news") this.drawScreen(); }
     this.pBeam.update(this.t, this.camera, { x: mp.x, y: mp.y - 0.4, z: mp.z }, this.mode !== "assembly" || true, IS);
-    this.updateCamera(dt); if (this.px) { this.px.update(dt, this.t); this.px.render(dt); } else this.renderer.render(this.scene, this.camera); requestAnimationFrame(this.frame);
+    this.updateCamera(dt); if (this.px) { this.px.update(dt, this.t); this.px.render(dt); } else this.renderer.render(this.scene, this.camera);
+  } catch (err) { console.warn("auditorium frame", err); }
+    requestAnimationFrame(this.frame);
   };
   gesture: Who | null = null; gestureFrame = 0;
   /** open or close the curtains */

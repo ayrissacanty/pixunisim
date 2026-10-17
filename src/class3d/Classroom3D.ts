@@ -439,7 +439,7 @@ export class Classroom3D {
   }
 
   /* ------------------------------------------------------------ frame */
-  private frame = (now: number) => {
+  private frame = (now: number) => { try {
     const raw = now - this.last, dt = Math.min(0.05, raw / 1000); this.last = now; this.t += dt; Gfx.tick(raw);
     if ((this.todT -= dt) < 0) { this.todT = 5; this.tod = Mood.realTod(); } Mood.update(dt, this.todParam ?? this.tod); this.fx.tick(this.t);
     this.boardL.update(dt); this.boardR.update(dt); this.projector.update(dt);
@@ -463,6 +463,7 @@ export class Classroom3D {
     const des = this.desired(), k = 1 - Math.exp(-dt * (this.mode === "screen" ? 3.5 : 2.6)); this.camPos.lerp(des.p, k); this.camLook.lerp(des.l, k); this.camFov += (des.fov - this.camFov) * k; this.applyCam();
     { const ps = this.playerSeat; this.pBeam.update(this.t, this.camera, { x: ps.x, y: ps.y - 0.44, z: ps.z }, !!ps.bb.sprite, IS); }
     if (this.px) { this.px.update(dt, this.t, d); this.px.render(dt); } else this.renderer.render(this.scene, this.camera);
+  } catch (err) { console.warn("class frame", err); }
     requestAnimationFrame(this.frame);
   };
 }

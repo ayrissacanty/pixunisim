@@ -190,7 +190,8 @@ addEventListener("storage", (e) => { if (e.key === "unify.assembly.day") Quests.
 addEventListener("unify:event-adopt", () => hall.setAvatar(Social.profile.avatar));
 // the Today panel
 const hubHooks = { applyTheme, openGames: () => { lock(true); openGames(() => lock(false)); }, openTrip: () => { if (parent !== window) parent.postMessage({ type: "unify:open", view: "trip" }, "*"); else hall.onToast("Open index.html to take a VR field trip."); }, goTo: (k: string) => hall.goTo(k) };
-$("bToday").onclick = () => { lock(true); openHub({ ...hubHooks, onClose: () => lock(false) }); };
+const todayBtn = $("bToday");
+if (todayBtn) todayBtn.onclick = () => { lock(true); openHub({ ...hubHooks, onClose: () => lock(false) }); };
 addEventListener("keydown", (e) => { if ((e.key === "y" || e.key === "Y") && !(e.target as HTMLElement)?.closest("input,textarea") && !hall.inputLocked) { lock(true); openHub({ ...hubHooks, onClose: () => lock(false) }); } });
 setInterval(() => Safety.tick(), 60e3); let nudged = 0; setInterval(() => { if (Safety.overLimit() && Date.now() - nudged > 15 * 60e3) { nudged = Date.now(); hall.onToast("You've reached your daily school time. Time for a stretch, a snack and some sunshine! 🌞"); } }, 30e3);
 if (Events.today().live && !World.prefs.quiet) setTimeout(() => hall.onToast(Events.banner()), 4000);
