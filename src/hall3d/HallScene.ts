@@ -61,6 +61,7 @@ export class HallScene {
   seats: { pos: THREE.Vector3; ctr: THREE.Vector3; mesh: THREE.Mesh }[] = []; sitting: number | null = null; private pendingSeat: number | null = null;
   /** scripted walking (arrival from the bus, walking in) that ignores walls and input */
   cine: { pts: THREE.Vector3[]; done?: () => void; speed: number } | null = null; bus: THREE.Group | null = null; private busState: { t: number; mode: "idle" | "in" | "wait" | "out"; from: number; to: number; arm: THREE.Mesh; door: THREE.Mesh } | null = null; onBusStopped: () => void = () => {};
+  private cars: { g: THREE.Group; door: THREE.Mesh; from: number; to: number; t: number; mode: "idle" | "in" | "wait" | "out" }[] = []; private onCarStopped: () => void = () => {};
   yaw = 0; pitch = 0.36; zoom = 1; fpitch = 0; navLabel = "";
   private nav: { pts: THREE.Vector3[]; label: string } | null = null; private navThen: (() => void) | null = null;
   /** 0 = ground floor, 1 = library */
@@ -81,7 +82,7 @@ export class HallScene {
     r.domElement.addEventListener("webglcontextlost", (ev) => { ev.preventDefault(); this.px?.loseContext(); }, false);
     scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB"); this.scene.fog = new THREE.Fog("#EADFCB", 70 * IS, 340 * IS);
     this.skyCv.width = 256; this.skyCv.height = 320; this.skyTex = new THREE.CanvasTexture(this.skyCv); this.skyTex.colorSpace = THREE.SRGBColorSpace; this.paintSky(10);
-    this.reachable(); this.buildLights(); this.buildCampus(); this.buildDetails(); this.buildDoorLeaves(); this.buildOutside(); this.buildLife(); this.buildRoad(); this.buildBus(); this.buildPeople();
+    this.reachable(); this.buildLights(); this.buildCampus(); this.buildDetails(); this.buildDoorLeaves(); this.buildOutside(); this.buildLife(); this.buildRoad(); this.buildBus(); this.buildCars(); this.buildPeople();
     if (this.px) this.px.finish({ floor: this.floorMesh!, lockers: this.lockMats, winSpots: this.winSpots });
     addEventListener("resize", () => this.resize()); this.resize();
     addEventListener("keydown", (e) => { if ((e.target as HTMLElement)?.tagName === "INPUT") return; this.keys[e.key.toLowerCase()] = true; if (e.key.startsWith("Arrow")) e.preventDefault(); });
@@ -705,6 +706,23 @@ export class HallScene {
     const stopX = OUTSIDE.busStop.x - W / 2;
     g.rotation.y = Math.PI; g.position.set(stopX - 72, 0, OUTSIDE.busStop.y - H / 2); g.visible = false; this.scene.add(g); this.bus = g; this.busState = { t: 0, mode: "idle", from: stopX - 72, to: stopX, arm, door };
   }
+  /** two family cars on the west curb, opposite the bus, so car riders are dropped off in view */
+  private buildCars() {
+    const cols = ["#3D7CC9", "#E25B45"];
+    OUTSIDE.cars.forEach((stop, i) => {
+      const g = new THREE.Group(), paint = this.plain(cols[i]), blk = this.plain("#2b2b34");
+      const body = new THREE.Mesh(this.clay(4.2, 1.15, 1.85, 0.28), paint); body.position.set(0, 0.95, 0); body.castShadow = true; g.add(body);
+      const cabin = new THREE.Mesh(this.clay(2.2, 0.85, 1.65, 0.22), this.plain("#E8F4FF")); cabin.position.set(-0.15, 1.75, 0); g.add(cabin);
+      for (const [wx, wz] of [[-1.35, -0.85], [-1.35, 0.85], [1.25, -0.85], [1.25, 0.85]] as const) { const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.22, 12), blk); wh.rotation.x = Math.PI / 2; wh.position.set(wx, 0.38, wz); wh.userData.wheel = 1; g.add(wh); }
+      const door = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.85, 0.06), paint); door.position.set(0.55, 1.05, 0.96); g.add(door);
+      const stopX = stop.x - W / 2;
+      g.rotation.y = Math.PI; g.position.set(stopX - 55, 0, OUTSIDE.roadY - H / 2); g.visible = false; this.scene.add(g);
+      this.cars.push({ g, door, from: stopX - 55, to: stopX, t: 0, mode: "idle" });
+    });
+  }
+  private kickCars() {
+    for (const c of this.cars) if (c.mode === "idle") { c.g.visible = true; c.g.position.x = c.from; c.t = 0; c.mode = "in"; c.door.rotation.y = 0; }
+  }
   private leaves: THREE.Mesh[] = []; private birds: THREE.Group[] = []; private squirrels: { g: THREE.Group; a: number }[] = [];
   /** leaves stay outside the building, birds circle, squirrels hop the lawn */
   private buildLife() {
@@ -750,15 +768,20 @@ export class HallScene {
   /** the nearest free-looking seat to the player (idle behaviour) */
   autoSit() { if (this.sitting != null || this.nav || this.cine || this.inputLocked) return false; let bi = -1, bd = 1e9; this.seats.forEach((s, i) => { const d = s.pos.distanceTo(this.player.pos); if (d < bd) { bd = d; bi = i; } }); return bi >= 0 ? this.sitAt(bi) : false; }
   private ensureSitTex(p: Person) { if (p.sitTex) return; const t = new THREE.CanvasTexture(bakeSheet({ ...p.look, sit: true } as Look)); t.colorSpace = THREE.SRGBColorSpace; t.repeat.set(1 / COLS, 1 / DIRS.length); t.anisotropy = 4; p.sitTex = t; }
-  /** the morning arrival: the bus rolls in, the avatar steps off and walks to the bulletin board; `onAtBoard` fires when they get there */
+  /** the morning arrival: a car brings you to the west curb, the bus unloads on the east curb */
   startArrival(onAtBoard: () => void) {
-    if (!this.bus || !this.busState) { onAtBoard(); return; }
-    this.standUp(); this.nav = null; const B = this.bus, st = this.busState; B.visible = true; B.position.x = st.from; st.t = 0; st.mode = "in"; st.arm.visible = false; this.player.sprite.visible = false; this.player.blob.visible = false; this.arrivalHide = true; this.arrivalCam = true; this.inputLocked = true;
-    this.onBusStopped = () => {
-      const door = new THREE.Vector3(B.position.x + 3.0, 0, B.position.z - 1.6); this.player.pos.copy(door); this.arrivalHide = false; this.player.dir = 0;
+    const car = this.cars[0];
+    if (!car) { onAtBoard(); return; }
+    this.standUp(); this.nav = null;
+    if (this.bus && this.busState && this.busState.mode === "idle") { this.bus.visible = true; this.bus.position.x = this.busState.from; this.busState.t = 0; this.busState.mode = "in"; this.busState.arm.visible = false; }
+    this.kickCars();
+    this.player.sprite.visible = false; this.player.blob.visible = false; this.arrivalHide = true; this.arrivalCam = true; this.inputLocked = true;
+    const stepOut = () => {
+      const door = new THREE.Vector3(car.g.position.x + 0.4, 0, car.g.position.z - 1.8); this.player.pos.copy(door); this.arrivalHide = false; this.player.dir = 0;
       const board = g2w(OUTSIDE.board.x, OUTSIDE.board.y + 1.4);
-      this.cine = { speed: 4.4, pts: [door.clone(), new THREE.Vector3(door.x + 2, 0, B.position.z - 2.2), board], done: () => { this.cine = null; this.inputLocked = false; onAtBoard(); setTimeout(() => { if (this.busState) this.busState.mode = "out"; }, 900); } };
+      this.cine = { speed: 4.2, pts: [door.clone(), new THREE.Vector3((door.x + board.x) / 2, 0, door.z - 1.6), board], done: () => { this.cine = null; this.inputLocked = false; onAtBoard(); setTimeout(() => this.departLine(), 1200); } };
     };
+    if (car.mode === "wait" || car.mode === "out") stepOut(); else this.onCarStopped = stepOut;
   }
   private arrivalHide = false; arrivalCam = false;
   /** after the schedule is made: walk through the front doors into the school, then on to where the day goes next */
@@ -766,13 +789,23 @@ export class HallScene {
     this.standUp(); this.inputLocked = false; const bs = g2w(OUTSIDE.boardStand.x, OUTSIDE.boardStand.y);
     this.cine = { speed: 3.6, pts: [g2w(54, H + 1.8), g2w(54, H - 1.4), g2w(54, H - 5)], done: () => { this.cine = null; this.arrivalCam = false; next(); } }; void bs;
   }
-  skipCine() { if (!this.cine) return; const last = this.cine.pts[this.cine.pts.length - 1], d = this.cine.done; this.player.pos.copy(last); this.cine = null; this.arrivalHide = false; this.arrivalCam = false; if (this.busState) { this.busState.mode = "out"; } d?.(); }
+  skipCine() { if (!this.cine && !this.arrivalHide) return; const last = this.cine?.pts[this.cine.pts.length - 1], d = this.cine?.done; if (last) this.player.pos.copy(last); this.cine = null; this.arrivalHide = false; this.arrivalCam = false; this.onCarStopped = () => {}; this.departLine(); d?.(); }
+  private departLine() { for (const c of this.cars) if (c.mode === "wait" || c.mode === "in") { c.mode = "out"; c.t = 0; } if (this.busState && this.busState.mode !== "idle") this.busState.mode = "out"; }
   private updateBus(dt: number) {
-    const st = this.busState, B = this.bus; if (!st || !B) return;
-    const spin = (v: number) => B.children.forEach((c) => { if (c.userData.wheel) c.rotation.z -= v; });
-    if (st.mode === "in") { st.t += dt; const k = Math.min(1, st.t / 3.4), e = 1 - Math.pow(1 - k, 3), nx = st.from + (st.to - st.from) * e; spin((nx - B.position.x) * -1.6); B.position.x = nx; if (this.arrivalHide) this.player.pos.set(B.position.x + 3.0, 0, B.position.z - 1.5); if (k >= 1) { st.mode = "wait"; st.t = 0; st.arm.visible = true; } }
-    else if (st.mode === "wait") { st.t += dt; st.door.rotation.y = Math.min(1, st.t / 0.45) * 1.3; if (st.t > 0.7 && this.onBusStopped) { const f = this.onBusStopped; this.onBusStopped = () => {}; f(); } }
-    else if (st.mode === "out") { st.t += dt; st.arm.visible = false; st.door.rotation.y = Math.max(0, st.door.rotation.y - dt * 2.6); const sp = Math.min(16, 3 + st.t * 5); B.position.x += sp * dt; spin(sp * dt * 1.6); if (B.position.x > st.to + 90) { B.visible = false; st.mode = "idle"; B.position.x = st.from; } }
+    const st = this.busState, B = this.bus;
+    if (st && B) {
+      const spin = (v: number) => B.children.forEach((c) => { if (c.userData.wheel) c.rotation.z -= v; });
+      if (st.mode === "in") { st.t += dt; const k = Math.min(1, st.t / 3.4), e = 1 - Math.pow(1 - k, 3), nx = st.from + (st.to - st.from) * e; spin((nx - B.position.x) * -1.6); B.position.x = nx; if (k >= 1) { st.mode = "wait"; st.t = 0; st.arm.visible = true; } }
+      else if (st.mode === "wait") { st.t += dt; st.door.rotation.y = Math.min(1, st.t / 0.45) * 1.3; if (st.t > 0.7 && this.onBusStopped) { const f = this.onBusStopped; this.onBusStopped = () => {}; f(); } if (st.t > 16) { st.mode = "out"; st.t = 0; } }
+      else if (st.mode === "out") { st.t += dt; st.arm.visible = false; st.door.rotation.y = Math.max(0, st.door.rotation.y - dt * 2.6); const sp = Math.min(16, 3 + st.t * 5); B.position.x += sp * dt; spin(sp * dt * 1.6); if (B.position.x > st.to + 90) { B.visible = false; st.mode = "idle"; B.position.x = st.from; } }
+    }
+    const lead = this.cars[0];
+    for (const c of this.cars) {
+      const spin = (v: number) => c.g.children.forEach((m) => { if (m.userData.wheel) m.rotation.z -= v; });
+      if (c.mode === "in") { c.t += dt; const k = Math.min(1, c.t / 3.2), e = 1 - Math.pow(1 - k, 3), nx = c.from + (c.to - c.from) * e; spin((nx - c.g.position.x) * -1.8); c.g.position.x = nx; if (this.arrivalHide && c === lead) this.player.pos.set(c.g.position.x, 0, c.g.position.z - 1.2); if (k >= 1) { c.mode = "wait"; c.t = 0; if (c === lead && this.onCarStopped) { const f = this.onCarStopped; this.onCarStopped = () => {}; f(); } } }
+      else if (c.mode === "wait") { c.t += dt; c.door.rotation.y = Math.min(1.15, c.t * 2.4); if (c.t > 18) { c.mode = "out"; c.t = 0; } }
+      else if (c.mode === "out") { c.t += dt; c.door.rotation.y = Math.max(0, c.door.rotation.y - dt * 2.4); c.g.position.x -= Math.min(14, 4 + c.t * 4) * dt; spin(0.2); if (c.g.position.x < c.from - 8) { c.g.visible = false; c.mode = "idle"; c.g.position.x = c.from; } }
+    }
   }
 
   /* ------------------------------------------------------------ body language: actions, talking mouths, walking styles */
@@ -1068,14 +1101,19 @@ export class HallScene {
       }
       else if (P.kind === "lunch") { const buddy = s.def && Social.peek(s.def.id)?.lunchBuddy && near[ni]; s.pending = { delay: rnd(0, 10), dest: buddy ? near[ni++]! : (spots[n % Math.max(1, spots.length)] || ent), hide: false, appear: s.hidden ? s.lastDoor : undefined }; }
       else if (P.kind === "arrive") {
-        if (this.bus && this.busState) { this.bus.visible = true; this.bus.position.set(this.busState.to, 0, OUTSIDE.busStop.y - H / 2); if (this.busState.mode === "idle") this.busState.mode = "wait"; }
-        const door = { x: OUTSIDE.busDoor.x + (n % 5) * 0.7 - 1.4, y: OUTSIDE.busDoor.y };
-        const toBoard = n < 6;
-        const dest = toBoard
-          ? { x: OUTSIDE.board.x + (n % 3) * 1.1 - 1.1, y: OUTSIDE.board.y + 2.2 }
+        if (this.bus && this.busState && this.busState.mode === "idle") { this.bus.visible = true; this.bus.position.x = this.busState.from; this.busState.t = 0; this.busState.mode = "in"; this.busState.arm.visible = false; }
+        this.kickCars();
+        const carRide = n % 2 === 1, rideN = Math.floor(n / 2), stop = OUTSIDE.cars[rideN % OUTSIDE.cars.length];
+        const appear = carRide
+          ? { x: stop.x + (rideN % 2) * 0.7 - 0.3, y: stop.y - 1.7 }
+          : { x: OUTSIDE.busDoor.x + (rideN % 4) * 0.65 - 1.0, y: OUTSIDE.busDoor.y };
+        const glance = n % 10 === 0, slot = Math.floor(n / 10);
+        const dest = glance
+          ? { x: OUTSIDE.board.x + (slot % 2 === 0 ? -1.4 : 1.4), y: OUTSIDE.board.y + 1.8 }
           : (spots[n % Math.max(1, spots.length)] || ent);
-        s.hidden = true; s.sprite.visible = false; s.blob.visible = false; s.path = []; s.after = toBoard ? "board" : "";
-        s.pending = { delay: 0.2 + n * 0.12, dest, hide: false, appear: door, after: toBoard ? "board" : "" };
+        const delay = glance ? 10 + slot * 8 : (carRide ? 3.6 : 4.0) + (rideN % 12) * 0.55;
+        s.hidden = true; s.sprite.visible = false; s.blob.visible = false; s.path = []; s.after = glance ? "board" : "";
+        s.pending = { delay, dest, hide: false, appear, after: glance ? "board" : "" };
       }
       else s.pending = { delay: rnd(0, 12), dest: spots[n % Math.max(1, spots.length)] || ent, hide: false, appear: s.hidden ? ent : undefined };
     });

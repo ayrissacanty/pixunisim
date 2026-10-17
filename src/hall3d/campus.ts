@@ -114,9 +114,9 @@ export const BLOCKED = blockers();
 export const hit = (r: Rect, x: number, y: number, pad = 0) => x > r.x - pad && x < r.x + r.w + pad && y > r.y - pad && y < r.y + r.h + pad;
 export function solidAt(x: number, y: number, pad = 0.16, floor = 0): boolean {
   if (floor === 1) return !upWalk(x, y);
-  // the front door, and the sidewalk from the bus up to it. The wall on either side stays solid.
+  // the front door, and the sidewalk from the bus and the cars up to it. The wall on either side stays solid.
   if (x > ENTRANCE.gap.x0 && x < ENTRANCE.gap.x1 && y > H - 1.4 && y < H + 9) return false;
-  if (y > H + 2.2 && y < H + 12 && x > 44 && x < 78) return false;
+  if (y > H + 2.2 && y < H + 12 && x > 28 && x < 78) return false;
   if (x < 0.45 || y < 0.45 || x > W - 0.45) return true;
   if (y > H - 0.45) return true;
   return BLOCKED.some((r) => hit(r, x, y, pad));
@@ -128,7 +128,7 @@ export const NAV_UP: string[] = row((x, y) => !upWalk(x, y));
 export const PLAZA_TILES: { x: number; y: number }[] = NAV.flatMap((line, y) => line.split("").map((c, x) => ({ c, x, y }))).filter((t) => t.c === "." && t.x >= 32 && t.x <= 76 && t.y >= 30 && t.y <= 62 && !BLOCKS.some((b) => hit(b.rect, t.x + 0.5, t.y + 0.5, 0)));
 export const CORRIDOR_TILES: { x: number; y: number }[] = NAV.flatMap((line, y) => line.split("").map((c, x) => ({ c, x, y }))).filter((t) => t.c === "." && (t.x < 14 || t.x > W - 15 || t.y < 14 || t.y > H - 15));
 
-/** outside the front doors: the bulletin board, and the bus stop pulled up beside it */
-export const OUTSIDE = { board: { x: 64, y: H + 2.4 }, boardStand: { x: 64, y: H + 4.0 }, busStop: { x: 57, y: H + 7.6 }, busDoor: { x: 60, y: H + 6.2 }, roadY: H + 7.6 };
+/** outside the front doors: the bulletin board, the bus on the east curb, and the car line on the west curb */
+export const OUTSIDE = { board: { x: 64, y: H + 2.4 }, boardStand: { x: 64, y: H + 4.0 }, busStop: { x: 57, y: H + 7.6 }, busDoor: { x: 60, y: H + 6.2 }, roadY: H + 7.6, cars: [{ x: 42, y: H + 7.6 }, { x: 32, y: H + 7.6 }] };
 /** Chat Chow: the plaza tables where students sit and talk */
 export const CHOW_TABLES: { x: number; y: number }[] = PROPS.filter((p) => p.kind === "table").map((p) => ({ x: p.x, y: p.y }));

@@ -98,7 +98,7 @@ hall.onBooks = () => { lock(true); openLibrary($("libHost"), () => lock(false));
 hall.onNewsroom = () => { if (parent !== window) parent.postMessage({ type: "unify:open", view: "news" }, "*"); else hall.onToast("Open index.html and the newsroom will play."); };
 $("bBooks").onclick = () => { lock(true); openLibrary($("libHost"), () => lock(false)); };
 
-/* ---- the school day: ride the bus in, walk to the bulletin board, make the schedule, go inside (assembly, then first class); sit at Chat Chow when idle ---- */
+/* ---- the school day: a car drops you off while the bus unloads, then the bulletin board, the schedule, and inside ---- */
 const todayKey = () => new Date().toDateString();
 const assemblyDone = () => { try { return localStorage.getItem("unify.assembly.day") === todayKey(); } catch { return false; } };
 const firstClass = () => { let best: { s: string; m: number } | null = null; for (const s of ALL_SUBJECTS) { const m = Progress.pickedFor(s, false); if (m !== null && (!best || m < best.m)) best = { s, m }; } return best?.s ?? null; };
