@@ -572,7 +572,7 @@ export class HallScene {
       const x = (hash(i, 1) - 0.5) * 150, z = (hash(i, 2) - 0.5) * 140 + 8;
       if (Math.abs(x) < W / 2 + 5 && Math.abs(z) < H / 2 + 5) continue;                   // keep clear of the building
       if (Math.abs(x) < 6 && z > 0) continue;                                              // and the entrance path
-      if (Math.abs(x) < 18 && z > H / 2 - 2 && z < H / 2 + 22) continue;                   // keep the front walk, the bus lane and the bulletin board clear
+      if (x > -32 && x < 42 && z > H / 2 - 1 && z < H / 2 + 34) continue;                 // the front walk, the bus lane and the bulletin board
       if (Math.hypot(x, z - (H / 2 + 30)) < 11) continue;
       spots.push({ x, z, s: 0.8 + hash(i, 3) * 0.9 });
     }
@@ -588,8 +588,10 @@ export class HallScene {
       m4.compose(new THREE.Vector3(p.x, 0.95 * p.s, p.z), new THREE.Quaternion(), new THREE.Vector3(p.s, p.s, p.s)); trunk.setMatrixAt(i, m4);
     });
     crown.castShadow = puff.castShadow = trunk.castShadow = true; S.add(crown, puff, cap, trunk);
-    for (const x of [-16, -26, -36, 16, 26, 36]) this.tree(x, H / 2 + 10, 1.35);
-    for (const x of [-20, 20]) this.tree(x, H / 2 + 18, 1.6);
+    // foundation trees sit against the walls, off the front walk and the bus path
+    for (const x of [-50, -40, -30, 36, 46]) this.tree(x, H / 2 + 1.8, 1.15);
+    for (const x of [-46, -30, 30, 46]) this.tree(x, -H / 2 - 1.8, 1.15);
+    for (const z of [-30, -16, 16, 30]) { this.tree(-W / 2 - 2.1, z, 1.15); this.tree(W / 2 + 2.1, z, 1.15); }
     // little paper houses and hills ringing the lawn
     const wallCols = ["#FF8A78", "#FFD15C", "#5EE0A0", "#7EC8FF", "#FFB077", "#C9A6FF"], roofCols = ["#E25B45", "#C9843A", "#3D7CC9", "#D4536A"];
     for (let i = 0; i < 26; i++) {
