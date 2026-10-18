@@ -79,6 +79,20 @@ export const signTex = (label: string, col: string, ink = "#FFF9F0") => mk(512, 
   c.strokeStyle = OUT; c.lineWidth = 4; for (const x of [80, w - 80]) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, 24); c.stroke(); }
 });
 
+/** long side-board for the school bus (deep green board, warm cream lettering) */
+export const busSideTex = (text: string) => mk(1024, 160, (c, w, h) => {
+  rr(c, 6, 6, w - 12, h - 12, 20); fillStroke(c, "#1E4D33", 6); rr(c, 20, 20, w - 40, h - 40, 12); c.fillStyle = "rgba(255,255,255,.16)"; c.fill();
+  c.fillStyle = "#FFF3B0"; c.font = "800 60px 'Trebuchet MS',sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(text, w / 2, h / 2 + 4);
+});
+
+/** the school name over the front entry: big bold letters on a deep green board */
+export const schoolSignTex = (text: string) => mk(1024, 256, (c, w, h) => {
+  rr(c, 6, 6, w - 12, h - 12, 30); fillStroke(c, "#2F5D46", 9); rr(c, 26, 26, w - 52, h - 52, 18); c.fillStyle = "rgba(255,255,255,.14)"; c.fill();
+  c.font = "900 156px 'Trebuchet MS','Fredoka',sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
+  c.lineWidth = 14; c.strokeStyle = OUT; c.lineJoin = "round"; c.strokeText(text, w / 2, h / 2 + 10);
+  c.fillStyle = "#FFE9A8"; c.fillText(text, w / 2, h / 2 + 10);
+});
+
 export const windowTex = () => mk(320, 400, (c, w, h) => {
   rr(c, 10, 10, w - 20, h - 46, 14); fillStroke(c, "#FFF9F0", 5);
   const g = c.createLinearGradient(0, 40, 0, 250); g.addColorStop(0, "#A9DDF2"); g.addColorStop(1, "#E9F7FC"); rr(c, 40, 40, w - 80, 230, 6); c.fillStyle = g; c.fill(); stroke(c, 3);

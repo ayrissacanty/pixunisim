@@ -174,7 +174,8 @@ export class PixarHall {
     bulbs.forEach((p, i) => { bm.setMatrixAt(i, m4.compose(new THREE.Vector3(...p), q, new THREE.Vector3(1, 1.25, 1))); bm.setColorAt(i, c.set(cols[i % 5]).multiplyScalar(2.4)); }); S.add(bm);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(5.6, 0.014, 4, 80), new THREE.MeshBasicMaterial({ color: "#5a3d2a" })); ring.rotation.x = Math.PI / 2; ring.position.y = 4.4; S.add(ring);
     const spots: { x: number; z: number; s: number }[] = [];
-    for (let i = 0; i < 70; i++) { const x = (hash(i, 21) - 0.5) * 52; if (Math.abs(x) < 6.5) continue; spots.push({ x, z: H / 2 + 1.5 + hash(i, 22) * 2.4, s: 0.55 + hash(i, 23) * 0.55 }); }
+    // a neat hedge hugging the front wall of the school (off the sidewalk), keeping the entrance and the bulletin board clear
+    for (let i = 0; i < 70; i++) { const x = (hash(i, 21) - 0.5) * 52; if (Math.abs(x) < 6.5 || Math.abs(x - 7.2) < 2.4) continue; spots.push({ x, z: H / 2 + 0.55 + hash(i, 22) * 0.25, s: 0.55 + hash(i, 23) * 0.55 }); }
     const bush = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 3), new THREE.MeshStandardMaterial({ roughness: 0.7 }), spots.length), fl = new THREE.InstancedMesh(new THREE.SphereGeometry(0.11, 8, 6), new THREE.MeshStandardMaterial({ roughness: 0.5, emissive: "#ffffff", emissiveIntensity: 0.18 }), spots.length * 3);
     const greens = ["#4fb06c", "#6cc57f", "#3f9a62", "#7bd18a"], fc = ["#ff6f91", "#ffd23f", "#ffffff", "#b58cff", "#ff9a3c"];
     spots.forEach((p, i) => { bush.setMatrixAt(i, m4.compose(new THREE.Vector3(p.x, p.s * 0.75, p.z), q, new THREE.Vector3(p.s, p.s * 0.85, p.s))); bush.setColorAt(i, c.set(greens[i % 4]));

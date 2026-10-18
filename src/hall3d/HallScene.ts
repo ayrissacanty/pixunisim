@@ -57,7 +57,11 @@ export class HallScene {
   /** Chat Chow seats (stools at the plaza tables): tap one to sit; the player sits there when idle */
   seats: { pos: THREE.Vector3; ctr: THREE.Vector3; mesh: THREE.Mesh }[] = []; sitting: number | null = null; private pendingSeat: number | null = null;
   /** scripted walking (arrival from the bus, walking in) that ignores walls and input */
-  cine: { pts: THREE.Vector3[]; done?: () => void; speed: number } | null = null; bus: THREE.Group | null = null; private busState: { t: number; mode: "idle" | "in" | "wait" | "out"; from: number; to: number; arm: THREE.Mesh; door: THREE.Mesh } | null = null; onBusStopped: () => void = () => {};
+  cine: { pts: THREE.Vector3[]; done?: () => void; speed: number } | null = null; bus: THREE.Group | null = null; private busState: { t: number; mode: "idle" | "in" | "wait" | "drop" | "out" | "sign"; from: number; to: number; arm: THREE.Mesh; door: THREE.Mesh } | null = null; onBusStopped: () => void = () => {};
+  /** arrival cutscene: a fixed side-view camera, the classmates stepping off, and the walk that follows it */
+  private cineCam: { pos: THREE.Vector3; look: THREE.Vector3 } | null = null;
+  private kidQueue: Stu[] = []; private busKids: Stu[] = []; private kidTimer = 0;
+  private arrivalWalk: (() => void) | null = null; private arrivalCb: (() => void) | null = null;
   yaw = 0; pitch = 0.62; zoom = 1; fpitch = 0; navLabel = "";
   private nav: { pts: THREE.Vector3[]; label: string } | null = null;
   private walkers: { p: Person; stops: number[][]; path: THREE.Vector3[]; leg: number; speed: number }[] = []; teacher!: Person;
@@ -174,6 +178,12 @@ export class HallScene {
     const g0 = ENTRANCE.gap.x0 - W / 2, g1 = ENTRANCE.gap.x1 - W / 2, sz = H / 2 + 0.15;
     wall(g0 + W / 2 + 0.3, (-W / 2 - 0.3 + g0) / 2, sz, true, 5); wall(W / 2 + 0.3 - g1, (g1 + W / 2 + 0.3) / 2, sz, true, 5);
     this.box(g1 - g0, 0.9, 0.3, [outer, outer, cap, outer, outer, this.std(this.rep("wall", () => T.wallTex(), 2))], (g0 + g1) / 2, WALL_H - 0.45, sz, { outline: false });
+    { // UNISIM: the school name in big bold letters above the front entry
+      const bw = g1 - g0 + 3.6;
+      this.box(bw + 0.4, 2.0, 0.36, this.plain("#2F5D46"), (g0 + g1) / 2, WALL_H + 1.0, sz + 0.06);
+      const sm = new THREE.Mesh(new THREE.PlaneGeometry(bw, 1.72), new THREE.MeshBasicMaterial({ map: this.tex("schoolsign", () => T.schoolSignTex("UNISIM")), transparent: true, toneMapped: false }));
+      sm.position.set((g0 + g1) / 2, WALL_H + 1.0, sz + 0.26); S.add(sm);
+    }
     this.card(this.tex("banner", () => T.bannerTex("UNIFY ACADEMY")), 7.6, 1.2, (g0 + g1) / 2, 3.2, H / 2 - 0.05, Math.PI, true);
     this.card(this.tex("exit", () => T.bannerTex("WELCOME")), 5.2, 0.8, (g0 + g1) / 2, 3.2, H / 2 + 0.35, 0, true);
     this.card(this.tex("clock", () => T.clockTex()), 1.1, 1.1, -9, 3.05, -H / 2 + 0.17, 0);
@@ -468,17 +478,17 @@ export class HallScene {
 
   /* ------------------------------------------------------------ the school bus, arrival, and Chat Chow seats */
   private buildBus() {
-    const g = new THREE.Group(), yel = this.plain("#F2B632"), blk = this.plain("#2b2b34"), win = new THREE.MeshStandardMaterial({ color: "#8FC9E8", roughness: 0.3, emissive: "#355a70", emissiveIntensity: 0.25 });
+    const g = new THREE.Group(), yel = this.plain("#3E9B4F"), blk = this.plain("#2b2b34"), win = new THREE.MeshStandardMaterial({ color: "#8FC9E8", roughness: 0.3, emissive: "#355a70", emissiveIntensity: 0.25 });
     const body = new THREE.Mesh(new THREE.BoxGeometry(8.6, 2.5, 2.7), yel); body.position.set(0.7, 1.85, 0); body.castShadow = true; g.add(body);
     const hood = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.4, 2.5), yel); hood.position.set(-4.6, 1.3, 0); hood.castShadow = true; g.add(hood);
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(8.4, 0.12, 2.5), this.plain("#F8D977")); roof.position.set(0.7, 3.14, 0); g.add(roof);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(8.4, 0.12, 2.5), this.plain("#A9DCC0")); roof.position.set(0.7, 3.14, 0); g.add(roof);
     for (const sz of [-1.36, 1.36]) { const strip = new THREE.Mesh(new THREE.BoxGeometry(8.62, 0.14, 0.02), blk); strip.position.set(0.7, 1.55, sz); g.add(strip); const strip2 = strip.clone(); strip2.position.y = 2.4; g.add(strip2);
       for (let i = 0; i < 8; i++) { const w = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.7, 0.03), win); w.position.set(-2.55 + i * 0.99, 2.7 - 0.0, sz); w.position.y = 2.72; g.add(w); } }
     for (const [wx, wz] of [[-4.6, -1.15], [-4.6, 1.15], [2.9, -1.2], [2.9, 1.2], [0.5, -1.2], [0.5, 1.2]].slice(0, 4)) { const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.34, 14), blk); wh.rotation.x = Math.PI / 2; wh.position.set(wx, 0.62, wz); wh.castShadow = true; wh.userData.wheel = 1; g.add(wh); }
     for (const sz of [-0.85, 0.85]) { const hl = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), new THREE.MeshBasicMaterial({ color: "#FFF3B0" })); hl.position.set(-5.62, 1.0, sz); g.add(hl); }
-    const lbl = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 0.55), new THREE.MeshBasicMaterial({ map: T.signTex("UNIFY ACADEMY", "#2b2b34"), transparent: true })); lbl.position.set(1.4, 2.0, -1.37); lbl.rotation.y = Math.PI; g.add(lbl);
+    const lbl = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 0.72), new THREE.MeshBasicMaterial({ map: T.busSideTex("Cmbilts Edu.AlleyWay Presents..."), transparent: true })); lbl.position.set(1.4, 2.0, -1.37); lbl.rotation.y = Math.PI; g.add(lbl);
     const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.04, 8), new THREE.MeshBasicMaterial({ color: "#D8433A" })); arm.rotation.x = Math.PI / 2; arm.rotation.z = Math.PI / 8; arm.position.set(-2.6, 2.1, -1.4); arm.visible = false; g.add(arm);
-    const door = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.9, 0.05), this.plain("#d9a31f")); door.position.set(-3.0, 1.55, -1.37); g.add(door);
+    const door = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.9, 0.05), this.plain("#2F7A43")); door.position.set(-3.0, 1.55, -1.37); g.add(door);
     g.rotation.y = 0; g.position.set(OUTSIDE.busStop.x - W / 2 + 60, 0, OUTSIDE.busStop.y - H / 2); g.visible = false; this.scene.add(g); this.bus = g; this.busState = { t: 0, mode: "idle", from: g.position.x, to: OUTSIDE.busStop.x - W / 2, arm, door };
   }
   private buildRoad() {
@@ -498,14 +508,34 @@ export class HallScene {
   /** the nearest free-looking seat to the player (idle behaviour) */
   autoSit() { if (this.sitting != null || this.nav || this.cine || this.inputLocked) return false; let bi = -1, bd = 1e9; this.seats.forEach((s, i) => { const d = s.pos.distanceTo(this.player.pos); if (d < bd) { bd = d; bi = i; } }); return bi >= 0 ? this.sitAt(bi) : false; }
   private ensureSitTex(p: Person) { if (p.sitTex) return; const t = new THREE.CanvasTexture(bakeSheet({ ...p.look, sit: true } as Look)); t.colorSpace = THREE.SRGBColorSpace; t.repeat.set(1 / COLS, 1 / DIRS.length); t.anisotropy = 4; p.sitTex = t; }
-  /** the morning arrival: the bus rolls in, the avatar steps off and walks to the bulletin board; `onAtBoard` fires when they get there */
+  /** the morning arrival, as a cut scene: from the kerb you watch the green bus pull up, the students hop off and head in, the bus pulls away, and the camera tilts up to the big UNISIM sign over the entry before play begins */
   startArrival(onAtBoard: () => void) {
     if (!this.bus || !this.busState) { onAtBoard(); return; }
     this.standUp(); this.nav = null; const B = this.bus, st = this.busState; B.visible = true; B.position.x = st.from; st.t = 0; st.mode = "in"; st.arm.visible = false; this.player.sprite.visible = false; this.player.blob.visible = false; this.arrivalHide = true; this.arrivalCam = true; this.inputLocked = true;
+    const road = OUTSIDE.roadY - H / 2, stopX = OUTSIDE.busStop.x - W / 2;
+    this.cineCam = { pos: new THREE.Vector3(stopX + 13, 2.7, road - 5.4), look: new THREE.Vector3(stopX + 30, 1.5, road) };
+    this.camPos.copy(this.cineCam.pos); this.camLook.copy(this.cineCam.look);
+    this.arrivalCb = onAtBoard;
     this.onBusStopped = () => {
-      const door = new THREE.Vector3(B.position.x - 3.0, 0, B.position.z - 2.2); this.player.pos.copy(door); this.arrivalHide = false; this.player.dir = 0;
+      const door = new THREE.Vector3(B.position.x - 3.0, 0, B.position.z - 2.2); this.player.pos.copy(door); this.player.dir = 0;
+      // a few classmates climb out first and walk in through the front doors
+      const kids = this.students.filter((s) => s.hidden).slice(0, 4);
+      this.busKids = kids; this.kidQueue = [...kids]; this.kidTimer = 0.6;
+      kids.forEach((s, i) => {
+        const kx = 1.2 - i * 0.9;
+        s.pos.copy(door); s.dir = 0; s.fade = 1; s.mat.opacity = 1; s.hideOnArrive = true;
+        s.path = [new THREE.Vector3(kx, 0, road - 2.6), new THREE.Vector3(kx, 0, H / 2 + 3.4), new THREE.Vector3(0.4, 0, H / 2 + 1.4), new THREE.Vector3(0.4, 0, H / 2 - 1.6)];
+      });
+      // you step off too and wait on the sidewalk while the bus pulls away
+      this.arrivalHide = false;
       const bs = g2w(OUTSIDE.boardStand.x, OUTSIDE.boardStand.y), walk = g2w(OUTSIDE.boardStand.x - 6, OUTSIDE.boardStand.y);
-      this.cine = { speed: 3.3, pts: [new THREE.Vector3(door.x, 0, bs.z + 0.4), new THREE.Vector3(walk.x, 0, bs.z + 0.4), new THREE.Vector3(bs.x, 0, bs.z)], done: () => { this.cine = null; this.inputLocked = false; onAtBoard(); setTimeout(() => { if (this.busState) this.busState.mode = "out"; }, 1200); } };
+      this.cine = { speed: 3.3, pts: [new THREE.Vector3(door.x, 0, bs.z + 0.4), new THREE.Vector3(door.x + 4.5, 0, bs.z + 0.6)], done: () => { this.cine = null; } };
+      this.cineCam!.look.set(door.x + 1, 1.5, road - 2);
+      // after the bus has gone and the sign has had its moment: walk to the bulletin board and start play
+      this.arrivalWalk = () => {
+        this.cine = { speed: 3.3, pts: [new THREE.Vector3(walk.x, 0, bs.z + 0.4), new THREE.Vector3(bs.x, 0, bs.z)], done: () => { this.cine = null; this.inputLocked = false; this.arrivalCb?.(); this.arrivalCb = null; } };
+      };
+      st.mode = "drop"; st.t = 0;
     };
   }
   private arrivalHide = false; arrivalCam = false;
@@ -514,13 +544,34 @@ export class HallScene {
     this.standUp(); this.inputLocked = false; const bs = g2w(OUTSIDE.boardStand.x, OUTSIDE.boardStand.y);
     this.cine = { speed: 3.6, pts: [g2w(28 + 1.2, H + 3.2), g2w(28, H + 1.2), g2w(28, H - 0.6)], done: () => { this.cine = null; this.arrivalCam = false; next(); } }; void bs;
   }
-  skipCine() { if (!this.cine) return; const last = this.cine.pts[this.cine.pts.length - 1], d = this.cine.done; this.player.pos.copy(last); this.cine = null; this.arrivalHide = false; this.arrivalCam = false; if (this.busState) { this.busState.mode = "out"; } d?.(); }
+  skipCine() {
+    if (this.cineCam && this.busState) {   // skipping the bus cut scene: kids inside, bus gone, straight to the board
+      const st = this.busState; st.mode = "idle"; if (this.bus) { this.bus.visible = false; this.bus.position.x = st.from; }
+      for (const s of this.busKids) { s.path = []; s.hidden = true; s.sprite.visible = false; s.blob.visible = false; s.moving = false; }
+      this.kidQueue = []; this.busKids = []; this.cineCam = null; this.cine = null;
+      this.player.pos.copy(g2w(OUTSIDE.boardStand.x, OUTSIDE.boardStand.y)); this.arrivalHide = false; this.inputLocked = false;
+      const cb = this.arrivalCb; this.arrivalCb = null; this.arrivalWalk = null; cb?.(); return;
+    }
+    if (!this.cine) return; const last = this.cine.pts[this.cine.pts.length - 1], d = this.cine.done; this.player.pos.copy(last); this.cine = null; this.arrivalHide = false; this.arrivalCam = false; if (this.busState) { this.busState.mode = "out"; } d?.();
+  }
   private updateBus(dt: number) {
     const st = this.busState, B = this.bus; if (!st || !B) return;
     const spin = (v: number) => B.children.forEach((c) => { if (c.userData.wheel) c.rotation.z -= v; });
-    if (st.mode === "in") { st.t += dt; const k = Math.min(1, st.t / 4.2), e = 1 - Math.pow(1 - k, 3), nx = st.from + (st.to - st.from) * e; spin((nx - B.position.x) * -1.6); B.position.x = nx; if (this.arrivalHide) this.player.pos.set(B.position.x - 3.0, 0, B.position.z); if (k >= 1) { st.mode = "wait"; st.t = 0; st.arm.visible = true; } }
+    if (st.mode === "in") { st.t += dt; const k = Math.min(1, st.t / 4.2), e = 1 - Math.pow(1 - k, 3), nx = st.from + (st.to - st.from) * e; spin((nx - B.position.x) * -1.6); B.position.x = nx; if (this.cineCam) this.cineCam.look.set(B.position.x - 1, 1.5, B.position.z); if (this.arrivalHide) this.player.pos.set(B.position.x - 3.0, 0, B.position.z); if (k >= 1) { st.mode = "wait"; st.t = 0; st.arm.visible = true; } }
     else if (st.mode === "wait") { st.t += dt; st.door.position.z = -1.37 - Math.min(1, st.t / 0.5) * 0.0; st.door.rotation.y = Math.min(1, st.t / 0.5) * 1.3; if (st.t > 1.1 && this.onBusStopped) { const f = this.onBusStopped; this.onBusStopped = () => {}; f(); } }
-    else if (st.mode === "out") { st.t += dt; st.arm.visible = false; st.door.rotation.y = Math.max(0, st.door.rotation.y - dt * 2.6); const sp = Math.min(14, 2 + st.t * 4); B.position.x -= sp * dt; spin(sp * dt * 1.6); if (B.position.x < st.to - 90) { B.visible = false; st.mode = "idle"; B.position.x = st.from; } }
+    else if (st.mode === "drop") {   // the students hop off one by one and walk in; then the bus pulls away
+      st.t += dt; this.kidTimer -= dt;
+      if (this.kidQueue.length && this.kidTimer <= 0) { const s = this.kidQueue.shift()!; s.hidden = false; s.sprite.visible = true; s.blob.visible = true; this.kidTimer = 0.85; }
+      if (!this.kidQueue.length && st.t > 4.6) { st.mode = "out"; st.t = 0; }
+    }
+    else if (st.mode === "out") { st.t += dt; st.arm.visible = false; st.door.rotation.y = Math.max(0, st.door.rotation.y - dt * 2.6); const sp = Math.min(14, 2 + st.t * 4); B.position.x -= sp * dt; spin(sp * dt * 1.6); if (this.cineCam && B.position.x > st.to - 38) this.cineCam.look.set(B.position.x, 1.6, B.position.z);
+      if (B.position.x < st.to - 42 && this.cineCam) { st.mode = "sign"; st.t = 0; this.cineCam.pos.set(0, 2.8, H / 2 + 10.2); this.cineCam.look.set(0, 4.6, H / 2 + 0.2); }   // the bus is gone: tilt up to the UNISIM sign
+      if (B.position.x < st.to - 90) { B.visible = false; if (!this.cineCam) { st.mode = "idle"; B.position.x = st.from; } }
+    }
+    else if (st.mode === "sign") {   // hold on the school name, then hand over to play
+      st.t += dt;
+      if (st.t > 2.6) { st.mode = "idle"; B.visible = false; B.position.x = st.from; this.cineCam = null; const w = this.arrivalWalk; this.arrivalWalk = null; w ? w() : (this.inputLocked = false); }
+    }
   }
 
   /* ------------------------------------------------------------ body language: actions, talking mouths, walking styles */
@@ -759,7 +810,8 @@ export class HallScene {
   cycleView() { this.setView(this.view === "close" ? "overview" : this.view === "overview" ? "first" : "close"); return this.view; }
   private updateCamera(dt: number, snap = false) {
     const P = this.player.pos, st = Math.sin(this.yaw), ct = Math.cos(this.yaw); let pos: THREE.Vector3, look: THREE.Vector3;
-    if (this.view === "close") { const ap = this.arrivalCam, pit = ap ? 1.05 : this.pitch, d = (ap ? 12 : 8.6) * this.zoom, cp = Math.cos(pit); pos = new THREE.Vector3(P.x + st * cp * d, 1.0 + Math.sin(pit) * d, P.z + ct * cp * d); look = new THREE.Vector3(P.x - st * 1.8, 1.0, P.z - ct * 1.8); }
+    if (this.cineCam) { pos = this.cineCam.pos; look = this.cineCam.look; }   // scripted cut-scene shot (bus arrival)
+    else if (this.view === "close") { const ap = this.arrivalCam, pit = ap ? 1.05 : this.pitch, d = (ap ? 12 : 8.6) * this.zoom, cp = Math.cos(pit); pos = new THREE.Vector3(P.x + st * cp * d, 1.0 + Math.sin(pit) * d, P.z + ct * cp * d); look = new THREE.Vector3(P.x - st * 1.8, 1.0, P.z - ct * 1.8); }
     else if (this.view === "overview") { const d = 52 * this.zoom, cp = Math.cos(this.pitch); pos = new THREE.Vector3(st * cp * d, Math.sin(this.pitch) * d, ct * cp * d + 3); look = new THREE.Vector3(0, 0, 3); }
     else { const ey = 1.7 / IS; pos = new THREE.Vector3(P.x, ey, P.z); look = new THREE.Vector3(P.x - st * 6, ey + Math.tan(this.fpitch) * 6, P.z - ct * 6); }
     const k = snap ? 1 : Math.min(1, dt * 9); this.camPos.lerp(pos, k); this.camLook.lerp(look, k); this.camera.position.copy(this.camPos).multiplyScalar(IS); this.camera.lookAt(this.camLook.clone().multiplyScalar(IS));
