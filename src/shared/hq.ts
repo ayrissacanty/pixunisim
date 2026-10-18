@@ -119,98 +119,142 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(
 const HQ_GESTURES = new Set(["cheer", "clap", "headhands", "shrug", "crossed", "wave", "chin", "facepalm", "explain", "finger", "point"]);
 const HQ_MOODS = new Set(["neutral", "smile", "joy", "frown", "upset", "frustrated", "surprised", "thinking", "stern"]);
 const txt = (v: unknown, max = 400) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
-const txts = (v: unknown, n: number, max = 300) => (Array.isArray(v) ? v.map((x) => txt(x, max)).filter(Boolean) : []).slice(0, n);
+const txts = (v: unknown, n: number, max = 300) => (Array.isArray(v) ? v.map((x) => txt(x, max)).filter(Boolean).slice(0, n) : []);
 
-/** newest assigned HQ lesson, or null */
+/** the lesson the owner most recently assigned to a class (assigned=true, newest `created` wins) */
 export function hqAssignedLesson(): HqLesson | null {
-  const ls = hqLessons().filter((l) => l.assigned && l.title);
+  const ls = hqLessons().filter((l) => l.assigned === true && txt(l.title));
   if (!ls.length) return null;
-  const stamp = (l: HqLesson) => { const c = l.created; const t = typeof c === "number" ? c : Date.parse(String(c ?? "")); return isFinite(t as number) ? t as number : 0; };
-  return ls.sort((a, b) => stamp(b) - stamp(a))[0];
+  const ts = (l: HqLesson) => { const c = l.created; const n = typeof c === "number" ? c : Date.parse(String(c ?? "")); return isFinite(n) ? n : 0; };
+  return ls.sort((a, b) => ts(b) - ts(a))[0];
 }
 
-/** translate an HQ lesson into the packs.ts pack format (best-effort; missing fields get sensible fallbacks) */
-export function hqLessonToPack(l: HqLesson): unknown {
-  const teacher = hqTeacherFor(hqSubjectOf(l.subject));
-  const name = txt(l.title || l.topic || "HQ lesson", 80);
-  const segs = (Array.isArray(l.segments) ? l.segments : []).map((s) => ({
-    title: txt(s.name || "Segment", 60),
-    minutes: typeof s.minutes === "number" && s.minutes > 0 ? Math.min(60, s.minutes) : 5,
-    say: txt(s.activity || "", 600),
-    gesture: HQ_GESTURES.has(String(s.gesture)) ? s.gesture : "explain",
-    mood: HQ_MOODS.has(String(s.expression)) ? s.expression : "neutral",
-    media: txt(s.media || "", 120) || undefined,
-  }));
+/** translate one HQ curriculum lesson into the exact pack format src/class3d/packs.ts accepts (validated by cleanPack on load). */
+export function hqLessonToPack(lesson: HqLesson) {
+  const subject = hqSubjectOf(lesson.subject), title = txt(lesson.title, 100) || "HQ Lesson", topic = txt(lesson.topic, 120);
+  const objectives = txts(lesson.objectives, 6), segs = (Array.isArray(lesson.segments) ? lesson.segments : []).filter((s) => s && txt(s.name ?? s.activity)).slice(0, 12);
+  const d = lesson.delivery ?? {}, traits = txts(d.traits, 5, 40), guidelines = txt(d.guidelines, 300), engage = txts(d.engagement, 4, 120);
+  // intro: what the class will be able to do by the end (from the objectives)
+  const intro = objectives.length ? `By the end of this lesson you will be able to: ${objectives.map((o) => o.replace(/\.$/, "")).join("; ")}.` : `Today's lesson: ${title}.`;
+  // a teaching-style preamble, phrased the way a teacher would actually say it (not a verbatim settings dump)
+  const preamble: string[] = [];
+  if (traits.length) preamble.push(`A quick word about how I teach: around here we keep things ${traits.slice(0, 3).join(", ")} — so come ready for that.`);
+  if (guidelines) preamble.push(`One thing before we start: ${guidelines.replace(/\.$/, "")}.`);
+  if (engage.length) preamble.push(`I'll keep you involved: ${engage.slice(0, 2).join(", ").replace(/\.$/, "")}.`);
+  // key points: one per segment, with the media woven in
+  const points = segs.map((s) => `${txt(s.name, 60)} — ${txt(s.activity, 200)}${s.media ? ` (using ${txt(s.media, 60)})` : ""}`);
+  // the performed script: preamble, then each segment spoken with its own gesture/expression, then the questions
+  const script: Record<string, unknown>[] = [];
+  for (const p of preamble) script.push({ say: p, mood: "smile" });
+  script.push({ board: { side: "left", title, lines: points.slice(0, 8) } });
+  for (const s of segs) {
+    const step: Record<string, unknown> = { say: `${txt(s.name, 60)}. ${txt(s.activity, 300)}${s.media ? ` — watch the ${txt(s.media, 60)} for this part.` : ""}` };
+    const g = String(s.gesture ?? "").toLowerCase(); if (HQ_GESTURES.has(g)) step.gesture = g;
+    const m = String(s.expression ?? "").toLowerCase(); if (HQ_MOODS.has(m)) step.mood = m as Emotion;
+    script.push(step);
+  }
+  for (const q of txts(lesson.questions, 4, 240)) { script.push({ say: q, mood: "thinking", gesture: "chin" }); script.push({ ask: true }); }
+  // vocabulary, homework (+ extra credit)
+  const glossary: Record<string, string> = {};
+  for (const v of Array.isArray(lesson.vocabulary) ? lesson.vocabulary.slice(0, 12) : []) { const t = txt(v?.term, 40), df = txt(v?.def, 300); if (t && df) glossary[t] = df; }
+  let homework = txt(lesson.homework, 300); const ec = txt(lesson.extraCredit, 200);
+  if (ec) homework = homework ? `${homework} Extra credit: ${ec}` : `Extra credit: ${ec}`;
   return {
-    id: "hq-" + slug(l.id || name), title: name, subject: l.subject || "", gradeBand: l.gradeBand || "",
-    teacher: teacher?.name || undefined,
-    objectives: txts(l.objectives, 8),
-    vocabulary: (Array.isArray(l.vocabulary) ? l.vocabulary : []).slice(0, 20).map((v) => ({ term: txt(v?.term, 60), def: txt(v?.def, 240) })).filter((v) => v.term),
-    script: segs.length ? segs : [{ title: "Lesson", minutes: 15, say: txt(l.topic || name, 600), gesture: "explain", mood: "neutral" }],
-    questions: txts(l.questions, 10),
-    homework: txt(l.homework || "", 400) || undefined,
-    extraCredit: txt(l.extraCredit || "", 400) || undefined,
+    id: "hq-" + slug(txt(lesson.id, 40) || title), title: `${title} (HQ)`, subject, kind: "regular" as const,
+    grades: txt(lesson.gradeBand, 40) || undefined, course: topic || undefined,
+    lessons: [{
+      id: slug(txt(lesson.id, 40) || title), title, blurb: [topic, lesson.durationMin ? `~${Math.max(1, Math.round(Number(lesson.durationMin) || 0))} min` : ""].filter(Boolean).join(" · ") || undefined,
+      intro, points: points.length ? points : [title], examples: objectives.length ? objectives.slice(0, 4) : points.slice(0, 2),
+      wrap: `We covered ${topic || title}. ${objectives[0] ? "Remember: " + objectives[0].replace(/\.$/, "") + "." : ""}`.trim(),
+      homework: homework || undefined, glossary, script,
+    }],
   };
 }
 
-/** install the newest assigned HQ lesson as a curriculum pack (unify.packs.v1) so the classroom picks it up. Returns the pack id or null. */
-export function installHqLessonPack(): string | null {
-  const l = hqAssignedLesson(); if (!l) return null;
+/** install the newest assigned HQ lesson into the curriculum packs store (`unify.packs.v1`), replacing any previous HQ pack with the same id
+ *  (so reloads never duplicate it). Returns the pack that was written, or null when nothing is assigned. */
+export function installHqLessonPack(): ReturnType<typeof hqLessonToPack> | null {
   try {
-    const pack = hqLessonToPack(l) as { id: string };
-    const cur = lsGet(K_PACKS); const arr = Array.isArray(cur) ? cur.filter((p) => p && (p as { id?: string }).id !== pack.id) : [];
-    arr.unshift(pack);
-    lsSet(K_PACKS, arr.slice(0, 50));
-    return pack.id;
-  } catch { return null; }
+    const lesson = hqAssignedLesson(); if (!lesson) return null;
+    const pack = hqLessonToPack(lesson);
+    const arr = lsGet(K_PACKS); const list = (Array.isArray(arr) ? arr : []).filter((p: any) => p && p.id !== pack.id);
+    list.push(pack);
+    if (!lsSet(K_PACKS, list)) return null;
+    return pack;
+  } catch (e) { console.warn("[hq] lesson pack skipped:", e); return null; }
 }
 
-/* ------------------------------------------------------------------ room décor helpers (3D scenes) */
-export const HQ_THEME_LOCKERS: Record<string, string> = {
-  ocean: "#3D7A9E", forest: "#4E8A64", sunset: "#E07A66", candy: "#D9789E", royal: "#6A5FA8", sunshine: "#D9A13B", mint: "#6FA89B", berry: "#8A4E6E",
+/* ------------------------------------------------------------------ room decor helpers */
+/** emoji for the admin apps' known prop ids (customize.html / academy-control.html lists) */
+export const HQ_PROP_EMOJI: Record<string, string> = {
+  plants: "🪴", plant: "🪴", posters: "🖼️", poster: "🖼️", bookshelf: "📚", books: "📚", rug: "🟫", globe: "🌍",
+  "fairy lights": "✨", fairylights: "✨", lights: "✨", "trophy shelf": "🏆", trophy: "🏆", trophies: "🏆",
+  aquarium: "🐠", fish: "🐠", readingcorner: "🛋️", "reading corner": "🛋️", whiteboard: "⬜",
 };
-export const HQ_PROP_EMOJI: Record<string, string> = { plant: "🪴", books: "📚", globe: "🌍", poster: "🖼️", clock: "🕰️", trophy: "🏆", rocket: "🚀", star: "⭐", rug: "🟫", lamp: "💡", aquarium: "🐠", skeleton: "🦴", easel: "🎨", music: "🎵", beakers: "⚗️", map: "🗺️" };
-
-/** make a small emoji sprite for a room prop (shared by hallway/auditorium/classroom decorators) */
-export function hqEmojiSprite(emoji: string, px = 128): THREE.Sprite {
-  const cv = document.createElement("canvas"); cv.width = cv.height = px;
-  const x = cv.getContext("2d")!; x.font = `${px * 0.72}px serif"; x.textAlign = "center"; x.textBaseline = "middle";
-  x.fillText(emoji, px / 2, px / 2 + px * 0.04);
+/** a tiny emoji billboard sprite (canvas texture) for a room prop */
+export function hqEmojiSprite(emoji: string, h = 1.4): THREE.Sprite {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 128;
+  const c = cv.getContext("2d")!; c.font = "96px 'Apple Color Emoji','Segoe UI Emoji',sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(emoji, 64, 72);
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
-  sp.scale.set(0.6, 0.6, 1);
-  return sp;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true })); sp.scale.set(h, h, 1); return sp;
 }
-
-/** place HQ props as emoji sprites along a wall run. positions spread between x0..x1 at height y, facing z. */
-export function hqPlaceProps(scene: THREE.Scene, props: string[], x0: number, x1: number, y: number, z: number): void {
-  const list = (props || []).map((p) => HQ_PROP_EMOJI[p]).filter(Boolean).slice(0, 10);
-  list.forEach((e, i) => {
-    const sp = hqEmojiSprite(e);
-    const t = list.length === 1 ? 0.5 : i / (list.length - 1);
-    sp.position.set(x0 + (x1 - x0) * t, y, z);
-    scene.add(sp);
+/** place known HQ props as emoji sprites at the given spots (cycles spots if there are more props); unknown props are logged, never fatal */
+export function hqPlaceProps(scene: THREE.Object3D, roomId: string, spots: [number, number, number][], h = 1.4): number {
+  const r = hqRoom(roomId); const props = Array.isArray(r?.props) ? r!.props! : [];
+  let placed = 0;
+  props.forEach((p, i) => {
+    const e = HQ_PROP_EMOJI[String(p).toLowerCase().trim()];
+    if (!e || !spots.length) { if (!e) console.info(`[hq] no decoration for prop "${p}" in ${roomId} (colour/theme overrides still apply)`); return; }
+    const [x, y, z] = spots[i % spots.length]; const sp = hqEmojiSprite(e, h); sp.position.set(x, y, z); scene.add(sp); placed++;
   });
+  return placed;
+}
+/** theme → default wall colour (used when the admin set a theme but no explicit wall colour) */
+export const HQ_THEME_WALL: Record<string, string> = { classic: "#F7ECD6", nature: "#DCE8CE", space: "#D8DCEC", art: "#F6E3D4", cozy: "#EBDCC8", sports: "#DDE8F2" };
+/** theme → hallway locker palettes */
+export const HQ_THEME_LOCKERS: Record<string, string[]> = {
+  nature: ["#9fd0b0", "#7fb2a0", "#b8d8a8", "#8fc9c4", "#a9dcc0", "#88b89a", "#c9e0b0", "#7cb6a0"],
+  space: ["#7f92d6", "#9fa2da", "#6a7fc0", "#b8a8da", "#8fc9e8", "#a0b8e0", "#c0b8e8", "#7a8ac8"],
+  art: ["#f2a79b", "#f4d488", "#9fd0b0", "#8fc9e8", "#e9a0c0", "#f6b294", "#b8a8da", "#eab94e"],
+  cozy: ["#c9a36b", "#b8905a", "#d8b88a", "#a8865a", "#c98569", "#b8a08a", "#d0a878", "#9a7a5a"],
+  sports: ["#7fb2d6", "#e07a66", "#f4d488", "#88b89a", "#4f91c7", "#d9564a", "#eab94e", "#5e9c72"],
+};
+/** wall colour for an HQ room: explicit wallColor first, then a theme default */
+export function hqRoomWall(roomId: string): string | null {
+  const r = hqRoom(roomId); if (!r) return null;
+  return hqColor(r.wallColor) ?? HQ_THEME_WALL[String(r.theme ?? "").toLowerCase()] ?? null;
 }
 
-/** wall colour for a room from HQ, or null */
-export function hqRoomWall(roomId: string): string | null { const r = hqRoom(roomId); return r ? hqColor(r.wallColor) : null; }
-
-/* ------------------------------------------------------------------ dorm theme */
+/* ------------------------------------------------------------------ dorm write-through */
+const DORM_WALL_PAT: Record<string, string> = { classic: "plain", nature: "stripes", space: "dots", art: "dots", cozy: "plain", sports: "brick" };
+const DORM_FLOOR_PAT: Record<string, string> = { wood: "wood", tile: "tile", checker: "tile", terrazzo: "tile", carpet: "carpet", grass: "carpet" };
+/** translate unify.hq.rooms.dorm {wallColor,floorStyle,theme} into the dorm layout theme (src/dorm/room.ts) and write it to unify.dorm.v1,
+ *  so the next loadLocal()/sanitizeLayout() picks it up. Call BEFORE the dorm page reads its saved layout. */
 export function applyHqDormTheme(): boolean {
-  const r = hqRoom("dorm") || hqRoom("dorm3d"); if (!r) return false;
   try {
-    const cur = lsGet(K_DORM) || {};
-    const next = { ...(typeof cur === "object" ? cur as Record<string, unknown> : {}), hqTheme: r.theme || undefined, hqWall: hqColor(r.wallColor) || undefined, hqFloor: r.floorStyle || undefined, hqProps: Array.isArray(r.props) ? r.props.slice(0, 12) : undefined };
-    return lsSet(K_DORM, next);
-  } catch { return false; }
+    const r = hqRoom("dorm"); if (!r) return false;
+    const theme = String(r.theme ?? "").toLowerCase(), wallC = hqColor(r.wallColor), floorC = hqColor((r as any).floorColor);
+    const wallPat = DORM_WALL_PAT[theme] ?? "plain", floorPat = DORM_FLOOR_PAT[String(r.floorStyle ?? "").toLowerCase()] ?? null;
+    if (!wallC && !floorPat && !HQ_THEME_WALL[theme]) return false;
+    const cur = lsGet(K_DORM); const layout = cur && typeof cur === "object" && !Array.isArray(cur) ? { ...(cur as any) } : { v: 1 };
+    const th = { ...((layout as any).theme && typeof (layout as any).theme === "object" ? (layout as any).theme : {}) };
+    const baseWall = typeof th.wall === "string" && HEX.test(th.wall.split("|")[0]) ? th.wall.split("|")[0] : "#4FB6B2";
+    const baseFloorC = typeof th.floor === "string" && HEX.test(th.floor.split("|")[0]) ? th.floor.split("|")[0] : "#C98F58";
+    th.wall = `${wallC ?? HQ_THEME_WALL[theme] ?? baseWall}|${wallPat}`;
+    if (floorPat) th.floor = `${floorC ?? baseFloorC}|${floorPat}`;
+    (layout as any).theme = th; (layout as any).v = 1;
+    return lsSet(K_DORM, layout);
+  } catch (e) { console.warn("[hq] dorm theme skipped:", e); return false; }
 }
 
-/* ------------------------------------------------------------------ change notifications */
-/** call cb when any HQ key changes (same-tab CustomEvent or cross-tab storage). Default behaviour (reload: true) reloads the page so every scene re-reads. */
-export function onHqChange(cb?: (key: string) => void, reload = true): void {
-  const keys = [K_STAFF, K_ROOMS, K_LESSONS];
-  const fire = (key: string) => { if (cb) { try { cb(key); } catch { /* ignore */ } } else if (reload) location.reload(); };
-  try { window.addEventListener("unify-hq-update", (e) => { const k = String((e as CustomEvent).detail?.key ?? ""); if (keys.includes(k)) fire(k); }); } catch { /* ignore */ }
-  try { window.addEventListener("storage", (e) => { if (e.key && keys.includes(e.key)) fire(e.key); }); } catch { /* ignore */ }
+/* ------------------------------------------------------------------ live updates */
+/** subscribe to HQ writes: cross-tab `storage` events (filtered to unify.hq.*) and the same-tab `unify-hq-update` CustomEvent.
+ *  Default callback reloads the page so every override re-applies cleanly. Returns an unsubscribe function. */
+export function onHqChange(cb: (key: string) => void = () => location.reload()): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (e: StorageEvent) => { if (!e.key || e.key.startsWith("unify.hq.")) cb(e.key ?? "unify.hq"); };
+  const onCustom = (e: Event) => { const k = (e as CustomEvent).detail?.key; cb(typeof k === "string" ? k : "unify.hq"); };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener("unify-hq-update", onCustom);
+  return () => { window.removeEventListener("storage", onStorage); window.removeEventListener("unify-hq-update", onCustom); };
 }
