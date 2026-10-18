@@ -26,6 +26,34 @@ out = os.path.abspath(sys.argv[1])
 shutil.rmtree(out, ignore_errors=True)
 os.makedirs(os.path.join(out, "demo/dist"))
 os.makedirs(os.path.join(out, "netlify/functions"))
+
+
+def _restore_payload():
+    """Root pages/seed data that are too large to keep in git history directly live
+    base64+gzip'd under tools/assets/payload/. Restore them when missing (CI)."""
+    import base64
+    import glob
+    import io
+    import tarfile
+
+    need = (
+        ["hq.html", "academy-control.html", "staff.html", "customize.html",
+         "curriculum-builder.html", "textbook.html", "hq-data.js"]
+        + [f"curriculum-seed-{i}.js" for i in range(1, 10)]
+        + ["validate-curriculum-seed.js"]
+    )
+    if all(os.path.exists(os.path.join(ROOT, f)) for f in need):
+        return
+    parts = sorted(glob.glob(os.path.join(ROOT, "tools/assets/payload/p*.txt")))
+    if not parts:
+        return
+    data = base64.b64decode("".join(read(p).strip() for p in parts))
+    with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tf:
+        tf.extractall(ROOT, filter="data")
+    print(f"[build] restored {len(parts)} payload parts ({len(data)} bytes) into {ROOT}")
+
+
+_restore_payload()
 # Everything that has been built ships (nothing is archived). Pages and support files are listed once here; the check
 # below fails the build if any page points at a local file that was not copied (this list used to go stale and silently
 # break pages). --no-legacy leaves out the older pages; --png keeps images as PNG instead of lossless WebP.
