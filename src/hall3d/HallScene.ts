@@ -4,7 +4,7 @@ import { Beam } from "../shared/beam";
 import { dprCap, shadowSize, vignette, rimLight } from "../shared/polish";
 import { PERIODS, DAY, DAY_START, periodAt, astar, rnd, shuffle } from "./logic";
 import { bakeSheet, DIRS, COLS, FW, FH, SCALE, FEET, SKINS, SHIRTS, HAIRS, AGE_SCALE, type Age, type Look } from "./characters";
-import { SUBJECTS, W, H, WALL_H, LOCK_D, BLOCKS, DOORS, NEWS, OPEN, LOCKERS, PROPS, ENTRANCE, OUTSIDE, NAV, hit, solidAt, type Subject, type Room, type Rect, type Face } from "./campus";
+import { SUBJECTS, W, H, WALL_H, LOCK_D, BLOCKS, DOORS, NEWS, OPEN, LOCKERS, PROPS, ENTRANCE, OUTSIDE, NAV, UP_NAV, STAIRS, hit, solidAt, upSolidAt, type Subject, type Room, type Rect, type Face } from "./campus";
 import * as T from "./textures";
 import { ROSTER, STAFF, HALL_COUNT, type NpcDef } from "./roster";
 import { drawBoard } from "../game/timesui";
@@ -41,6 +41,7 @@ export const GOTO = [
   { key: "science", label: "Science", color: SUBJ_COL.science }, { key: "history", label: "History", color: SUBJ_COL.history }, { key: "careers", label: "CarryingCareers", color: SUBJ_COL.careers }, { key: "life", label: "Life Lessons", color: SUBJ_COL.life },
   { key: "news", label: "Auditorium (stairs down)", color: "#8E7CC3" }, { key: "open", label: "The Open Door (parent classes)", color: "#E8A33D" },
   { key: "board", label: "Class-times board", color: "#C9A36B" }, { key: "plaza", label: "Plaza fountain", color: "#EAB94E" }, { key: "entrance", label: "Main entrance", color: "#F28F7E" },
+  { key: "upstairs", label: "Upstairs balcony", color: "#7CB6A0" },
 ];
 
 export interface Person { speaking?: boolean; actTex?: THREE.Texture; act?: { name: string; t: number; auto?: boolean } | null; gait?: string; baseScale?: THREE.Vector3; fidgetT?: number; sitTex?: THREE.Texture; def?: NpcDef; talking?: boolean; id: number; look: Look; sprite: THREE.Sprite; mat: THREE.SpriteMaterial; tex: THREE.Texture; blob: THREE.Mesh; pos: THREE.Vector3; dir: number; frame: number; moving: boolean }
@@ -62,6 +63,10 @@ export class HallScene {
   private cineCam: { pos: THREE.Vector3; look: THREE.Vector3 } | null = null;
   private kidQueue: Stu[] = []; private busKids: Stu[] = []; private kidTimer = 0;
   private arrivalWalk: (() => void) | null = null; private arrivalCb: (() => void) | null = null;
+  /** which floor the player is on: 0 = ground, 1 = the upstairs balcony gallery */
+  floor = 0; private floorY = 0; private stairLock: Rect | null = null;
+  private navGrid() { return this.floor ? UP_NAV : NAV; }
+  private solid(gx: number, gy: number, pad = 0.16) { return this.floor ? upSolidAt(gx, gy, pad) : solidAt(gx, gy, pad); }
   yaw = 0; pitch = 0.62; zoom = 1; fpitch = 0; navLabel = "";
   private nav: { pts: THREE.Vector3[]; label: string } | null = null;
   private walkers: { p: Person; stops: number[][]; path: THREE.Vector3[]; leg: number; speed: number }[] = []; teacher!: Person;
@@ -77,7 +82,7 @@ export class HallScene {
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     r.setPixelRatio(dprCap()); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
     scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#EADFCB"); this.scene.fog = new THREE.Fog("#EADFCB", 80 * IS, 190 * IS);
-    this.reachable(); this.buildLights(); this.buildCampus(); this.buildDetails(); this.buildOutside(); this.buildRoad(); this.buildBus(); this.buildPeople();
+    this.reachable(); this.buildLights(); this.buildCampus(); this.buildDetails(); this.buildOutside(); this.buildRoad(); this.buildBus(); this.buildUpstairs(); this.buildPeople();
     if (this.px) this.px.finish({ floor: this.floorMesh!, lockers: this.lockMats, winSpots: this.winSpots });
     addEventListener("resize", () => this.resize()); this.resize();
     addEventListener("keydown", (e) => { if ((e.target as HTMLElement)?.tagName === "INPUT") return; this.keys[e.key.toLowerCase()] = true; if (e.key.startsWith("Arrow")) e.preventDefault(); });
@@ -368,7 +373,7 @@ export class HallScene {
     const disc = new THREE.Mesh(new THREE.CircleGeometry(9, 40), this.std(this.rep("stoneD", () => T.stoneTex(), 5, 5))); disc.rotation.x = -Math.PI / 2; disc.position.set(0, -0.015, H / 2 + 30); disc.receiveShadow = true; S.add(disc);
     // instanced paper trees: a trunk + a faceted crown each
     const spots: { x: number; z: number; s: number }[] = [];
-    for (let i = 0; i < 900 && spots.length < 190; i++) {
+    for (let i = 0; i < 900 && spots.length < 125; i++) {
       const x = (hash(i, 1) - 0.5) * 150, z = (hash(i, 2) - 0.5) * 140 + 8;
       if (Math.abs(x) < W / 2 + 5 && Math.abs(z) < H / 2 + 5) continue;                   // keep clear of the building
       if (Math.abs(x) < 6 && z > 0) continue;                                              // and the entrance path
@@ -386,8 +391,8 @@ export class HallScene {
     crown.castShadow = trunk.castShadow = true; S.add(crown, trunk);
     // little paper houses and hills ringing the lawn
     const wallCols = ["#F2A79B", "#F4D488", "#9FD0B0", "#9CC3E0", "#E8C39A", "#C9B7E8"], roofCols = ["#C98569", "#9A653D", "#7C94B0", "#B8604F"];
-    for (let i = 0; i < 26; i++) {
-      const a = (i / 26) * Math.PI * 2 + hash(i, 8) * 0.2, rx = 78 + hash(i, 9) * 18, x = Math.cos(a) * rx * 1.1, z = Math.sin(a) * rx * 0.85 + 6;
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * Math.PI * 2 + hash(i, 8) * 0.2, rx = 78 + hash(i, 9) * 18, x = Math.cos(a) * rx * 1.1, z = Math.sin(a) * rx * 0.85 + 6;
       if (Math.abs(x) < 8 && z > 0) continue;
       const w = 5 + hash(i, 10) * 4, h = 3.5 + hash(i, 11) * 2.5, g = new THREE.Group();
       const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, w * 0.9), this.plain(wallCols[i % 6])); body.position.y = h / 2; body.castShadow = true; g.add(body);
@@ -497,21 +502,60 @@ export class HallScene {
     for (let i = 0; i < 7; i++) { const z = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 6.2), new THREE.MeshBasicMaterial({ color: "#F4EEE0" })); z.rotation.x = -Math.PI / 2; z.position.set(-3 + i * 1.0, 0.003, OUTSIDE.roadY - H / 2); this.scene.add(z); }
     const walk = new THREE.Mesh(new THREE.PlaneGeometry(60, 4.2), this.std(this.rep("stoneW", () => T.stoneTex(), 14, 1))); walk.rotation.x = -Math.PI / 2; walk.position.set(0, -0.012, H / 2 + 3.0); this.scene.add(walk);
   }
+  /** the upstairs balcony gallery: four walkway slabs ringing the atrium at wall-top height, with railings, plus the grand staircase up from the lobby */
+  private buildUpstairs() {
+    const y = WALL_H, slab = this.std(this.rep("upslab", () => T.stoneTex(), 8, 8)), wood = this.plain("#9A653D"), rail = this.plain("#6B5AA8");
+    for (const [x, z, w, d] of [[0, -H / 2 + 2, W, 4], [0, H / 2 - 2, W, 4], [-W / 2 + 2, 0, 4, H - 8], [W / 2 - 2, 0, 4, H - 8]] as const) {
+      this.box(w, 0.3, d, slab.clone(), x, y - 0.15, z, { outline: false, occlude: true });   // the gallery floor (fades when it would hide someone below)
+      if (w > d) { this.box(w, 0.1, 0.12, wood, x, y + 0.02, z - d / 2, { outline: false, shadow: false }); this.box(w, 0.1, 0.12, wood, x, y + 0.02, z + d / 2, { outline: false, shadow: false }); }   // wood edge lips
+      else { this.box(0.12, 0.1, d, wood, x - w / 2, y + 0.02, z, { outline: false, shadow: false }); this.box(0.12, 0.1, d, wood, x + w / 2, y + 0.02, z, { outline: false, shadow: false }); }
+    }
+    // the railing along the atrium-side edge of each walkway: two rails and a post every couple of tiles
+    for (const [cx, cz, len, horiz] of [[0, -(H / 2 - 4), W - 8, 1], [0, H / 2 - 4, W - 8, 1], [-(W / 2 - 4), 0, H - 8, 0], [W / 2 - 4, 0, H - 8, 0]] as const) {
+      for (const ry of [y + 1.0, y + 0.55]) this.box(horiz ? len : 0.07, 0.07, horiz ? 0.07 : len, rail, cx, ry, cz, { outline: false, shadow: false });
+      const n = Math.floor(len / 2);
+      for (let i = 0; i <= n; i++) { const t = -len / 2 + i * 2; this.box(0.07, 1.0, 0.07, rail, cx + (horiz ? t : 0), y + 0.5, cz + (horiz ? 0 : t), { outline: false, shadow: false }); }
+    }
+    // the grand staircase: ten broad steps rising eastward from the lobby up to the south gallery
+    const steps = 10, rise = y, x0 = STAIRS.base.x - W / 2, x1 = STAIRS.top.x + 1 - W / 2, zc = STAIRS.base.y + 0.5 - H / 2, tread = (x1 - x0) / steps;
+    const stairMat = this.std(this.rep("stairwood", () => T.stoneTex(), 4, 1));
+    for (let i = 0; i < steps; i++) { const h = (i + 1) / steps * rise * 0.995; this.box(tread + 0.02, h, 2.2, stairMat, x0 + (i + 0.5) * tread, h / 2, zc); }
+    // handrails on both sides, following the slope
+    const slope = Math.atan2(rise, x1 - x0), railLen = Math.hypot(rise, x1 - x0) + 0.6;
+    for (const dz of [-1.05, 1.05]) {
+      const hr = new THREE.Mesh(new THREE.BoxGeometry(railLen, 0.08, 0.08), rail); hr.position.set((x0 + x1) / 2, rise / 2 + 1.0, zc + dz); hr.rotation.z = slope; hr.castShadow = true; this.scene.add(hr);
+      for (let i = 0; i <= steps; i += 2) { const sx2 = x0 + i * tread, ph = (i / steps) * rise; this.box(0.07, 1.0, 0.07, rail, sx2, ph + 0.5, zc + dz, { outline: false, shadow: false }); }
+    }
+    this.box(0.24, 1.5, 0.24, wood, x0 - 0.2, 0.75, zc - 1.05); this.box(0.24, 1.5, 0.24, wood, x0 - 0.2, 0.75, zc + 1.05);   // newel posts at the foot
+    { // a hanging sign over the foot of the stairs
+      const sg = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48), new THREE.MeshBasicMaterial({ map: this.tex("sign-upstairs", () => T.signTex("UPSTAIRS ▲", "#7CB6A0")), transparent: true }));
+      sg.position.set(x0 - 0.5, 3.2, zc); sg.rotation.y = -Math.PI / 2; this.scene.add(sg);
+    }
+  }
+  /** ride the staircase between floors: snap to the far end, swap the nav grid, remember the landing so we don't bounce straight back */
+  private goFloor(f: number) {
+    if (f === this.floor) return;
+    this.floor = f; this.floorY = f ? WALL_H : 0; this.nav = null; this.navLabel = ""; this.onToast("");
+    const t = f ? STAIRS.top : STAIRS.base;
+    this.player.pos.copy(g2w(t.x + 0.5, t.y + 0.5)); this.stairLock = f ? STAIRS.down : STAIRS.up;
+    this.camPos.y += f ? WALL_H : -WALL_H; this.camLook.y += f ? WALL_H : -WALL_H;
+    this.onToast(f ? "Upstairs: the balcony gallery" : "Back downstairs");
+  }
   /** is a seat free (no one else is meant to be there) */
   standUp() { if (this.sitting == null) return; const s = this.seats[this.sitting]; const out = s.pos.clone().sub(s.ctr).setY(0).normalize().multiplyScalar(0.7); this.player.pos.copy(s.pos).add(out); this.sitting = null; this.pendingSeat = null; }
   /** walk to a Chat Chow seat and sit; face the table */
   sitAt(i: number) {
-    if (this.inputLocked || this.cine) return false; const s = this.seats[i]; if (!s) return false; this.standUp();
+    if (this.inputLocked || this.cine || this.floor) return false; const s = this.seats[i]; if (!s) return false; this.standUp();
     const out = s.pos.clone().sub(s.ctr).setY(0).normalize(), pre = s.pos.clone().addScaledVector(out, 0.9), gx = pre.x + W / 2, gy = pre.z + H / 2;
     if (!this.planNav(Math.floor(gx) + 0.5, Math.floor(gy) + 0.5, "a seat at Chat Chow", s.pos.clone())) return false; this.pendingSeat = i; return true;
   }
   /** the nearest free-looking seat to the player (idle behaviour) */
-  autoSit() { if (this.sitting != null || this.nav || this.cine || this.inputLocked) return false; let bi = -1, bd = 1e9; this.seats.forEach((s, i) => { const d = s.pos.distanceTo(this.player.pos); if (d < bd) { bd = d; bi = i; } }); return bi >= 0 ? this.sitAt(bi) : false; }
+  autoSit() { if (this.sitting != null || this.nav || this.cine || this.inputLocked || this.floor) return false; let bi = -1, bd = 1e9; this.seats.forEach((s, i) => { const d = s.pos.distanceTo(this.player.pos); if (d < bd) { bd = d; bi = i; } }); return bi >= 0 ? this.sitAt(bi) : false; }
   private ensureSitTex(p: Person) { if (p.sitTex) return; const t = new THREE.CanvasTexture(bakeSheet({ ...p.look, sit: true } as Look)); t.colorSpace = THREE.SRGBColorSpace; t.repeat.set(1 / COLS, 1 / DIRS.length); t.anisotropy = 4; p.sitTex = t; }
   /** the morning arrival, as a cut scene: from the kerb you watch the green bus pull up, the students hop off and head in, the bus pulls away, and the camera tilts up to the big UNISIM sign over the entry before play begins */
   startArrival(onAtBoard: () => void) {
     if (!this.bus || !this.busState) { onAtBoard(); return; }
-    this.standUp(); this.nav = null; const B = this.bus, st = this.busState; B.visible = true; B.position.x = st.from; st.t = 0; st.mode = "in"; st.arm.visible = false; this.player.sprite.visible = false; this.player.blob.visible = false; this.arrivalHide = true; this.arrivalCam = true; this.inputLocked = true;
+    this.standUp(); this.nav = null; this.floor = 0; this.floorY = 0; this.stairLock = null; const B = this.bus, st = this.busState; B.visible = true; B.position.x = st.from; st.t = 0; st.mode = "in"; st.arm.visible = false; this.player.sprite.visible = false; this.player.blob.visible = false; this.arrivalHide = true; this.arrivalCam = true; this.inputLocked = true;
     const road = OUTSIDE.roadY - H / 2, stopX = OUTSIDE.busStop.x - W / 2;
     this.cineCam = { pos: new THREE.Vector3(stopX + 13, 2.7, road - 5.4), look: new THREE.Vector3(stopX + 30, 1.5, road) };
     this.camPos.copy(this.cineCam.pos); this.camLook.copy(this.cineCam.look);
@@ -640,11 +684,11 @@ export class HallScene {
     let who: Person | null = hits.length ? people.find((p) => p.sprite === hits[0].object) ?? null : null;
     if (!who) { let best = 0.85; for (const p of people) { const c = p.pos.clone().multiplyScalar(IS).setY(0.8 * AGE_SCALE[p.look.age ?? "hs"] + 0.2), d = this.ray.ray.distanceToPoint(c); if (d < best) { best = d; who = p; } } }
     if (who) { this.onTap(who); return; }
-    const sh = this.ray.intersectObjects(this.seats.map((q) => q.mesh), false); if (sh.length && sh[0].distance < 70) { this.sitAt(sh[0].object.userData.seat); return; }
+    const sh = this.floor ? [] : this.ray.intersectObjects(this.seats.map((q) => q.mesh), false); if (sh.length && sh[0].distance < 70) { this.sitAt(sh[0].object.userData.seat); return; }
     const art = this.ray.intersectObjects([...this.hallPics, ...(this.tvScreen ? [this.tvScreen] : [])], false);
     if (art.length && art[0].distance < (art[0].object === this.tvScreen ? 90 : 60)) { const o = art[0].object; if (o === this.tvScreen) { this.onTV(); return; } const u = o.userData; this.onPic(u.pid, u.title, u.subject); return; }
     this.onTap(null);
-    const hit = new THREE.Vector3(); if (this.view !== "first" && this.ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit)) this.walkToPoint(hit.x / IS + W / 2, hit.z / IS + H / 2, "that spot");
+    const hit = new THREE.Vector3(); if (this.view !== "first" && this.ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -this.floorY * IS), hit)) this.walkToPoint(hit.x / IS + W / 2, hit.z / IS + H / 2, "that spot");
   }
   /* ---- the news TV: mounted high on the corner of the math block, facing the main plaza ---- */
   private tvCv!: HTMLCanvasElement; private tvI = 0; private tvAt = 0; private tvTex!: THREE.CanvasTexture;
@@ -687,7 +731,7 @@ export class HallScene {
   walkToPoint(gx: number, gy: number, label = "there") {
     if (this.inputLocked) return false;
     let best: { x: number; y: number } | null = null, bd = 1e9; const tx = Math.floor(gx), ty = Math.floor(gy);
-    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const x = tx + dx, y = ty + dy; if (x < 0 || y < 0 || x >= W || y >= H || NAV[y][x] !== ".") continue; const d = Math.hypot(x + 0.5 - gx, y + 0.5 - gy); if (d < bd) { bd = d; best = { x, y }; } }
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const x = tx + dx, y = ty + dy; if (x < 0 || y < 0 || x >= W || y >= H || this.navGrid()[y][x] !== ".") continue; const d = Math.hypot(x + 0.5 - gx, y + 0.5 - gy); if (d < bd) { bd = d; best = { x, y }; } }
     if (!best || bd > 2.2) return false; return this.planNav(best.x + 0.5, best.y + 0.5, label, null);
   }
   /** swap the player's look (avatar creator) */
@@ -699,13 +743,18 @@ export class HallScene {
 
   /* ------------------------------------------------------------ doors, navigation */
   placeAtDoor(room: string) {
-    const d = room === "news" ? { approach: NEWS.approach, subject: "news" as Room } : room === "open" ? { approach: OPEN.approach, subject: "open" as Room } : DOORS.find((x) => x.subject === room) ?? DOORS[0]; this.player.pos.copy(g2w(d.approach.x, d.approach.y)); this.inDoor = d.subject; this.nav = null; this.navLabel = ""; this.onToast("");
+    const d = room === "news" ? { approach: NEWS.approach, subject: "news" as Room } : room === "open" ? { approach: OPEN.approach, subject: "open" as Room } : DOORS.find((x) => x.subject === room) ?? DOORS[0]; this.player.pos.copy(g2w(d.approach.x, d.approach.y)); this.inDoor = d.subject; this.nav = null; this.navLabel = ""; this.floor = 0; this.floorY = 0; this.stairLock = null; this.onToast("");
   }
   private clear(a: THREE.Vector3, b: THREE.Vector3) {
-    const n = Math.ceil(a.distanceTo(b) / 0.25); for (let i = 1; i < n; i++) { const p = a.clone().lerp(b, i / n); if (solidAt(p.x + W / 2, p.z + H / 2, 0.3)) return false; } return true;
+    const n = Math.ceil(a.distanceTo(b) / 0.25); for (let i = 1; i < n; i++) { const p = a.clone().lerp(b, i / n); if (this.solid(p.x + W / 2, p.z + H / 2, 0.3)) return false; } return true;
   }
   /** walk the player to a class door (and in), the plaza fountain, or the main entrance */
   goTo(key: string) {
+    if (key === "upstairs") {   // head for the grand staircase in the lobby; walking in rides it up
+      if (this.floor) { this.onToast("You are already upstairs"); return; }
+      this.standUp(); this.planNav(STAIRS.base.x + 0.4, STAIRS.base.y + 0.5, "the grand staircase", null); return;
+    }
+    if (this.floor) this.goFloor(0);   // everything else lives downstairs: take the stairs back first
     const door = DOORS.find((d) => d.subject === key), goal = door ? door.approach : key === "news" ? NEWS.approach : key === "open" ? { x: 8, y: 22 } : key === "plaza" ? { x: 28, y: 18.8 } : key === "board" ? { x: 28, y: 17.4 } : { x: 28, y: 41.5 };
     const label = door ? `${door.subject === "careers" ? "CarryingCareers" : door.subject === "life" ? "Life Lessons" : SUBJ_LABEL[door.subject]} classroom` : key === "news" ? "the auditorium stairs" : key === "open" ? "The Open Door" : key === "plaza" ? "the plaza fountain" : key === "board" ? "the class-times bulletin board" : "the main entrance";
     const tail = door ? g2w(door.cx, door.cy + (door.face === "S" ? 0.5 : -0.5)) : key === "news" ? g2w(NEWS.cx, 0.95) : key === "open" ? g2w(0.95, OPEN.cy) : null;
@@ -741,7 +790,7 @@ export class HallScene {
   planNav(gxGoal: number, gyGoal: number, label: string, tail: THREE.Vector3 | null) {
     if (this.sitting != null) this.standUp();
     const P = this.player.pos, sx = Math.max(0, Math.min(W - 1, Math.floor(P.x + W / 2))), sy = Math.max(0, Math.min(H - 1, Math.floor(P.z + H / 2)));
-    const tiles = astar(NAV, sx, sy, Math.floor(gxGoal), Math.floor(gyGoal));
+    const tiles = astar(this.navGrid(), sx, sy, Math.floor(gxGoal), Math.floor(gyGoal));
     if (!tiles.length && !(sx === Math.floor(gxGoal) && sy === Math.floor(gyGoal))) { this.onToast("No path found from here"); return false; }
     const raw = [P.clone().setY(0), ...tiles.slice(0, -1).map((t) => g2w(t.x + 0.5, t.y + 0.5)), g2w(gxGoal, gyGoal)], pts: THREE.Vector3[] = [];
     for (let i = 0; i < raw.length - 1;) { let j = raw.length - 1; while (j > i + 1 && !this.clear(raw[i], raw[j])) j--; pts.push(raw[j]); i = j; }
@@ -791,7 +840,7 @@ export class HallScene {
     if (manual && this.nav) { this.cancelNav(); this.pendingSeat = null; }
     if (manual) {                                                  // controls follow the camera: up = away from the viewer
       const v = new THREE.Vector3(ct * ix + st * iz, 0, -st * ix + ct * iz).normalize().multiplyScalar(4 * dt); P.moving = true;
-      const gx = P.pos.x + W / 2, gy = P.pos.z + H / 2; if (!solidAt(gx + v.x, gy)) P.pos.x += v.x; if (!solidAt(P.pos.x + W / 2, gy + v.z)) P.pos.z += v.z;
+      const gx = P.pos.x + W / 2, gy = P.pos.z + H / 2; if (!this.solid(gx + v.x, gy)) P.pos.x += v.x; if (!this.solid(P.pos.x + W / 2, gy + v.z)) P.pos.z += v.z;
       P.dir = this.dirFrom(v, fwd, P.dir); P.frame = 1 + (Math.floor(this.t * 9) % 4);
     } else if (this.nav) {
       const tgt = this.nav.pts[0], d = tgt.clone().sub(P.pos); d.y = 0; const len = d.length(), step = 4.6 * dt; P.moving = true;
@@ -799,9 +848,11 @@ export class HallScene {
       else { d.normalize(); P.pos.addScaledVector(d, step); P.dir = this.dirFrom(d, fwd, P.dir); }
       P.frame = 1 + (Math.floor(this.t * 9) % 4);
     } else { P.moving = false; P.frame = 0; }
-    const gx = P.pos.x + W / 2, gy = P.pos.z + H / 2, d = DOORS.find((q) => hit(q.trigger, gx, gy)) ?? (hit(NEWS.trigger, gx, gy) ? { subject: "news" as Room } : hit(OPEN.trigger, gx, gy) ? { subject: "open" as Room } : undefined);
+    const gx = P.pos.x + W / 2, gy = P.pos.z + H / 2, d = this.floor ? undefined : DOORS.find((q) => hit(q.trigger, gx, gy)) ?? (hit(NEWS.trigger, gx, gy) ? { subject: "news" as Room } : hit(OPEN.trigger, gx, gy) ? { subject: "open" as Room } : undefined);
     if (d && this.inDoor !== d.subject) this.enterDoor(d.subject);
     else if (!d && this.inDoor) { const r = this.inDoor === "news" ? NEWS.trigger : this.inDoor === "open" ? OPEN.trigger : DOORS.find((x) => x.subject === this.inDoor)!.trigger, dist = Math.hypot(Math.max(r.x - gx, 0, gx - r.x - r.w), Math.max(r.y - gy, 0, gy - r.y - r.h)); if (dist > 0.35) this.inDoor = null; }
+    if (this.stairLock && !hit(this.stairLock, gx, gy)) this.stairLock = null;   // walked off the landing: re-arm the stairs
+    if (!this.stairLock && !this.nav) { const st = this.floor ? STAIRS.down : STAIRS.up; if (hit(st, gx, gy)) this.goFloor(this.floor ? 0 : 1); }
   }
   setView(v: ViewMode, instant = false) {
     this.view = v; this.zoom = 1; if (v === "overview") this.pitch = 1.0; else if (v === "close") this.pitch = 0.62; this.fpitch = 0;
@@ -809,11 +860,11 @@ export class HallScene {
   }
   cycleView() { this.setView(this.view === "close" ? "overview" : this.view === "overview" ? "first" : "close"); return this.view; }
   private updateCamera(dt: number, snap = false) {
-    const P = this.player.pos, st = Math.sin(this.yaw), ct = Math.cos(this.yaw); let pos: THREE.Vector3, look: THREE.Vector3;
+    const P = this.player.pos, st = Math.sin(this.yaw), ct = Math.cos(this.yaw), fy = this.floorY; let pos: THREE.Vector3, look: THREE.Vector3;
     if (this.cineCam) { pos = this.cineCam.pos; look = this.cineCam.look; }   // scripted cut-scene shot (bus arrival)
-    else if (this.view === "close") { const ap = this.arrivalCam, pit = ap ? 1.05 : this.pitch, d = (ap ? 12 : 8.6) * this.zoom, cp = Math.cos(pit); pos = new THREE.Vector3(P.x + st * cp * d, 1.0 + Math.sin(pit) * d, P.z + ct * cp * d); look = new THREE.Vector3(P.x - st * 1.8, 1.0, P.z - ct * 1.8); }
-    else if (this.view === "overview") { const d = 52 * this.zoom, cp = Math.cos(this.pitch); pos = new THREE.Vector3(st * cp * d, Math.sin(this.pitch) * d, ct * cp * d + 3); look = new THREE.Vector3(0, 0, 3); }
-    else { const ey = 1.7 / IS; pos = new THREE.Vector3(P.x, ey, P.z); look = new THREE.Vector3(P.x - st * 6, ey + Math.tan(this.fpitch) * 6, P.z - ct * 6); }
+    else if (this.view === "close") { const ap = this.arrivalCam, pit = ap ? 1.05 : this.pitch, d = (ap ? 12 : 8.6) * this.zoom, cp = Math.cos(pit); pos = new THREE.Vector3(P.x + st * cp * d, 1.0 + fy + Math.sin(pit) * d, P.z + ct * cp * d); look = new THREE.Vector3(P.x - st * 1.8, 1.0 + fy, P.z - ct * 1.8); }
+    else if (this.view === "overview") { const d = 52 * this.zoom, cp = Math.cos(this.pitch); pos = new THREE.Vector3(st * cp * d, fy + Math.sin(this.pitch) * d, ct * cp * d + 3); look = new THREE.Vector3(0, fy, 3); }
+    else { const ey = 1.7 / IS + fy; pos = new THREE.Vector3(P.x, ey, P.z); look = new THREE.Vector3(P.x - st * 6, ey + Math.tan(this.fpitch) * 6, P.z - ct * 6); }
     const k = snap ? 1 : Math.min(1, dt * 9); this.camPos.lerp(pos, k); this.camLook.lerp(look, k); this.camera.position.copy(this.camPos).multiplyScalar(IS); this.camera.lookAt(this.camLook.clone().multiplyScalar(IS));
     // sun follows the action; the shadow box widens in overview
     const R = this.view === "overview" ? 40 : 22, c = this.view === "overview" ? new THREE.Vector3(0, 0, 3) : P;
@@ -822,6 +873,7 @@ export class HallScene {
   }
   /** walls/blocks standing between the camera and the player fade out so nobody is hidden */
   private fadeOccluders(dt: number) {
+    if (this.floor) { for (const o of this.occl) { o.o = 1; for (const m of o.mats) { m.opacity = 1; m.transparent = false; m.depthWrite = true; } } return; }   // upstairs: walls stay put; the view is down through the atrium void
     const from = this.camera.position.clone().divideScalar(IS), to = this.player.pos.clone().setY(1.0), dir = to.clone().sub(from), len = dir.length(), ray = new THREE.Ray(from, dir.normalize()), tmp = new THREE.Vector3();
     for (const o of this.occl) {
       const blocking = this.view !== "first" && !!ray.intersectBox(o.box, tmp) && tmp.distanceTo(from) < len - 0.2, target = blocking ? 0.16 : 1;
@@ -863,10 +915,10 @@ export class HallScene {
     this.fadeOccluders(dt);
     this.player.sprite.visible = this.view !== "first" && !this.arrivalHide; this.player.blob.visible = this.view !== "first" && !this.arrivalHide;
     this.tickVisitors(dt);
-    for (const p of [...this.students, this.player, this.monitor, this.teacher, ...this.duty, ...this.visitors.values()]) { if ((p as Stu).hidden) continue; p.sprite.position.copy(p.pos); if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position.clone().divideScalar(IS)) < 1.1 / IS; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, 0.02, p.pos.z); this.setFrame(p, p.dir, p.frame); this.applyBody(p, dt, p === this.player); }
+    for (const p of [...this.students, this.player, this.monitor, this.teacher, ...this.duty, ...this.visitors.values()]) { if ((p as Stu).hidden) continue; p.sprite.position.copy(p.pos); if (p === this.player && this.floorY) p.sprite.position.y += this.floorY; if (this.view === "first" && p !== this.player) { const near = p.pos.distanceTo(this.camera.position.clone().divideScalar(IS)) < 1.1 / IS; p.sprite.visible = !near; p.blob.visible = !near; } else if (p !== this.player) { p.sprite.visible = true; p.blob.visible = true; } p.blob.position.set(p.pos.x, 0.02 + (p === this.player ? this.floorY : 0), p.pos.z); this.setFrame(p, p.dir, p.frame); this.applyBody(p, dt, p === this.player); }
     if (this.px) {   // real 3D characters for the player and whoever is near (sprites stay for the rest)
       this.px.tick(this.t, this.player.pos);
-      this.px.crowd.update(dt, [this.player, ...this.students, this.monitor, this.teacher, ...this.duty], { player: this.player, playerSpec: this.playerSpec, camera: this.camera, shown: this.view !== "first" && !this.arrivalHide, first: this.view === "first", seat: this.sitting != null ? this.seats[this.sitting] : null, talkingTo: this.persons().find((q) => q.talking) ?? null });
+      this.px.crowd.update(dt, [this.player, ...this.students, this.monitor, this.teacher, ...this.duty], { player: this.player, playerSpec: this.playerSpec, camera: this.camera, shown: this.view !== "first" && !this.arrivalHide, first: this.view === "first", floorY: this.floorY, seat: this.sitting != null ? this.seats[this.sitting] : null, talkingTo: this.persons().find((q) => q.talking) ?? null });
     }
     const tg = PERIODS[this.idx].tint, k = Math.min(1, dt * 1.5); for (let i = 0; i < 4; i++) this.tint[i] += (tg[i] - this.tint[i]) * k;
     if (this.sitting != null) this.player.sprite.position.y -= 0.12;

@@ -46,12 +46,20 @@ export const PROPS: Prop[] = [
   { kind: "fountain", x: 28, y: 22 },
   { kind: "bboard", x: 28, y: 30.8 },   // the live bulletin board on the plaza (drawn by hallDetails)
   { kind: "tv", x: 28, y: 15.6 },   // the wired-in news box TV (drawn by HallScene); the class-times bulletin board now stands outside the entrance
-  ...[[23.5, 36.5], [32.5, 36.5], [7, 19], [7, 25], [49, 19], [49, 25], [23, 14], [33, 14], [23, 30], [33, 30]].map(([x, y]) => ({ kind: "tree" as const, x, y })),
+  ...[[23.5, 36.5], [32.5, 36.5], [7, 22], [49, 22], [23, 30], [33, 30]].map(([x, y]) => ({ kind: "tree" as const, x, y })),
   ...tablesAt([10, 14, 18], [20, 24]), ...tablesAt([38, 42, 46], [20, 24]),
   ...[[24.2, 33], [31.8, 33]].map(([x, y]) => ({ kind: "bench" as const, x, y, rot: Math.PI / 2 })),
   { kind: "planter", x: 25.2, y: 18.2 }, { kind: "planter", x: 30.8, y: 18.2 }, { kind: "planter", x: 25.2, y: 25.8 }, { kind: "planter", x: 30.8, y: 25.8 },
-  ...[[12, 2.5], [20, 2.5], [36, 2.5], [44, 2.5], [12, 41.5], [44, 41.5], [2.5, 18.5], [53.5, 22]].map(([x, y]) => ({ kind: "lamp" as const, x, y })),
+  ...[[12, 2.5], [20, 2.5], [36, 2.5], [44, 2.5], [12, 41.5], [2.5, 18.5], [53.5, 22]].map(([x, y]) => ({ kind: "lamp" as const, x, y })),
 ];
+
+/** the grand staircase in the entrance lobby: rises eastward along the south corridor up to the balcony gallery.
+ *  `footprint` blocks the ground floor under it; `up`/`down` are the walk-in triggers at each end. */
+export const STAIRS = {
+  base: { x: 34, y: 41 }, top: { x: 43, y: 41 },
+  up: { x: 33.5, y: 40.7, w: 1.6, h: 1.8 } as Rect, down: { x: 42.7, y: 40.7, w: 1.7, h: 1.8 } as Rect,
+  footprint: { x: 35, y: 40.6, w: 7.2, h: 2.2 } as Rect,
+};
 
 const SIZE: Record<PropKind, [number, number]> = { tree: [1.2, 1.2], bench: [0.7, 1.9], table: [1.9, 1.9], fountain: [4.6, 4.6], planter: [1.4, 1.4], lamp: [0.1, 0.1], tv: [2.0, 1.3], bboard: [3.2, 0.7] };
 
@@ -60,6 +68,7 @@ export function blockers(): Rect[] {
   const r: Rect[] = BLOCKS.map((b) => ({ ...b.rect }));
   for (const l of LOCKERS) r.push(l.rect);
   for (const p of PROPS) { const [w, h] = SIZE[p.kind]; if (p.kind === "lamp") continue; r.push({ x: p.x - w / 2, y: p.y - h / 2, w, h }); }
+  r.push({ ...STAIRS.footprint });   // the grand staircase is solid at ground level
   return r;
 }
 export const BLOCKED = blockers();
@@ -74,6 +83,15 @@ export function solidAt(x: number, y: number, pad = 0.16): boolean {
 export const NAV: string[] = Array.from({ length: H }, (_, y) => Array.from({ length: W }, (_, x) => (BLOCKED.some((r) => hit(r, x + 0.5, y + 0.5, 0.2)) ? "#" : ".")).join(""));
 export const PLAZA_TILES: { x: number; y: number }[] = NAV.flatMap((row, y) => row.split("").map((c, x) => ({ c, x, y }))).filter((t) => t.c === "." && t.x >= 7 && t.x <= 48 && t.y >= 7 && t.y <= 37 && !BLOCKS.some((b) => hit(b.rect, t.x + 0.5, t.y + 0.5, 0)));
 export const CORRIDOR_TILES: { x: number; y: number }[] = NAV.flatMap((row, y) => row.split("").map((c, x) => ({ c, x, y }))).filter((t) => t.c === "." && (t.x < 4 || t.x > W - 5 || t.y < 4 || t.y > H - 5));
+
+/** upstairs: a three-tile-wide balcony gallery ringing the atrium, overlooking the plaza below */
+export const UP_NAV: string[] = Array.from({ length: H }, (_, y) => Array.from({ length: W }, (_, x) =>
+  (x >= 1 && x <= 3) || (x >= W - 4 && x <= W - 2) || (y >= 1 && y <= 3) || (y >= H - 4 && y <= H - 2) ? "." : "#").join(""));
+export function upSolidAt(x: number, y: number, pad = 0.16): boolean {
+  if (x < 0.45 || y < 0.45 || x > W - 0.45 || y > H - 0.45) return true;
+  const inRing = (x > 1 - pad && x < 4 + pad) || (x > W - 4 - pad && x < W - 1 + pad) || (y > 1 - pad && y < 4 + pad) || (y > H - 4 - pad && y < H - 1 + pad);
+  return !inRing;
+}
 
 /** outside the front doors: the class-times bulletin board by the entrance, the bus stop on the road in front of the school (grid units; y > H is outdoors) */
 export const OUTSIDE = { board: { x: 35.2, y: H + 2.4 }, boardStand: { x: 35.2, y: H + 4.0 }, busStop: { x: 16, y: H + 7.6 }, busDoor: { x: 21.6, y: H + 5.9 }, roadY: H + 7.6 };

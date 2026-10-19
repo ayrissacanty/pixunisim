@@ -28,7 +28,7 @@ const GRADE = {
     c.rgb*=mix(vec3(.94,.99,1.07),vec3(1.07,1.,.9),smoothstep(.04,.8,lu)); float v=smoothstep(.5,1.1,length(vUv-.5)*1.25); c.rgb*=1.-v*.2; gl_FragColor=c; }`,
 };
 
-export interface PxCtx { player: Person; playerSpec: AvatarSpec; camera: THREE.Camera; shown: boolean; first: boolean; seat: { pos: THREE.Vector3; ctr: THREE.Vector3 } | null; talkingTo: Person | null }
+export interface PxCtx { player: Person; playerSpec: AvatarSpec; camera: THREE.Camera; shown: boolean; first: boolean; floorY: number; seat: { pos: THREE.Vector3; ctr: THREE.Vector3 } | null; talkingTo: Person | null }
 export interface PxTags { floor: THREE.Mesh; lockers: THREE.Material[]; winSpots: { x: number; y: number; z: number; rot: number }[] }
 
 const ACT: Record<string, Anim> = { wave: "wave", highfive: "wave", cheer: "cheer", jump: "cheer", hop: "cheer", dance: "cheer", clap: "cheer", excited: "cheer", silly: "cheer", laugh: "cheer", kick: "cheer", nod: "nod", shake: "shake", talk: "talk", scratch: "think", shy: "think", shrug: "shrug", point: "point", hip: "hip", eyeroll: "think", facepalm: "think", thumbs: "wave" };
@@ -72,7 +72,7 @@ export class PixarCrowd {
     e.yaw = lerpAngle(e.yaw, e.ty, 1 - Math.exp(-dt * 11));
     const act = p.act ? ACT[p.act.name] : undefined, anim: Anim = seated ? "sit" : p.moving ? "walk" : act ?? (p.speaking || p.talking ? "talk" : "idle");
     c.play(anim); c.speak(!!p.speaking); const spd = isP ? 4.3 : (p as Stu).speed ?? 2.4, st = p.moving ? Math.min(1.7, Math.max(0.75, spd / 2.4)) : 1; c.setMoveSpeed?.(p.moving ? spd : 0); c.update(dt * st);   // setMoveSpeed: hair swing is gated on loose hair + real speed
-    c.root.position.set(p.pos.x, seated ? 0.46 - c.seatHeight * CHAR_K : 0, p.pos.z); c.root.rotation.y = e.yaw;
+    c.root.position.set(p.pos.x, (isP ? x.floorY : 0) + (seated ? 0.46 - c.seatHeight * CHAR_K : 0), p.pos.z); c.root.rotation.y = e.yaw;
     const f = (p as Stu).fade ?? 1; c.root.scale.setScalar(Math.max(0.02, f) * CHAR_K);
     c.root.visible = isP ? x.shown : !(x.first && this.tmp.set(p.pos.x, 0, p.pos.z).distanceTo(this.camLocal.copy(x.camera.position).divideScalar(IS)) < 1.1 / IS);
     void anim;
