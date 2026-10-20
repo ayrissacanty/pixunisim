@@ -266,6 +266,20 @@ export const config = { path: '/api/chat' };
 """
 )
 write(os.path.join(out, "netlify/functions/chat.mjs"), cfn)
+sfn = (
+    head
+    + """
+export default async (req) => {
+  const q = new URL(req.url).searchParams;
+  try {
+    const d = await sourcesQuery(q.get('op') || '', q.get('q') || '', { grade: q.get('grade') || '6', id: q.get('id') || '', author: q.get('author') || '', lat: q.get('lat'), lon: q.get('lon') });
+    return Response.json(d, { status: d.error === 'Unknown source.' ? 400 : 200, headers: { 'cache-control': 'no-store' } });
+  } catch (e) { return Response.json({ ok: false, error: 'That source did not answer.' }, { status: 200 }); }
+};
+export const config = { path: '/api/sources' };
+"""
+)
+write(os.path.join(out, "netlify/functions/sources.mjs"), sfn)
 write(
     os.path.join(out, "netlify.toml"),
     """[build]

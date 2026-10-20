@@ -39,7 +39,7 @@ const lerpAngle = (a: number, b: number, k: number) => { let d = ((b - a + Math.
 
 interface Ent { c: Char3DEx; spec: AvatarSpec; lx: number; lz: number; yaw: number; ty: number; cast?: boolean }
 const phone = smallScreen();
-const MAX3D = phone ? 10 : 22, NEAR = phone ? 12 : 20, FAR = phone ? 16 : 26;
+const MAX3D = phone ? 28 : 56, MAKE_PER_FRAME = phone ? 1 : 2;
 /** real 3D characters for everyone in the hall. A few are built each frame so the phone does not stall. */
 export class PixarCrowd {
   private ents = new Map<Person, Ent>(); private tmp = new THREE.Vector3(); private camLocal = new THREE.Vector3();
@@ -47,24 +47,24 @@ export class PixarCrowd {
   has(p: Person) { return this.ents.has(p); }
   private drop(p: Person) { const e = this.ents.get(p); if (!e) return; e.c.dispose(); this.ents.delete(p); }
   private make(p: Person, spec: AvatarSpec, cam: THREE.Camera): Ent | null {
-    const real: AvatarSpec = spec.prop === "realistic" ? spec : { ...spec, prop: "realistic" };
+    const real: AvatarSpec = spec;
     let c: Char3DEx; try { c = createChar3D(this.style, real); } catch (err) { console.warn("3D character failed", err); return null; }
     const yaw = Math.atan2(cam.position.x / IS - p.pos.x, cam.position.z / IS - p.pos.z); c.root.position.set(p.pos.x, 0, p.pos.z); c.root.rotation.y = yaw; this.scene.add(c.root);
     const e = { c, spec, lx: p.pos.x, lz: p.pos.z, yaw, ty: yaw }; this.ents.set(p, e); return e;
   }
   update(dt: number, list: Person[], x: PxCtx) {
-    const P = x.player.pos, cand: { p: Person; d: number; spec: AvatarSpec }[] = [];
+    const cam = this.camLocal.copy(x.camera.position).divideScalar(IS), cand: { p: Person; d: number; spec: AvatarSpec }[] = [];
     for (const p of list) {
-      if ((p as Stu).hidden) continue; const spec = p === x.player ? x.playerSpec : p.def?.spec; if (!spec) continue;
-      const d = p === x.player ? -1 : Math.hypot(p.pos.x - P.x, p.pos.z - P.z); if (d < (this.ents.has(p) ? FAR : NEAR)) cand.push({ p, d, spec });
+      if ((p as Stu).hidden) continue; const spec = p === x.player ? x.playerSpec : (p.spec ?? p.def?.spec); if (!spec) continue;
+      const d = p === x.player ? -1 : Math.hypot(p.pos.x - cam.x, p.pos.z - cam.z); cand.push({ p, d, spec });
     }
     cand.sort((a, b) => a.d - b.d); const keep = new Set<Person>(cand.slice(0, MAX3D).map((c) => c.p));
     for (const p of [...this.ents.keys()]) if (!keep.has(p)) this.drop(p);
     let made = 0;
     for (const { p, spec } of cand) {
       if (!keep.has(p)) continue; let e = this.ents.get(p);
-      if (!e) { if (p !== x.player && made >= 1) continue; e = this.make(p, spec, x.camera) ?? undefined; made++; if (!e) { keep.delete(p); continue; } }
-      else if (e.spec !== spec) { e.c.setSpec(spec.prop === "realistic" ? spec : { ...spec, prop: "realistic" }); e.spec = spec; }
+      if (!e) { if (made >= MAKE_PER_FRAME) continue; e = this.make(p, spec, x.camera) ?? undefined; made++; if (!e) { keep.delete(p); continue; } }
+      else if (e.spec !== spec) { e.c.setSpec(spec); e.spec = spec; }
       this.step(dt, p, e, x); this.shade(e, p === x.player);
     }
     for (const p of keep) if (this.ents.has(p)) { p.sprite.visible = false; p.blob.visible = false; }

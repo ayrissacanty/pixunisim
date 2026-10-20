@@ -1,6 +1,6 @@
-/** Bound books for the upstairs library. The words are written for this school from free knowledge
- *  (school facts and the public-domain Gettysburg Address). Nothing here is copied from a textbook. */
-export interface ShelfBook { id: string; title: string; author: string; grades: string; cloth: string; pages: { heading: string; body: string }[] }
+/** Bound books for the upstairs library. The shelf is written for this school. The search row calls free sources. */
+import { askSource, studentGrade, type SourceBook } from "../learn/sources";
+export interface ShelfBook { id: string; title: string; author: string; grades: string; cloth: string; pages: { heading: string; body: string; image?: string }[] }
 
 export const SHELF: ShelfBook[] = [
   { id: "count", title: "Counting the Day", author: "Pixunisim Library", grades: "K–2", cloth: "#C46B4A", pages: [
@@ -61,8 +61,13 @@ const css = () => {
 .libroom{width:min(920px,100%);max-height:min(92vh,760px);background:#F6EFE2;border-radius:18px;box-shadow:0 18px 40px rgba(40,24,16,.35);display:flex;flex-direction:column;overflow:hidden;color:#3A2C28;font-family:Georgia,"Iowan Old Style",serif}
 .libtop{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;background:#6E8B74;color:#FBF6EE;font-family:"Fredoka","Trebuchet MS",sans-serif}
 .libtop b{font-weight:600}
-.libtop button,.libnav button{font:inherit;font-family:"Fredoka","Trebuchet MS",sans-serif;background:#FBF6EE;color:#3A2C28;border:0;border-radius:10px;padding:8px 12px;min-height:36px;cursor:pointer}
+.libtop button,.libnav button,.libfind button{font:inherit;font-family:"Fredoka","Trebuchet MS",sans-serif;background:#FBF6EE;color:#3A2C28;border:0;border-radius:10px;padding:8px 12px;min-height:36px;cursor:pointer}
 .libnote{margin:0;padding:8px 14px 0;font-size:13px;color:#6d5a52;font-family:"Fredoka","Trebuchet MS",sans-serif}
+.libfind{display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px 0;align-items:center}
+.libfind input{flex:1 1 140px;min-height:36px;border-radius:10px;border:1px solid #c4a574;padding:6px 10px;font:inherit;color:#3A2C28;background:#fffaf2}
+.libfind select{min-height:36px;border-radius:10px;border:1px solid #c4a574;background:#fffaf2;color:#3A2C28;font:inherit;padding:6px 8px;max-width:100%}
+.libpage img{display:block;max-width:100%;height:auto;border-radius:6px;margin:8px 0}
+.libpage p{white-space:pre-wrap}
 .libshelf{display:flex;gap:10px;overflow:auto;padding:12px 14px 16px}
 .libcover{flex:none;width:132px;min-height:176px;border-radius:4px 10px 10px 4px;color:#FBF6EE;padding:12px 10px 12px 14px;box-shadow:inset 8px 0 0 rgba(0,0,0,.18),4px 6px 0 rgba(80,50,40,.2);cursor:pointer;text-align:left;border:0;display:flex;flex-direction:column;justify-content:space-between}
 .libcover b{font-size:16px;line-height:1.2}
@@ -77,6 +82,15 @@ const css = () => {
   document.head.appendChild(s);
 };
 
+const IMAGE_HOSTS = ["www.artic.edu", "openaccess-cdn.clevelandart.org", "tile.loc.gov", "cdn.loc.gov", "www.loc.gov", "static.inaturalist.org", "inaturalist-open-data.s3.amazonaws.com"];
+function safeImage(url?: string) {
+  try {
+    const u = new URL(url || "");
+    if (u.protocol !== "https:") return "";
+    return IMAGE_HOSTS.some((h) => u.hostname === h) ? u.toString() : "";
+  } catch { return ""; }
+}
+
 export function openLibrary(host: HTMLElement, onClose: () => void) {
   css(); host.classList.add("show"); host.innerHTML = "";
   const room = document.createElement("div"); room.className = "libroom"; host.appendChild(room);
@@ -85,18 +99,66 @@ export function openLibrary(host: HTMLElement, onClose: () => void) {
   const close = document.createElement("button"); close.textContent = "Close"; top.appendChild(close);
   const shut = () => { host.classList.remove("show"); host.innerHTML = ""; onClose(); };
   close.onclick = shut;
-  const note = document.createElement("p"); note.className = "libnote"; note.textContent = "These books were written for this school from free knowledge. The Gettysburg Address is a public-domain speech. The rest is ours, so you can read it here."; room.appendChild(note);
+  const note = document.createElement("p"); note.className = "libnote"; note.textContent = "The shelf below was written for this school. The menu looks up free sources and turns the answer into a short page, with credit. If a source does not answer, these books still open."; room.appendChild(note);
+  const find = document.createElement("div"); find.className = "libfind"; room.appendChild(find);
+  const modes: [string, string][] = [["books", "Books"], ["poem", "Poem"], ["topic", "Topic"], ["word", "Word"], ["facts", "Facts"], ["art", "Art"], ["pictures", "Pictures"], ["archive", "Archive"], ["chemical", "Chemical"], ["species", "Species"], ["place", "Place"], ["river", "River"], ["sky", "Sky"], ["earth", "Earth"], ["quiz", "Quiz"]];
+  if (+studentGrade() >= 9) modes.push(["papers", "Papers"], ["laws", "Laws"]);
+  let mode = "books";
+  const pick = document.createElement("select"); pick.setAttribute("aria-label", "What to look up");
+  for (const [id, label] of modes) { const o = document.createElement("option"); o.value = id; o.textContent = label; pick.appendChild(o); }
+  pick.onchange = () => { mode = pick.value; if (mode === "earth" || mode === "quiz" || mode === "sky" || mode === "river") void run(); };
+  find.appendChild(pick);
+  const input = document.createElement("input"); input.placeholder = "Title, poet, animal, or place"; input.setAttribute("aria-label", "Search the free sources"); find.appendChild(input);
+  const go = document.createElement("button"); go.type = "button"; go.textContent = "Find"; find.appendChild(go);
   const shelf = document.createElement("div"); shelf.className = "libshelf"; room.appendChild(shelf);
   const reader = document.createElement("div"); reader.className = "libbook"; reader.hidden = true; room.appendChild(reader);
-  let book: ShelfBook | null = null, page = 0;
+  let book: ShelfBook | null = null, page = 0, hits: SourceBook[] = [], busy = false;
+  const cloth = ["#C46B4A", "#6E8B74", "#4F91C7", "#E0B15A", "#3F7655", "#8E5A3C", "#E07A66"];
+  const toShelf = (b: SourceBook): ShelfBook => ({ id: "live", title: b.title, author: b.author, grades: b.gutenberg ? "Public domain" : "Live source", cloth: cloth[Math.abs(b.title.length) % cloth.length], pages: b.pages || [] });
   const paintShelf = () => {
     shelf.hidden = false; reader.hidden = true; title.textContent = "School library"; shelf.innerHTML = "";
     for (const b of SHELF) {
       const c = document.createElement("button"); c.className = "libcover"; c.style.background = b.cloth;
       c.innerHTML = `<b></b><small></small>`; c.querySelector("b")!.textContent = b.title; c.querySelector("small")!.textContent = `${b.grades} · ${b.pages.length} pages`;
-      c.onclick = () => { book = b; page = 0; paintBook(); }; shelf.appendChild(c);
+      c.onclick = () => { hits = []; book = b; page = 0; paintBook(); }; shelf.appendChild(c);
     }
   };
+  const paintHits = () => {
+    shelf.hidden = false; reader.hidden = true; title.textContent = "From the sources"; shelf.innerHTML = "";
+    const back = document.createElement("button"); back.className = "libcover"; back.style.background = "#3A2C28";
+    back.innerHTML = `<b></b><small></small>`; back.querySelector("b")!.textContent = "School shelf"; back.querySelector("small")!.textContent = "Back to our books";
+    back.onclick = paintShelf; shelf.appendChild(back);
+    hits.forEach((h) => {
+      const c = document.createElement("button"); c.className = "libcover"; c.style.background = cloth[Math.abs(h.title.length) % cloth.length];
+      c.innerHTML = `<b></b><small></small>`; c.querySelector("b")!.textContent = h.title; c.querySelector("small")!.textContent = `${h.author}${h.gutenberg ? " · readable" : ""}`;
+      c.onclick = () => { void openHit(h); }; shelf.appendChild(c);
+    });
+  };
+  const openHit = async (h: SourceBook) => {
+    if (h.pages?.length) { book = toShelf(h); page = 0; paintBook(); return; }
+    if (!h.gutenberg) {
+      book = { ...toShelf(h), pages: [{ heading: "No full text", body: `${h.title} is listed by Open Library${h.year ? " (" + h.year + ")" : ""}. It is not a public-domain Gutenberg text, so the school does not copy it onto the shelf.` }] };
+      page = 0; paintBook(); return;
+    }
+    note.textContent = "Copying the opening pages from Project Gutenberg…";
+    const r = await askSource("read", h.title, { id: h.gutenberg, author: h.author });
+    note.textContent = r.ok ? "These pages are the opening of a public-domain book." : (r.error || "That source did not answer.");
+    if (r.book?.pages?.length) { book = toShelf({ ...h, ...r.book }); page = 0; paintBook(); }
+  };
+  const run = async () => {
+    if (busy) return; busy = true; go.disabled = true;
+    const q = input.value.trim();
+    note.textContent = "Asking the source…";
+    const r = await askSource(mode, q);
+    busy = false; go.disabled = false;
+    if (!r.ok) { note.textContent = r.error || "That source did not answer. The school shelf is still here."; return; }
+    if (r.book?.pages?.length) { note.textContent = `From ${r.source || "a free source"}.`; book = toShelf(r.book); page = 0; paintBook(); return; }
+    hits = r.books || [];
+    note.textContent = hits.length ? `${hits.length} from ${r.source || "Open Library"}. A cover marked readable can open here.` : "Nothing came back. Try a different title.";
+    paintHits();
+  };
+  go.onclick = () => { void run(); };
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") void run(); });
   const paintBook = () => {
     if (!book) return; shelf.hidden = true; reader.hidden = false; title.textContent = book.title; reader.innerHTML = "";
     const spread = document.createElement("div"); spread.className = "libspread";
@@ -105,6 +167,8 @@ export function openLibrary(host: HTMLElement, onClose: () => void) {
       const d = document.createElement("div"); d.className = "libpage " + cls;
       if (!p) { d.innerHTML = "<p>The end of this book. Close it, or turn back.</p>"; spread.appendChild(d); return; }
       const h = document.createElement("h3"); h.textContent = p.heading; d.appendChild(h);
+      const img = safeImage(p.image);
+      if (img) { const im = document.createElement("img"); im.src = img; im.alt = p.heading; d.appendChild(im); }
       for (const para of p.body.split("\n\n")) { const el = document.createElement("p"); el.textContent = para; d.appendChild(el); }
       spread.appendChild(d);
     };
@@ -113,7 +177,7 @@ export function openLibrary(host: HTMLElement, onClose: () => void) {
     const prev = document.createElement("button"); prev.textContent = "Previous pages"; prev.disabled = page <= 0; prev.onclick = () => { page = Math.max(0, page - 2); paintBook(); };
     const label = document.createElement("span"); label.textContent = `${book.author} · pages ${page + 1}–${Math.min(book.pages.length, page + 2)} of ${book.pages.length}`;
     const next = document.createElement("button"); next.textContent = "Next pages"; next.disabled = page + 2 >= book.pages.length; next.onclick = () => { page += 2; paintBook(); };
-    const back = document.createElement("button"); back.textContent = "All books"; back.onclick = paintShelf;
+    const back = document.createElement("button"); back.textContent = hits.length ? "Results" : "All books"; back.onclick = () => hits.length ? paintHits() : paintShelf();
     nav.append(prev, label, next, back); reader.appendChild(nav);
   };
   paintShelf();
