@@ -26,6 +26,34 @@ out = os.path.abspath(sys.argv[1])
 shutil.rmtree(out, ignore_errors=True)
 os.makedirs(os.path.join(out, "demo/dist"))
 os.makedirs(os.path.join(out, "netlify/functions"))
+
+
+def _restore_payload():
+    """Root pages/seed data that are too large to keep in git history directly live
+    base64+gzip'd under tools/assets/payload/. Restore them when missing (CI)."""
+    import base64
+    import glob
+    import io
+    import tarfile
+
+    need = (
+        ["hq.html", "academy-control.html", "staff.html", "customize.html",
+         "curriculum-builder.html", "textbook.html", "hq-data.js"]
+        + [f"curriculum-seed-{i}.js" for i in range(1, 10)]
+        + ["validate-curriculum-seed.js"]
+    )
+    if all(os.path.exists(os.path.join(ROOT, f)) for f in need):
+        return
+    parts = sorted(glob.glob(os.path.join(ROOT, "tools/assets/payload/p*.txt")))
+    if not parts:
+        return
+    data = base64.b64decode("".join(read(p).strip() for p in parts))
+    with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tf:
+        tf.extractall(ROOT, filter="data")
+    print(f"[build] restored {len(parts)} payload parts ({len(data)} bytes) into {ROOT}")
+
+
+_restore_payload()
 # Everything that has been built ships (nothing is archived). Pages and support files are listed once here; the check
 # below fails the build if any page points at a local file that was not copied (this list used to go stale and silently
 # break pages). --no-legacy leaves out the older pages; --png keeps images as PNG instead of lossless WebP.
@@ -43,6 +71,7 @@ PAGES = [
     "mail.html",
     "newsdesk.html",
     "dorm.html",
+    # Agent Team apps: HQ + admin studios (gated in-page) and the in-class textbook (open to students)
     "hq.html",
     "academy-control.html",
     "staff.html",
@@ -85,6 +114,8 @@ SUPPORT = [
     "look.js",
     "pixar-ui.css",
     "phone-icon.svg",
+    "look.js",
+    "pixar-ui.css",
     "icon-180.png",
     "icon-192.png",
     "icon-512.png",
@@ -115,8 +146,30 @@ for name in BUNDLES:
             r'"/(assets/unify/[^"]+)"', read(os.path.join(ROOT, "demo/dist", name))
         )
     )
+def inject_look(rel):
+    """look.js must be the first script of every shipped page so data-look is set pre-paint."""
+    p = os.path.join(out, rel)
+    html = read(p, errors="ignore")
+    if "look.js" in html:
+        return
+    tag = '<script src="%slook.js"></script>' % ("../" * rel.count("/"))
+    if re.search(r"<head[^>]*>", html, re.IGNORECASE):
+        html = re.sub(
+            r"(<head[^>]*>)",
+            lambda m: m.group(1) + tag,
+            html,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+    else:
+        html = tag + html
+    write(p, html)
+
+
 for rel in PAGES + SUPPORT:
     copy_to_out(rel)
+    if rel.endswith(".html"):
+        inject_look(rel)
     if rel.endswith((".html", ".js")):
         refs |= set(
             re.findall(
@@ -129,6 +182,7 @@ if "--no-legacy" not in sys.argv:
         "new", "new.html"
     )  # the file named "new" (no extension) is a complete page: UNIFY Academy - Live Simulation
     PAGES.append("new.html")
+    inject_look("new.html")
 for d in ("vendor", "curriculum"):
     for dp, _, fs in os.walk(os.path.join(ROOT, d)):
         for fn in fs:
@@ -199,6 +253,9 @@ if (
 missing = []
 for page in PAGES:
     html = read(os.path.join(out, page), errors="ignore")
+    first = re.search(r"<script[^>]*>", html)
+    if not first or "look.js" not in first.group(0):
+        missing.append(f"{page}: look.js is not the first script")
     base = os.path.dirname(page)
     for u in re.findall(r'(?:src|href)=["\']([^"\'#?]+)', html):
         if (
