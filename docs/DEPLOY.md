@@ -1,9 +1,10 @@
 # Deploy
 
-The live site is linked to this repository. Every push to `main` triggers a Netlify build (`netlify.toml`: typecheck + bundle + `tools/build_netlify.py dist`) and publishes `dist/` automatically.
+This project is only [pixunisim](https://github.com/ayrissacanty/pixunisim). Do not push it to unify-campus-quest.
 
-- Build command: `npm run typecheck && npm run build && (pip install --quiet pillow || true) && python3 tools/build_netlify.py dist`
-- Publish: `dist` · Functions: `dist/netlify/functions` · Node 20
-- Base/package directory: repo root (leave blank in Netlify UI)
+Live site: https://pixunisim.netlify.app
+Netlify project: `pixunisim` (`c07e1691-0c64-4413-a07c-730e1cedd4aa`)
 
-Linked: 2026-10-16. Build trigger: 3.
+Build command: `npm run typecheck && npm run build && (pip install --quiet pillow || true) && python3 tools/build_netlify.py dist`
+Publish: `dist` · Functions: `dist/netlify/functions` · Node 20
+Base directory: repo root

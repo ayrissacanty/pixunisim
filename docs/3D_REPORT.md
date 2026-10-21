@@ -3,7 +3,7 @@
 ## Live apps
 | App | URL | Notes |
 |---|---|---|
-| Pixar (3D everything) | https://unify-academy-pixar.netlify.app | Pixar look on every page and 3D scene; includes /api functions |
+| Pixunisim (this project) | https://pixunisim.netlify.app | Separate site and repo. Not the older academy sites. |
 | Standard | https://unify-academy-standard.netlify.app | Normal look; static build (no /api functions) |
 | Old standard | https://unify-academy-live.netlify.app | Older build, redundant; redeploys failed |
 
@@ -11,7 +11,7 @@ Both current apps share one Supabase project (accounts, mail, presence).
 
 ## Source
 - `Homeschool-AlleyWay/alley` (branch `ccr-f001028e-qorwak`; `main` at 2ad42e0)
-- `ayrissacanty/unify-campus-quest` `main` = school source (replaced Campus Quest; old code in git history)
+- `ayrissacanty/pixunisim` `main` is the only source for this project.
 - Build Pixar: `npm run build && python3 tools/build_pixar_app.py dist-pixar` (see docs/PIXAR_APP.md)
 
 ## What the 3D work includes
