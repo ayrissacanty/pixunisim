@@ -6,8 +6,27 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
+import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { smallScreen } from "./polish";
+
+/** The dorm movie shadow, lighter: a short contact darkening in the creases, not a black wash.
+ *  Half resolution and fewer samples so a phone can keep the frame. Name tags stay out of the pass. */
+export function lightAo(composer: EffectComposer, scene: THREE.Scene, camera: THREE.Camera, w: number, h: number): GTAOPass {
+  const small = smallScreen();
+  const gtao = new GTAOPass(scene, camera, Math.max(2, Math.floor(w * (small ? 0.45 : 0.65))), Math.max(2, Math.floor(h * (small ? 0.45 : 0.65))));
+  gtao.blendIntensity = 0.32;
+  gtao.updateGtaoMaterial({ radius: 0.18, scale: 0.45, samples: small ? 4 : 6, thickness: 0.45 });
+  const draw = (gtao as { render: (...args: unknown[]) => void }).render.bind(gtao);
+  (gtao as { render: (...args: unknown[]) => void }).render = (...args: unknown[]) => {
+    const hid: THREE.Object3D[] = [];
+    scene.traverseVisible((o) => { if ((o as THREE.Sprite).isSprite) hid.push(o); });
+    hid.forEach((o) => (o.visible = false));
+    try { draw(...args); } finally { hid.forEach((o) => (o.visible = true)); }
+  };
+  composer.addPass(gtao);
+  return gtao;
+}
 
 export interface PixarOpts { exposure?: number; bloom?: number; radius?: number; threshold?: number; env?: number }
 export interface PixarLook { render(dt?: number, bypass?: boolean): void; resize(w: number, h: number): void; dispose(): void; bloom: UnrealBloomPass | null }
@@ -29,6 +48,7 @@ export function usePixarLook(renderer: THREE.WebGLRenderer, scene: THREE.Scene, 
           composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(W * pr, H * pr, { type: THREE.HalfFloatType, samples: small ? 0 : 4 }));
           composer.setPixelRatio(pr); composer.setSize(W, H);
           composer.addPass(new RenderPass(scene, camera));
+          lightAo(composer, scene, camera, W, H);
           if (!small) { bloom = self.bloom = new UnrealBloomPass(new THREE.Vector2(W, H), o.bloom ?? 0.28, o.radius ?? 0.6, o.threshold ?? 1.05); composer.addPass(bloom); }
           composer.addPass(new OutputPass());
         }

@@ -50,6 +50,10 @@ export const Progress = {
   /** lab scores per class (right answers, total questions), for the report card */
   recordScore(subject: Subject, right: number, total: number) { const s = read(), c = s.scores[subject] ?? [0, 0]; s.scores[subject] = [c[0] + right, c[1] + total]; write(s); },
   scores: (subject: Subject): [number, number] => read().scores[subject] ?? [0, 0],
+  /** subject level, separate from the official enrollment grade. Null until the main account sets one. */
+  level(subject: Subject): number | null { const n = read().level[subject]; return typeof n === "number" && n >= 0 && n <= 12 ? n : null; },
+  setLevel(subject: Subject, grade: number) { const s = read(); s.level[subject] = Math.max(0, Math.min(12, Math.round(grade))); write(s); },
+  clearLevel(subject: Subject) { const s = read(); delete s.level[subject]; write(s); },
   /** days with a class picked on the schedule (a simple attendance count) */
   daysActive: () => Object.keys(read().days).length,
   /** pick a session time for a class today (random slot or a set time); extra=true books the extra (catch-up) lesson for that class instead */

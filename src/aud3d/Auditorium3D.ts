@@ -47,7 +47,7 @@ export class Auditorium3D {
   private ray = new THREE.Raycaster(); private tween: { from: THREE.Vector3; to: THREE.Vector3; t: number } | null = null; private hover = -1; private fx!: { tick(t: number): void }; private hemi!: THREE.HemisphereLight; private dl!: THREE.DirectionalLight; private tod = Mood.queryTod() ?? Mood.realTod(); private spotL!: THREE.SpotLight; private spotR!: THREE.SpotLight;
 
   constructor(host: HTMLElement) {
-    this.host = host; const r = this.renderer = new THREE.WebGLRenderer({ antialias: true }); r.setPixelRatio(dprCap()); r.outputColorSpace = THREE.SRGBColorSpace; r.shadowMap.enabled = false;
+    this.host = host; const r = this.renderer = new THREE.WebGLRenderer({ antialias: true }); r.setPixelRatio(dprCap()); r.outputColorSpace = THREE.SRGBColorSpace; r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap;
     scaleScene(this.scene); host.appendChild(r.domElement); this.scene.background = new THREE.Color("#f4ead2"); this.scene.fog = new THREE.Fog("#f3e6c8", 90 * IS, 220 * IS);
     vignette(host, 0.3); this.buildRoom(); this.buildStage(); this.buildSeats(); this.buildScreen(); this.buildPeople(); this.bind();
     this.fx = buildAudExtras(this.scene, { hemi: this.hemi, dl: this.dl, spots: [this.spotL, this.spotR], bg: this.scene.background as THREE.Color, fog: this.scene.fog as THREE.Fog, baseMesh: this.baseMesh, backMesh: this.backMesh, seatCount: this.seats.length });
@@ -60,7 +60,7 @@ export class Auditorium3D {
   /* ---------------------------------------------------------------- the room */
   private buildRoom() {
     const S = this.scene, wood = canvasTex(512, 512, (c) => { for (let i = 0; i < 16; i++) { c.fillStyle = i % 2 ? "#a8723f" : "#b57c46"; c.fillRect(0, i * 32, 512, 32); c.fillStyle = "rgba(60,30,10,.25)"; c.fillRect(0, i * 32, 512, 2); for (let k = 0; k < 14; k++) { c.fillStyle = `rgba(70,40,15,${0.04 + Math.random() * 0.06})`; c.fillRect(Math.random() * 512, i * 32 + 4, 40 + Math.random() * 120, 2); } } }, [10, 14]);
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(70, 90), new THREE.MeshStandardMaterial({ map: wood, roughness: 0.8 })); floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, -5); S.add(floor);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(70, 90), new THREE.MeshStandardMaterial({ map: wood, roughness: 0.8 })); floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, -5); floor.receiveShadow = true; S.add(floor);
     const wallTex = canvasTex(256, 256, (c) => { c.fillStyle = "#e7d7b8"; c.fillRect(0, 0, 256, 256); for (let i = 0; i < 4; i++) { c.fillStyle = "#f4e7cf"; c.fillRect(i * 64 + 6, 8, 52, 240); c.strokeStyle = "#c9a44e"; c.lineWidth = 3; c.strokeRect(i * 64 + 6, 8, 52, 240); } }, [14, 1]);
     const wm = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.95 });
     const side = (x: number, rot: number) => { const w = new THREE.Mesh(new THREE.PlaneGeometry(95, 26), wm); w.position.set(x, 13, -5); w.rotation.y = rot; S.add(w); const base = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3.2, 95), new THREE.MeshStandardMaterial({ color: "#8d6844" })); base.position.set(x - Math.sign(x) * 0.25, 1.6, -5); S.add(base); };

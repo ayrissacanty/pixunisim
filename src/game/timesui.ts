@@ -46,13 +46,24 @@ const CSS = `.tmWrap{position:fixed;inset:0;z-index:60;background:rgba(40,30,30,
 .tmNext{display:inline-block;background:#D6ECD6;border-radius:8px;padding:2px 8px;font-size:12px;margin-left:6px}`;
 /** the extra (catch-up) lesson for this class, booked at a set time so it never replaces a regular class */
 const extraRow = (s: Subject, col: string) => { const pl = Placement.plan(s); if (!pl || !pl.next) return ""; const px = Progress.pickedFor(s, true); return `<div class="tmChips"><em>Extra lesson</em><span style="font-size:13px">${pl.next.title} (${pl.remaining.length} left)</span></div><div class="tmChips"><em>Extra time</em>${SET_TIMES.map((t) => `<button class="tmChip${px === t.min ? " on" : ""}" style="--c:${col}" data-s="${s}" data-m="${t.min}" data-k="set" data-x="1">${t.label} ${clock12(t.min)}</button>`).join("")}</div>`; };
-let el: HTMLElement | null = null;
-export function openTimes(opts: { focus?: Subject; onGo?: (s: Subject) => void } = {}) {
-  if (!el) { const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st); el = document.createElement("div"); el.className = "tmWrap"; document.body.appendChild(el); el.addEventListener("pointerdown", (e) => { if (e.target === el) close(); }); addEventListener("keydown", (e) => { if (e.key === "Escape" && el?.classList.contains("show")) close(); }); addEventListener("unify:progress", () => { if (el?.classList.contains("show")) render(); }); }
-  const close = () => { el!.classList.remove("show"); dispatchEvent(new Event("unify:times-closed")); };
+let el: HTMLElement | null = null, optsNow: { focus?: Subject; onGo?: (s: Subject) => void; mustPick?: boolean } = {};
+const hasClass = () => ALL_SUBJECTS.some((s) => Progress.pickedFor(s) !== null);
+export function openTimes(opts: { focus?: Subject; onGo?: (s: Subject) => void; mustPick?: boolean } = {}) {
+  optsNow = opts;
+  if (!el) {
+    const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st); el = document.createElement("div"); el.className = "tmWrap"; document.body.appendChild(el);
+    el.addEventListener("pointerdown", (e) => { if (e.target === el && !optsNow.mustPick) close(); });
+    addEventListener("keydown", (e) => { if (e.key === "Escape" && el?.classList.contains("show") && !optsNow.mustPick) close(); });
+    addEventListener("unify:progress", () => { if (el?.classList.contains("show")) render(); });
+  }
+  const close = () => {
+    if (optsNow.mustPick && !hasClass()) { const n = el!.querySelector("small"); if (n) n.textContent = "Pick at least one class and a time. That is the class you go to after the bus."; return; }
+    el!.classList.remove("show"); dispatchEvent(new Event("unify:times-closed"));
+  };
   const render = () => {
     const date = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
-    el!.innerHTML = `<div class="tmPanel"><div class="tmHead"><div><h2>Class times</h2><small>${date}. Pick a session time for each class: one of 5 random times, or Morning, Noon or Evening. It goes on today's schedule in your phone.</small></div><button class="tmBtn x" data-x>Close</button></div>${ALL_SUBJECTS.map((s) => {
+    const note = optsNow.mustPick ? "Choose at least one class and a time before the bus." : "Pick a session time for each class: one of 5 random times, or Morning, Noon or Evening. It goes on today's schedule in your phone.";
+    el!.innerHTML = `<div class="tmPanel"><div class="tmHead"><div><h2>Class times</h2><small>${date}. ${note}</small></div><button class="tmBtn x" data-x>${optsNow.mustPick ? "Leave for the bus" : "Close"}</button></div>${ALL_SUBJECTS.map((s) => {
       const picked = Progress.pickedFor(s), list = CURRICULUM[s], i = Progress.index(s, list.length), col = SUBJECT_COLOR[s];
       return `<div class="tmRow${opts.focus === s ? " focus" : ""}" style="--c:${col}"><div class="tmTop"><b>${SUBJECT_NAME[s]}</b><span>${TEACHER_BY_SUBJECT[s].name} · Lesson ${i + 1} of ${list.length}: ${list[i].title}${Progress.doneCount(s) ? `<i class="tmNext">${Progress.doneCount(s)} done, next lesson ready</i>` : ""}</span></div>
       <div class="tmChips"><em>5 times today</em>${slotsFor(s).map((m) => `<button class="tmChip${picked === m ? " on" : ""}" data-s="${s}" data-m="${m}" data-k="random">${clock12(m)}</button>`).join("")}</div>

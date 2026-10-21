@@ -1,6 +1,7 @@
 /** The lesson band comes only from the grade a parent or the account holder saved.
  *  A phone setting or an avatar age never chooses it. No grade means no lesson yet. */
 import type { LessonDef } from "./curriculum";
+import { Progress, type Subject } from "../game/progress";
 
 const ACCOUNT_GRADE = "unify.account.grade";
 
@@ -49,6 +50,11 @@ export function setParentGrade(grade: number) {
     const link = JSON.parse(localStorage.getItem("unify.family.link") || "null") as Record<string, unknown> | null;
     if (link && typeof link === "object") { link.grade = g; localStorage.setItem("unify.family.link", JSON.stringify(link)); }
   } catch { /* none */ }
+}
+
+/** The grade used to teach one subject. A subject level wins. Otherwise the official enrollment grade is used. */
+export function subjectGrade(subject: Subject): number | null {
+  return Progress.level(subject) ?? parentGrade();
 }
 
 export function studentBand(): string {

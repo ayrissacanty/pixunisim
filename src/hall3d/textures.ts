@@ -148,9 +148,12 @@ export const lanternTex = (col: string) => mk(256, 256, (c, w, h) => {
 export const lockerStripTex = (cols: string[]) => mk(264 * cols.length, 640, (c) => { cols.forEach((col, i) => c.drawImage(lockerTex(col, i * 3 + 1).image as HTMLCanvasElement, i * 264, 0)); }, true);
 
 export const groundTex = () => mk(256, 256, (c, w, h) => {
-  c.fillStyle = "#B7D8A4"; c.fillRect(0, 0, w, h);
-  for (let k = 0; k < 90; k++) { const x = hash(k, 5) * w, y = hash(k, 9) * h, r = 8 + hash(k, 2) * 22; c.fillStyle = k & 1 ? "rgba(255,255,255,.16)" : "rgba(70,120,80,.10)"; c.beginPath(); c.ellipse(x, y, r, r * 0.6, hash(k, 4) * 3, 0, 7); c.fill(); }
-  for (let k = 0; k < 140; k++) { const x = hash(k, 11) * w, y = hash(k, 12) * h; c.strokeStyle = k & 1 ? "rgba(255,255,255,.5)" : "rgba(60,110,70,.35)"; c.lineWidth = 2; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 3, y - 9); c.stroke(); }
+  c.fillStyle = "#7EBF6A"; c.fillRect(0, 0, w, h);
+  for (let k = 0; k < 40; k++) { const x = hash(k, 5) * w, y = hash(k, 9) * h, r = 14 + hash(k, 2) * 28; c.fillStyle = k & 1 ? "rgba(190,230,140,.35)" : "rgba(40,110,55,.22)"; c.beginPath(); c.ellipse(x, y, r, r * 0.55, hash(k, 4), 0, 7); c.fill(); }
+  for (let k = 0; k < 520; k++) {
+    const x = hash(k, 11) * w, y = hash(k, 12) * h, len = 7 + hash(k, 13) * 14, lean = (hash(k, 14) - 0.5) * 6;
+    c.strokeStyle = ["#2F7A3A", "#4E9A48", "#8FCB62", "#1F6A32", "#C9E58A"][k % 5]; c.lineWidth = 1.4; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + lean, y - len * 0.6, x + lean * 1.4, y - len); c.stroke();
+  }
 }, true);
 
 /** warm paving for the plaza: offset flagstones */

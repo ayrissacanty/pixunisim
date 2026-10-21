@@ -1,2 +1,3 @@
 { "compilerOptions": { "target": "ES2020", "module": "ESNext", "moduleResolution": "Bundler", "strict": true, "jsx": "react-jsx", "resolveJsonModule": true, "esModuleInterop": true, "skipLibCheck": true, "lib": ["ES2020", "DOM"], "noEmit": true },
-  "include": ["src", "demo"] }
+  "include": ["src", "demo"],
+  "exclude": ["src/components", "src/lib"] }

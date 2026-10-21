@@ -9,6 +9,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { lightAo } from "../shared/pixarScene";
 import type { MatKind, MatOpts, Mood, Style, StyleRig } from "./types";
 import { TexCache } from "./char-parts/tex";
 import { shadowSize, dprCap } from "../shared/polish";
@@ -102,9 +103,9 @@ export function createPixar(): Style {
         composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(W * PR, H * PR, { type: THREE.HalfFloatType, samples: 0 }));
         composer.setPixelRatio(PR); composer.setSize(W, H);
         composer.addPass(new RenderPass(scene, camera));
-        gtao = null; if (q >= 2) { gtao = new GTAOPass(scene, camera, W * PR, H * PR); gtao.blendIntensity = 0.8; composer.addPass(gtao);
+        gtao = null; if (q >= 1) { gtao = lightAo(composer, scene, camera, W, H);
           // GTAO re-renders the scene with a normal material, which turns billboard sprites (name tags, bubbles) into dark boxes: keep them out of that pass
-          const g0 = (gtao as any).render.bind(gtao); (gtao as any).render = (...a: unknown[]) => { const hid: THREE.Object3D[] = []; scene.traverseVisible((o) => { if ((o as THREE.Sprite).isSprite) hid.push(o); }); hid.forEach((o) => (o.visible = false)); try { g0(...a); } finally { hid.forEach((o) => (o.visible = true)); } }; }
+        }
         bloom = new UnrealBloomPass(new THREE.Vector2(W * PR, H * PR), q >= 2 ? 0.24 : 0.2, 0.7, 1.0); composer.addPass(bloom);
         film = new ShaderPass(FILM); composer.addPass(film);
         composer.addPass(new OutputPass());

@@ -2,6 +2,8 @@
 import { CURRICULUM, type LessonDef } from "../src/class3d/curriculum";
 import { ELECTIVES, Packs } from "../src/class3d/packs";
 import { openTextbook, openPacks } from "../src/class3d/curriculumui";
+import { isMainAccount, setParentGrade } from "../src/class3d/gradeband";
+import { layout } from "../src/class3d/sequence";
 import { SUBJECT_NAME, Progress } from "../src/game/progress";
 import type { Subject } from "../src/game/types";
 const SUBJ: Subject[] = ["math", "ela", "science", "history", "careers", "life"];
@@ -35,6 +37,41 @@ const crumbs = (...c: [string, (() => void)?][]) => { const b = el("div", "crumb
 
 function home() {
   clear(); history.replaceState(null, "", "#"); crumbs(["Curriculum"]);
+  const mainAcct = isMainAccount();
+  el("h3", "", main, "How a lesson is chosen");
+  el("p", "lede", main, "The account has one enrollment grade. Each subject can sit at a different level. What comes next is the first shelf lesson in that level that is not marked studied. A lesson is ready to teach when it has a script, a point, and homework.");
+  const rows = layout();
+  const official = rows[0]?.official;
+  const tools = el("div", "row", main);
+  if (mainAcct) {
+    el("span", "", tools, "Enrollment");
+    const sel = el("select", "btn", tools) as HTMLSelectElement;
+    sel.setAttribute("aria-label", "Enrollment grade");
+    const blank = el("option", "", sel, "Not set"); blank.setAttribute("value", "");
+    el("option", "", sel, "K").setAttribute("value", "0");
+    for (let g = 1; g <= 12; g++) el("option", "", sel, "Grade " + g).setAttribute("value", String(g));
+    sel.value = official == null ? "" : String(official);
+    sel.onchange = () => { if (sel.value !== "") setParentGrade(Number(sel.value)); home(); };
+  } else el("span", "", tools, official == null ? "Enrollment is not set. Only the main account can set it." : "Enrollment grade " + (official === 0 ? "K" : official) + ". A student account cannot change it.");
+  for (const row of rows) {
+    const card = el("article", "page", main); card.style.marginTop = "10px"; card.style.setProperty("--c", COL[row.subject]);
+    el("h2", "", card, `${ICON[row.subject]} ${row.name}`);
+    el("p", "", card, row.band ? `Level ${row.band}. ${row.scope}` : row.scope);
+    el("p", "lede", card, row.prereq);
+    el("p", "", card, `${row.studied} studied of ${row.shelf} on the shelf. ${row.ready} ready to teach. ${row.note}`);
+    el("p", "", card, row.next ? "Teach next: " + row.next.title : "Nothing left unmarked in this sequence.");
+    if (mainAcct) {
+      const line = el("div", "row", card); el("span", "", line, "Subject level");
+      const sel = el("select", "btn", line) as HTMLSelectElement; sel.setAttribute("aria-label", row.name + " level");
+      const use = el("option", "", sel, "Use enrollment"); use.setAttribute("value", "");
+      el("option", "", sel, "K").setAttribute("value", "0");
+      for (let g = 1; g <= 12; g++) el("option", "", sel, "Grade " + g).setAttribute("value", String(g));
+      sel.value = Progress.level(row.subject) == null ? "" : String(Progress.level(row.subject));
+      sel.onchange = () => { if (sel.value === "") Progress.clearLevel(row.subject); else Progress.setLevel(row.subject, Number(sel.value)); home(); };
+    }
+    const open = el("button", "btn", card, "Open the shelf"); open.onclick = () => subject(row.subject);
+  }
+  el("h3", "", main, "The shelf");
   const g = el("div", "grid", main);
   for (const s of SUBJ) { const ls = all(s), n = ls.filter((l) => studied(s).has(l.id)).length; const c = el("button", "card", g); c.style.setProperty("--c", COL[s]); el("div", "big", c, ICON[s]); el("b", "", c, SUBJECT_NAME[s]); el("small", "", c, `${ls.length} lessons · ${n} studied`); const bar = el("div", "meter", c); el("i", "", bar).style.width = (ls.length ? (n / ls.length) * 100 : 0) + "%"; c.onclick = () => subject(s); }
   const t = el("div", "row", main); t.style.marginTop = "14px";

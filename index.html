@@ -62,6 +62,7 @@ iframe.on{display:block}
   <span class="brand">Pixunisim</span>
   <button id="tBeam" title="Light beam over your avatar: easy to find yourself" aria-pressed="true">💡 Light beam</button>
   <button id="tBook" title="Textbook: the class book (pages, highlights, notes, quizzes)">📖 Textbook</button>
+  <button id="tMap" title="Curriculum map: enrollment, a level per subject, and what to teach next">Curriculum</button>
   <button id="tParent" title="Parent view: homework from today's class, on this device">Parent</button>
   <button id="tShot" title="Save a picture of school for your dorm collage (stays on this device)">📸 Save a picture</button>
   <button id="tHQ" title="Agent Team HQ: staff-only tools for grown-ups" hidden>🛠 HQ</button>
@@ -85,7 +86,7 @@ iframe.on{display:block}
 <div id="shotToast" role="status" aria-live="polite"></div>
 <div id="phoneWrap"><iframe id="fPhone" title="Flip phone" allowtransparency="true" allow="fullscreen"></iframe></div>
 <main>
-  <iframe id="fHall" class="on" src="hallway3d.html?v=25" title="Hallway"></iframe>
+  <iframe id="fHall" class="on" src="hallway3d.html?v=35" title="Hallway"></iframe>
   <iframe id="fNews" title="UNIFY News" allow="geolocation; autoplay"></iframe>
   <iframe id="fAud" title="Classroom"></iframe>
   <iframe id="fOpen" title="The Open Door" allow="camera; microphone; display-capture; fullscreen; autoplay"></iframe>
@@ -104,7 +105,7 @@ const $=id=>document.getElementById(id);
 const F={hall:$('fHall'),news:$('fNews'),aud:$('fAud'),stage:$('fStage'),open:$('fOpen'),trip:$('fTrip'),mail:$('fMail'),desk:$('fDesk'),dorm:$('fDorm'),parent:$('fParent')};
 const NAMES={math:'Math',ela:'ELA',science:'Science',history:'History',careers:'CarryingCareers',life:'Life Lessons',news:'Newsroom',open:'The Open Door',trip:'VR Field Trip'};
 const HINT='Walk into a doorway to enter a lesson';
-let pendingAtt=[],fromDoor=false,view='hall',audReady=false,pending=null,room='A',audPage='classroom3d.html?v=7',curSubject=null;
+let pendingAtt=[],fromDoor=false,view='hall',audReady=false,pending=null,room='A',audPage='classroom3d.html?v=8',curSubject=null;
 function show(v){
  if(view==='news'&&v!=='news'&&F.news.contentWindow)F.news.contentWindow.postMessage({type:'unify:hide'},'*');
  view=v;for(const k in F)F[k].classList.toggle('on',k===v);
@@ -117,7 +118,7 @@ function show(v){
  document.body.classList.toggle('cls',v==='aud');$('leave').classList.toggle('show',v==='aud'||v==='open');$('leave').textContent=v==='stage'||v==='open'||v==='trip'?'Back up to school':'Leave class';
  if(v==='open'&&!F.open.getAttribute('src'))F.open.src='opendoor.html';
  if(v==='trip'&&!F.trip.getAttribute('src'))F.trip.src='fieldtrip.html';
- if(v==='stage'){$('leave').classList.add('show');if(!F.stage.getAttribute('src'))F.stage.src='auditorium3d.html?v=7';else F.stage.contentWindow.postMessage({type:'unify:stage-show'},'*');}
+ if(v==='stage'){$('leave').classList.add('show');if(!F.stage.getAttribute('src'))F.stage.src='auditorium3d.html?v=8';else F.stage.contentWindow.postMessage({type:'unify:stage-show'},'*');}
  else if(view!=='stage'&&F.stage.contentWindow&&F.stage.getAttribute('src'))F.stage.contentWindow.postMessage({type:'unify:stage-hide'},'*');
  if(v==='news'){if(!F.news.getAttribute('src'))F.news.src='news.html'+location.search;else F.news.contentWindow.postMessage({type:'unify:show'},'*');}
  try{F[v].focus();F[v].contentWindow&&F[v].contentWindow.focus();}catch(e){}
@@ -155,6 +156,7 @@ function sendPhone(m){if(pfReady&&pf.contentWindow){pf.contentWindow.postMessage
 function phone(on){on=on===undefined?!pw.classList.contains('show'):on;pw.classList.toggle('show',on);if(on){if(!pf.getAttribute('src'))pf.src='phone.html';else if(pfReady)pf.contentWindow.postMessage({type:'phone:open'},'*');}else try{F[view].contentWindow.focus();}catch(e){}}
 $('phoneFab').onclick=()=>phone();
 $('tBook').onclick=()=>{open('textbook.html','_blank');};
+$('tMap').onclick=()=>{open('curriculum.html','_blank');};
 $('tParent').onclick=()=>{$('room').textContent='Parent view';show('parent');};
 /* Agent Team HQ is the only staff-only tool here: hidden unless the grown-up check passes (same keys the HQ apps use) */
 try{if(sessionStorage.getItem('unify.family.ci')==='parent'||localStorage.getItem('unify.opendoor.adult')==='1'){$('tHQ').hidden=false;$('tHQ').onclick=()=>{open('hq.html','_blank');};}}catch(e){}

@@ -96,9 +96,9 @@ function pose(a: Anim, t: number, p: Float32Array, g: { v: number; f: number; b:
     case "cheer": { const b = Math.sin(t * 8); p[shL + 2] = 2.7 + 0.18 * b; p[shR + 2] = -(2.7 - 0.18 * b); p[elL] = p[elR] = -0.25; p[hipY] = Math.abs(Math.sin(t * 4)) * 0.07 - 0.04; p[hpL] = p[hpR] = -0.1; p[hipR] = 0; p[hpL + 1] = 0.02; p[hpR + 1] = -0.02; p[knL] = p[knR] = 0.25; p[spX] = -0.08; p[nkX] = -0.22; p[nkZ] = 0.06 * b; p[shr] = 0.02; break; }
     case "walk": {
       const w = T * 7.5, s = Math.sin(w), c = Math.cos(w), sa = Math.sin(w - 0.3), sv = 0.7 + 0.3 * v;
-      p[hpL] = -0.65 * s; p[hpR] = 0.65 * s; p[knL] = 0.12 + 0.75 * Math.max(0, c); p[knR] = 0.12 + 0.75 * Math.max(0, -c); p[anL] = 0.25 * s; p[anR] = -0.25 * s;
-      p[shL] = 0.58 * sa * sv; p[shR] = -0.58 * sa * sv; p[elL] = -0.25 - 0.4 * Math.max(0, -sa); p[elR] = -0.25 - 0.4 * Math.max(0, sa); p[hdL] = -0.1 - 0.15 * Math.max(0, -sa); p[hdR] = -0.1 - 0.15 * Math.max(0, sa);   // arms swing opposite the legs, elbows bend on the forward swing
-      p[hipY] = -0.012 + 0.025 * Math.abs(c) * (0.8 + 0.3 * g.b); p[hipYw] = -0.09 * s; p[spY] = 0.2 * s * sv; p[spX] = 0.05; p[spZ] = 0.03 * c; p[hipR] = 0.035 * c; p[hpL + 1] = 0.02 - 0.035 * c; p[hpR + 1] = -0.02 - 0.035 * c; p[nkY] = -0.1 * s; p[shr] = 0.006 * c; break; }
+      p[hpL] = -0.72 * s; p[hpR] = 0.72 * s; p[knL] = 0.02 + 0.92 * Math.max(0, c); p[knR] = 0.02 + 0.92 * Math.max(0, -c); p[anL] = 0.32 * s; p[anR] = -0.32 * s;
+      p[shL] = 0.62 * sa * sv; p[shR] = -0.62 * sa * sv; p[elL] = -0.22 - 0.45 * Math.max(0, -sa); p[elR] = -0.22 - 0.45 * Math.max(0, sa); p[hdL] = -0.08 - 0.18 * Math.max(0, -sa); p[hdR] = -0.08 - 0.18 * Math.max(0, sa);
+      p[hipY] = -0.018 + 0.045 * Math.abs(Math.sin(w)) * (0.75 + 0.35 * g.b); p[hipYw] = -0.11 * s; p[spY] = 0.22 * s * sv; p[spX] = 0.045; p[spZ] = 0.04 * c; p[hipR] = 0.05 * c; p[hpL + 1] = 0.02 - 0.05 * c; p[hpR + 1] = -0.02 - 0.05 * c; p[nkY] = -0.08 * s; p[shr] = 0.008 * c; break; }
   }
 }
 
@@ -288,7 +288,7 @@ export function createChar3D(style: Style, spec0: AvatarSpec): Char3DEx {
   };
   const update = (dt: number) => {
     dt = Math.min(dt, 0.1); time += dt; pose(anim, time, tgt, AV());
-    if (bl < 1) { bl = Math.min(1, bl + dt / 0.25); const s = sm(bl); for (let i = 0; i < N; i++) cur[i] = from[i] + (tgt[i] - from[i]) * s; } else cur.set(tgt);
+    if (bl < 1) { bl = Math.min(1, bl + dt / 0.32); const s = sm(bl); for (let i = 0; i < N; i++) cur[i] = from[i] + (tgt[i] - from[i]) * s; } else cur.set(tgt);
     /* head look-at: toward the target when set, else an occasional idle glance; the head eases, the eyes lead it */
     let yaw = 0, pitch = 0;
     if (look) {
