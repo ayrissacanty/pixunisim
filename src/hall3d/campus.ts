@@ -43,15 +43,30 @@ export const UP_DOORS: Rect[] = [
   { x: 11, y: 51.15, w: 12, h: 1.8 }, { x: 85, y: 51.15, w: 12, h: 1.8 },
   { x: 58.6, y: 60, w: 2.8, h: 8 },
 ];
-export const LIB_SHELVES: Rect[] = [16, 24, 32, 72, 80, 88].flatMap((x) => [{ x, y: 10, w: 1.5, h: 7 }, { x, y: 20, w: 1.5, h: 6 }]);
+export const LIB_SHELVES: Rect[] = [16, 24, 32, 40, 68, 76, 84, 92].flatMap((x) => [{ x, y: 9, w: 1.2, h: 8 }, { x, y: 20, w: 1.2, h: 5 }]);
 export const LIB_READ = { x: 54, y: 16 };
 export const LIB_DESK: Rect = { x: 48.5, y: 13.2, w: 11, h: 3.4 };
+/** furniture you cannot walk through upstairs: shelves, the desk, reading tables, the stage */
+export const UP_FURN: Rect[] = [
+  ...LIB_SHELVES,
+  { x: 50.8, y: 12.6, w: 6.4, h: 1.35 },
+  { x: 40.8, y: 17.4, w: 2.4, h: 1.15 }, { x: 64.8, y: 17.4, w: 2.4, h: 1.15 },
+  { x: 46.8, y: 25.4, w: 2.4, h: 1.15 }, { x: 58.8, y: 25.4, w: 2.4, h: 1.15 },
+  { x: 52.4, y: 6.8, w: 3.2, h: 0.9 },
+  { x: 21, y: 59.2, w: 18, h: 1.6 }, { x: 21, y: 65.4, w: 8, h: 1.5 }, { x: 34, y: 65.4, w: 6, h: 1.5 },
+  { x: 23, y: 69.4, w: 16, h: 2.2 },
+  { x: 78.8, y: 67.4, w: 2.4, h: 1.2 },
+  { x: 39.8, y: 8, w: 0.55, h: 9 }, { x: 67.7, y: 8, w: 0.55, h: 9 },
+  { x: 11.6, y: 41.6, w: 0.8, h: 0.8 }, { x: 95.6, y: 41.6, w: 0.8, h: 0.8 },
+  { x: 13.6, y: 63.6, w: 0.8, h: 0.8 }, { x: 93.6, y: 63.6, w: 0.8, h: 0.8 },
+];
 export const AUD_DOOR: Rect = { x: 20, y: 64.5, w: 12, h: 4.2 };
 export const NEWS_DOOR: Rect = { x: 72, y: 64.5, w: 12, h: 4.2 };
 export const underUpper = (x: number, y: number) => UP_ROOMS.some((r) => hit(r, x, y, 0));
 const upInside = (r: Rect, x: number, y: number) => x > r.x + 0.5 && y > r.y + 0.5 && x < r.x + r.w - 0.5 && y < r.y + r.h - 0.5;
 export function upWalk(x: number, y: number) {
-  if (LIB_SHELVES.some((r) => hit(r, x, y, 0.18))) return false;
+  if (hit(STAIR_BLOCK, x, y, 0.12)) return false;
+  if (UP_FURN.some((r) => hit(r, x, y, 0.12))) return false;
   if (UP_ROOMS.some((r) => upInside(r, x, y))) return true;
   return UP_DOORS.some((r) => hit(r, x, y, 0));
 }
@@ -103,10 +118,16 @@ const SIZE: Record<PropKind, [number, number]> = { tree: [1.2, 1.2], bench: [0.7
 export function blockers(): Rect[] {
   const r: Rect[] = BLOCKS.map((b) => ({ ...b.rect }));
   r.push(STAIR_BLOCK);
-  for (const c of COLUMNS) r.push({ x: c.x - 0.55, y: c.y - 0.55, w: 1.1, h: 1.1 });
+  for (const c of COLUMNS) r.push({ x: c.x - 0.7, y: c.y - 0.7, w: 1.4, h: 1.4 });
   for (const l of LOCKERS) r.push(l.rect);
-  for (const p of PROPS) { const [w, h] = SIZE[p.kind]; if (p.kind === "lamp") continue; r.push({ x: p.x - w / 2, y: p.y - h / 2, w, h }); }
+  for (const p of PROPS) {
+    let [w, h] = SIZE[p.kind]; if (p.kind === "lamp") continue;
+    if (p.rot && Math.abs(Math.sin(p.rot)) > 0.7) [w, h] = [h, w];
+    if (p.kind === "table") { w = 2.3; h = 2.3; }
+    r.push({ x: p.x - w / 2, y: p.y - h / 2, w, h });
+  }
   for (const g of GREENS) r.push({ x: g.x - 0.45, y: g.y - 0.45, w: 0.9, h: 0.9 });
+  for (const [x, y] of [[4, 24], [4, 58], [104, 24], [104, 58], [28, 78], [80, 78], [28, 4], [80, 4]]) r.push({ x: x - 0.4, y: y - 0.4, w: 0.8, h: 0.8 });
   return r;
 }
 export const BLOCKED = blockers();
