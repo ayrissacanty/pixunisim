@@ -42,15 +42,23 @@ def _restore_payload():
         + [f"curriculum-seed-{i}.js" for i in range(1, 10)]
         + ["validate-curriculum-seed.js"]
     )
-    if all(os.path.exists(os.path.join(ROOT, f)) for f in need):
+    def have(f):
+        # validate-curriculum-seed.js now lives in tests/, so look there as well as at the repo root
+        return os.path.exists(os.path.join(ROOT, f)) or os.path.exists(os.path.join(ROOT, "tests", f))
+
+    missing = {f for f in need if not have(f)}
+    if not missing:
         return
     parts = sorted(glob.glob(os.path.join(ROOT, "tools/assets/payload/p*.txt")))
     if not parts:
         return
     data = base64.b64decode("".join(read(p).strip() for p in parts))
     with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tf:
-        tf.extractall(ROOT, filter="data")
-    print(f"[build] restored {len(parts)} payload parts ({len(data)} bytes) into {ROOT}")
+        # only fill in what is missing: never overwrite a file that already exists (the archive is older than the repo's own copies)
+        wanted = [m for m in tf.getmembers() if m.isfile() and m.name in missing]
+        for m in wanted:
+            tf.extract(m, ROOT, filter="data")
+    print(f"[build] restored {len(wanted)} missing file(s) from {len(parts)} payload parts: {', '.join(m.name for m in wanted) or 'none'}")
 
 
 _restore_payload()
