@@ -463,7 +463,25 @@ export class HallScene {
     doors.push({ x: NEWS.cx - W / 2, z: -H / 2, rot: 0, col: "#8E7CC3" }, { x: -W / 2, z: OPEN.cy - H / 2, rot: Math.PI / 2, col: "#E8A33D" });
     this.fx = buildHallDetails(this.scene, { wins: this.winSpots, doors, benches: PROPS.filter((p) => p.kind === "bench").map((p) => ({ x: p.x - W / 2, z: p.y - H / 2, rot: p.rot ?? 0 })) });
   }
+  private windUniforms: { value: number }[] = [];
   private _leaf?: THREE.BufferGeometry;
+  /** leaves and blades sway from the tip, so the edges stay soft instead of stiff */
+  private windMat(opts: { color?: string; map?: THREE.Texture } = {}) {
+    const m = new THREE.MeshStandardMaterial({ color: opts.color ?? "#ffffff", map: opts.map, roughness: 0.68, side: THREE.DoubleSide, transparent: !!opts.map, alphaTest: opts.map ? 0.18 : 0, depthWrite: !opts.map });
+    const uTime = { value: 0 }; this.windUniforms.push(uTime);
+    m.onBeforeCompile = (shader) => {
+      shader.uniforms.uTime = uTime;
+      shader.vertexShader = "uniform float uTime;\n" + shader.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
+        float windH = uv.y; float wx = 0.0; float wz = 0.0;
+        #ifdef USE_INSTANCING
+          wx = instanceMatrix[3].x; wz = instanceMatrix[3].z;
+        #endif
+        float gust = sin(uTime * 1.55 + wx * 0.37 + wz * 0.21);
+        transformed.x += gust * windH * windH * 0.26;
+        transformed.z += cos(uTime * 1.2 + wz * 0.33) * windH * windH * 0.12;`);
+    };
+    return m;
+  }
   /** one pointed leaf, shared by the trees, the pots and the lawn clumps */
   private leafGeo() {
     if (this._leaf) return this._leaf;
@@ -476,10 +494,11 @@ export class HallScene {
     const cols = ["#1F8A45", "#2E9B4A", "#E8833A", "#3CB371", "#C2452D", "#67B34A"];
     [[0.1, 1.7, 0.05, 0.5], [-0.28, 1.85, -0.12, -0.6], [0.32, 2.05, -0.08, 0.7], [0, 2.3, 0.22, -0.3]].forEach(([bx, by, bz, rz], i) => {
       const br = new THREE.Mesh(new THREE.CylinderGeometry(0.03 * s, 0.06 * s, 0.9 * s, 5), wood); br.position.set(bx * s, by * s, bz * s); br.rotation.z = rz; g.add(br);
-      for (let k = 0; k < 8; k++) {
-        const leaf = new THREE.Mesh(this.leafGeo(), new THREE.MeshStandardMaterial({ color: cols[(i + k) % cols.length], roughness: 0.6, side: THREE.DoubleSide }));
-        const a = k * 0.8; leaf.position.set(bx * s + Math.cos(a) * 0.42 * s, by * s + 0.35 * s + (k % 3) * 0.1 * s, bz * s + Math.sin(a) * 0.42 * s);
-        leaf.rotation.set(0.5 + (k % 3) * 0.3, a, 0.4); leaf.scale.setScalar(s * (0.7 + (k % 4) * 0.12)); g.add(leaf);
+      for (let k = 0; k < 16; k++) {
+        const leaf = new THREE.Mesh(this.leafGeo(), this.windMat({ color: cols[(i + k) % cols.length] }));
+        const a = k * 0.55, rad = (k < 8 ? 0.18 : 0.42) * s;
+        leaf.position.set(bx * s + Math.cos(a) * rad, by * s + 0.22 * s + (k % 4) * 0.08 * s, bz * s + Math.sin(a) * rad);
+        leaf.rotation.set(0.4 + (k % 3) * 0.25, a, 0.35); leaf.scale.setScalar(s * (k < 8 ? 0.85 : 0.62 + (k % 3) * 0.12)); g.add(leaf);
       }
     });
     g.position.set(x, 0, z); this.scene.add(g);
@@ -621,20 +640,29 @@ export class HallScene {
   private buildOutside() {
     const S = this.scene;
     const gt = this.rep("grass", () => T.groundTex(), 60, 60), ground = new THREE.Mesh(new THREE.PlaneGeometry(480, 480), this.std(gt)); ground.rotation.x = -Math.PI / 2; ground.position.y = -0.04; ground.receiveShadow = true; S.add(ground);
-    const bladeN = 900, blades = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.05, 0.46), new THREE.MeshStandardMaterial({ color: "#3E9A45", roughness: 0.8, side: THREE.DoubleSide }), bladeN);
-    const bm = new THREE.Matrix4(), bq = new THREE.Quaternion(), be = new THREE.Euler(), bc = new THREE.Color();
-    const shades = ["#2F7A3A", "#4E9A48", "#8FCB62", "#1F6A32"];
+    const bladeCv = document.createElement("canvas"); bladeCv.width = 32; bladeCv.height = 64; const bc2 = bladeCv.getContext("2d")!;
+    const fade = bc2.createLinearGradient(0, 64, 0, 0); fade.addColorStop(0, "rgba(18,78,28,0.95)"); fade.addColorStop(0.55, "rgba(62,150,58,0.8)"); fade.addColorStop(1, "rgba(190,220,90,0)");
+    bc2.fillStyle = fade; bc2.beginPath(); bc2.moveTo(16, 1); bc2.quadraticCurveTo(30, 28, 22, 63); bc2.lineTo(10, 63); bc2.quadraticCurveTo(2, 28, 16, 1); bc2.fill();
+    const bladeMap = new THREE.CanvasTexture(bladeCv); bladeMap.colorSpace = THREE.SRGBColorSpace;
+    const bladeN = 1600, bladeG = new THREE.PlaneGeometry(0.16, 0.62);
+    const bladeMat = this.windMat({ map: bladeMap }); bladeMat.vertexColors = true;
+    const bladeMat2 = this.windMat({ map: bladeMap }); bladeMat2.vertexColors = true;
+    const blades = new THREE.InstancedMesh(bladeG, bladeMat, bladeN);
+    const blades2 = new THREE.InstancedMesh(bladeG, bladeMat2, bladeN);
+    const bm = new THREE.Matrix4(), bq = new THREE.Quaternion(), be = new THREE.Euler(), bcol = new THREE.Color();
+    const shades = ["#2F7A3A", "#4E9A48", "#8FCB62", "#1F6A32", "#6AAA48"];
+    const roadZ = OUTSIDE.roadY - H / 2;
     for (let i = 0; i < bladeN; i++) {
-      let x = (hash(i, 4) - 0.5) * 96, z = H / 2 + 3.2 + hash(i, 5) * 26;
-      const roadZ = OUTSIDE.roadY - H / 2;
-      const onWalk = (Math.abs(x) < 5.2 && z > H / 2 - 0.4 && z < H / 2 + 26) || (Math.abs(x) < 32 && z > H / 2 + 0.5 && z < H / 2 + 5.6) || (z > roadZ - 6.4 && z < roadZ - 1.6);
-      if (onWalk) { x += x < 0 ? -18 : 18; z = H / 2 - 8; }
-      if (Math.abs(x) < 4.2) x += x < 0 ? -4 : 4;
-      if (Math.abs(z - roadZ) < 3.6) z -= 8;
-      be.set(0.15 + hash(i, 6) * 0.35, hash(i, 7) * 6.28, (hash(i, 8) - 0.5) * 0.4); bq.setFromEuler(be);
-      const sc = 0.65 + hash(i, 9) * 0.9; bm.compose(new THREE.Vector3(x, sc * 0.2, z), bq, new THREE.Vector3(sc, sc, sc)); blades.setMatrixAt(i, bm); blades.setColorAt(i, bc.set(shades[i % 4]));
+      let x = (hash(i, 4) - 0.5) * 150, z = (hash(i, 5) - 0.5) * 130 + 8, sc = 0.55 + hash(i, 9) * 1.15;
+      const inBuilding = Math.abs(x) < W / 2 + 1.2 && Math.abs(z) < H / 2 + 1.2;
+      if (inBuilding) { x += x < 0 ? -(W / 2 + 3) : W / 2 + 3; }
+      const onRoad = Math.abs(z - roadZ) < 3.3, onWalk = Math.abs(x) < 5.5 && z > H / 2 - 0.5 && z < H / 2 + 16;
+      if (onRoad || onWalk) { const n = 0.6 + hash(i, 11) * 1.4; if (onRoad) z += z < roadZ ? -n : n; else x += x < 0 ? -n : n; sc *= 0.28 + hash(i, 12) * 0.35; }
+      be.set(0.05 + hash(i, 6) * 0.4, hash(i, 7) * 6.28, (hash(i, 8) - 0.5) * 0.35); bq.setFromEuler(be);
+      bm.compose(new THREE.Vector3(x, sc * 0.22, z), bq, new THREE.Vector3(sc, sc, sc)); blades.setMatrixAt(i, bm); blades.setColorAt(i, bcol.set(shades[i % shades.length]));
+      be.y += 1.15; bq.setFromEuler(be); bm.compose(new THREE.Vector3(x, sc * 0.22, z), bq, new THREE.Vector3(sc * 0.85, sc, sc * 0.85)); blades2.setMatrixAt(i, bm); blades2.setColorAt(i, bcol);
     }
-    blades.receiveShadow = true; S.add(blades);
+    blades.receiveShadow = blades2.receiveShadow = true; S.add(blades, blades2);
     this.flat(this.rep("stoneP", () => T.stoneTex(), 2, 8), 9, 24, 0, H / 2 + 13, -0.02);
     const disc = new THREE.Mesh(new THREE.CircleGeometry(9, 40), this.std(this.rep("stoneD", () => T.stoneTex(), 5, 5))); disc.rotation.x = -Math.PI / 2; disc.position.set(0, -0.015, H / 2 + 30); disc.receiveShadow = true; S.add(disc);
     // instanced paper trees: a trunk + a faceted crown each
@@ -648,17 +676,19 @@ export class HallScene {
       spots.push({ x, z, s: 0.8 + hash(i, 3) * 0.9 });
     }
     const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.16, 0.28, 2.0, 7), this.plain("#8A5A32"), spots.length);
-    const leafN = spots.length * 14;
-    const leaves = new THREE.InstancedMesh(this.leafGeo(), new THREE.MeshStandardMaterial({ roughness: 0.62, side: THREE.DoubleSide }), leafN);
+    const per = 26;
+    const leafMat = this.windMat({ color: "#ffffff" }); leafMat.vertexColors = true;
+    const leaves = new THREE.InstancedMesh(this.leafGeo(), leafMat, spots.length * per);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), leafCol = new THREE.Color();
     const greens = ["#1F8A45", "#2F9A4A", "#67B34A", "#E8833A", "#3CB371", "#C2452D", "#8FCB62"];
     spots.forEach((p, i) => {
       q.identity(); m4.compose(new THREE.Vector3(p.x, 0.95 * p.s, p.z), q, new THREE.Vector3(p.s, p.s * 1.15, p.s)); trunk.setMatrixAt(i, m4);
-      for (let k = 0; k < 14; k++) {
-        const a = hash(i, 20 + k) * 6.28, rad = (0.35 + hash(i, 40 + k) * 0.85) * p.s, y = (1.7 + hash(i, 60 + k) * 1.5) * p.s;
-        e.set(0.4 + hash(i, 70 + k), a, 0.3); q.setFromEuler(e);
-        m4.compose(new THREE.Vector3(p.x + Math.cos(a) * rad, y, p.z + Math.sin(a) * rad), q, new THREE.Vector3(p.s, p.s, p.s));
-        const ix = i * 14 + k; leaves.setMatrixAt(ix, m4); leaves.setColorAt(ix, leafCol.set(greens[(i + k) % greens.length]));
+      for (let k = 0; k < per; k++) {
+        const inner = k < 10, a = hash(i, 20 + k) * 6.28, rad = (inner ? 0.08 + hash(i, 40 + k) * 0.38 : 0.42 + hash(i, 40 + k) * 0.85) * p.s, y = (inner ? 1.85 + hash(i, 60 + k) * 0.7 : 1.55 + hash(i, 60 + k) * 1.55) * p.s;
+        e.set(0.35 + hash(i, 70 + k), a, 0.25); q.setFromEuler(e);
+        const sc = p.s * (inner ? 0.72 : 1);
+        m4.compose(new THREE.Vector3(p.x + Math.cos(a) * rad, y, p.z + Math.sin(a) * rad), q, new THREE.Vector3(sc, sc, sc));
+        const ix = i * per + k; leaves.setMatrixAt(ix, m4); leaves.setColorAt(ix, leafCol.set(greens[(i + k) % greens.length]));
       }
     });
     trunk.castShadow = true; this.scene.add(trunk, leaves);
@@ -879,11 +909,26 @@ export class HallScene {
     const porch = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.14, 1.7), this.plain("#C4A882")); porch.position.set(0, 0.18, 4.8); porch.castShadow = true; g.add(porch);
     const step = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.1, 0.7), this.plain("#A89070")); step.position.set(0, 0.06, 5.7); g.add(step);
     for (const x of [-1.9, 1.9]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.5, 0.16), trim); p.position.set(x, 1.35, 5.35); g.add(p); }
-    const plate = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.42), new THREE.MeshBasicMaterial({ map: T.signTex("THE DORM", "#6B3A2A"), transparent: true }));
+    const plate = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.42), new THREE.MeshBasicMaterial({ map: T.signTex("THE DORMS", "#6B3A2A"), transparent: true }));
     plate.position.set(0, 2.55, 4.05); g.add(plate);
+    // the other half of the student duplex. An adult house stays a single cottage.
+    const ux = 8.7;
+    const sideR = new THREE.Mesh(new THREE.BoxGeometry(0.28, 3.35, 7.8), wall); sideR.position.set(4.2 + ux, 1.68, 0.15); sideR.castShadow = true; g.add(sideR);
+    const back2 = new THREE.Mesh(new THREE.BoxGeometry(ux, 3.35, 0.28), wall); back2.position.set(4.2 + ux / 2, 1.68, -3.75); g.add(back2);
+    const jamb2 = (x: number) => { const m = new THREE.Mesh(new THREE.BoxGeometry(2.15, 3.35, 0.28), wall); m.position.set(x, 1.68, 3.85); g.add(m); };
+    jamb2(4.2 + 2.2); jamb2(4.2 + ux - 2.2);
+    const lintel2 = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.72, 0.28), wall); lintel2.position.set(4.2 + ux / 2, 3.0, 3.85); g.add(lintel2);
+    const roof2 = new THREE.Mesh(new THREE.BoxGeometry(ux + 0.4, 0.22, 8.6), roofM); roof2.position.set(4.2 + ux / 2, 3.5, 0); g.add(roof2);
+    const pitch2 = new THREE.Mesh(new THREE.ConeGeometry(5.2, 1.7, 4), roofM); pitch2.position.set(4.2 + ux / 2, 4.5, 0); pitch2.rotation.y = Math.PI / 4; g.add(pitch2);
+    for (const z of [-1.2, 1.4]) { const frame = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.28, 1.08), trim); frame.position.set(4.32 + ux, 1.85, z); g.add(frame); const win = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.05, 0.86), glass); win.position.set(4.38 + ux, 1.85, z); g.add(win); }
+    const porch2 = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.14, 1.7), this.plain("#C4A882")); porch2.position.set(4.2 + ux / 2, 0.18, 4.8); g.add(porch2);
+    const door2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.2, 0.08), trim); door2.position.set(4.2 + ux / 2, 1.15, 3.85); g.add(door2);
+    const bed2 = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.32, 1.2), this.plain("#F7F1E6")); bed2.position.set(4.2 + ux - 2.2, 0.4, -1.5); g.add(bed2);
+    const quilt2 = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.1, 1.05), this.plain("#E07A66")); quilt2.position.set(4.2 + ux - 2.2, 0.58, -1.45); g.add(quilt2);
+    const plate2 = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.36), new THREE.MeshBasicMaterial({ map: T.signTex("B", "#6B3A2A"), transparent: true })); plate2.position.set(4.2 + ux / 2, 2.5, 4.05); g.add(plate2);
     g.position.set(this.dormX - 10, 0, roadZ - 12); this.scene.add(g); this.dormHouse = g;
     const cols = ["#C23B2E", "#2F5FA8", "#E7E2D4", "#1C1C1C", "#C9842A", "#3E8B4F", "#6B5AA8", "#D4536A"];
-    const slots = [{ off: 22, rel: 0.5, dir: 1, z: 1.15 }, { off: 36, rel: 0.2, dir: 1, z: 1.15 }, { off: -18, rel: 0.3, dir: 1, z: 1.15 }, { off: -32, rel: -0.2, dir: 1, z: 1.15 }, { off: 20, rel: -8, dir: -1, z: -1.7 }, { off: 6, rel: -8, dir: -1, z: -1.7 }, { off: -10, rel: -8, dir: -1, z: -1.7 }, { off: 34, rel: -7, dir: -1, z: -1.7 }];
+    const slots = [{ off: 16, rel: 0.4, dir: 1, z: -2.45 }, { off: 28, rel: 0.15, dir: 1, z: -2.45 }, { off: -20, rel: 0.25, dir: 1, z: -2.55 }, { off: -34, rel: -0.1, dir: 1, z: -2.55 }, { off: 22, rel: -6, dir: -1, z: -2.7 }, { off: 8, rel: -6, dir: -1, z: -2.7 }, { off: -12, rel: -6, dir: -1, z: -2.85 }, { off: 36, rel: -5, dir: -1, z: -2.85 }];
     slots.forEach((s, i) => {
       const car = this.makeCar(cols[i], i);
       car.rotation.y = s.dir > 0 ? Math.PI : 0; car.position.set(this.dormX + s.off, 0, roadZ + s.z); this.scene.add(car);
@@ -905,9 +950,16 @@ export class HallScene {
         if (c.g.position.x < -110) c.g.position.x = 110;
       }
       this.rollWheels(c.g, c.g.position.x - before);
+      this.keepOffBus(c.g);
     }
   }
-  /* ------------------------------------------------------------ the school bus, arrival, and Chat Chow seats */
+  /** cars stay in the far lane and never sit under the bus */
+  private keepOffBus(car: THREE.Object3D) {
+    const B = this.bus; if (!B || !B.visible) return;
+    const dx = car.position.x - B.position.x, dz = car.position.z - B.position.z;
+    if (Math.abs(dz) < 2.4 && Math.abs(dx) < 8) car.position.x = B.position.x + (dx >= 0 ? 9 : -9);
+    if (car.position.z > B.position.z - 1.6) car.position.z = B.position.z - 2.5;
+  }
   private buildBus() {
     const g = new THREE.Group(), yel = this.plain("#1E7A40"), blk = this.plain("#2b2b34"), chrome = this.plain("#E7EEF2");
     chrome.metalness = 0.7; chrome.roughness = 0.25;
@@ -918,32 +970,16 @@ export class HallScene {
     const roof = new THREE.Mesh(this.clay(8.3, 0.22, 2.3, 0.1), this.plain("#145E32")); roof.position.set(0.7, 2.9, 0); roof.castShadow = true; g.add(roof);
     const floor = new THREE.Mesh(new THREE.BoxGeometry(8.2, 0.08, 2.1), this.plain("#6b5344")); floor.position.set(0.7, 0.78, 0); g.add(floor);
     for (let i = 0; i < 7; i++) { const seat = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.42, 2.05), this.plain(i % 2 ? "#3d4a6b" : "#2f6b4f")); seat.position.set(-2.3 + i * 0.95, 1.15, 0); g.add(seat); }
-    const skins = ["#F3C7A6", "#C68642", "#8D5524", "#F1D3B3", "#6B4428", "#E0AC69"], hairs = ["#2b2118", "#C9A15B", "#1a1a1a", "#6B3A2A", "#E8D5A3"], shirts = ["#E25B45", "#3D7CC9", "#3FAE6A", "#EAB94E", "#8E7CC3", "#F4F1EA"];
-    const lit = (hex: string, em = 0.34) => new THREE.MeshStandardMaterial({ color: hex, roughness: 0.48, emissive: hex, emissiveIntensity: em });
-    const rider = (x: number, z: number, n: number, face: number) => {
-      const r = new THREE.Group(), skin = lit(skins[n % skins.length], 0.38), hair = lit(hairs[n % hairs.length], 0.22), shirt = lit(shirts[n % shirts.length], 0.25);
-      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.34, 0.2), shirt); torso.position.y = 0.08; r.add(torso);
-      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.1, 8), skin); neck.position.y = 0.28; r.add(neck);
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.155, 16, 12), skin); head.position.y = 0.48; r.add(head);
-      const eye = (sx: number) => {
-        const w = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), lit("#f7f4ee", 0.55)); w.position.set(sx, 0.02, 0.125); head.add(w);
-        const p = new THREE.Mesh(new THREE.SphereGeometry(0.014, 6, 5), lit("#1c1c1c", 0.2)); p.position.set(sx * 1.02, 0.015, 0.15); head.add(p);
-      };
-      eye(-0.05); eye(0.05);
-      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 5), skin); nose.position.set(0, -0.02, 0.148); head.add(nose);
-      const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.026, 0.006, 4, 8, Math.PI), lit("#a33b3b", 0.3));
-      mouth.rotation.set(Math.PI / 2, 0, Math.PI); mouth.position.set(0, -0.065, 0.135); head.add(mouth);
-      for (const sx of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 5), skin); e.scale.x = 0.45; e.position.set(sx * 0.15, 0, 0); head.add(e); }
-      const style = n % 5;
-      if (style === 0) { const cap = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), hair); cap.position.y = 0.02; head.add(cap); }
-      else if (style === 1) { const cap = new THREE.Mesh(new THREE.SphereGeometry(0.165, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.62), hair); head.add(cap); const fall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.06), hair); fall.position.set(0, -0.02, -0.12); head.add(fall); }
-      else if (style === 2) { const cap = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), hair); cap.position.y = 0.02; head.add(cap); const pony = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), hair); pony.position.set(0, -0.02, -0.14); head.add(pony); }
-      else if (style === 3) { for (const sx of [-0.09, 0.09]) { const puff = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 6), hair); puff.position.set(sx, 0.12, 0); head.add(puff); } }
-      else { const bangs = new THREE.Mesh(new THREE.SphereGeometry(0.158, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), hair); bangs.position.y = 0.04; head.add(bangs); }
-      r.position.set(x, 1.7, z); r.rotation.y = face; r.userData.rider = 1; r.userData.bob = n; r.userData.baseY = 1.7; r.userData.head = head; g.add(r);
+    const rider = (x: number, z: number, n: number) => {
+      const mine = n === 0 && Social.profile?.avatar;
+      const look = mine ? { ...toLook(Social.profile.avatar, 11), tag: false, sit: true } : { ...ROSTER[n % ROSTER.length].look, sit: true };
+      const tex = new THREE.CanvasTexture(bakeSheet(look as Look)); tex.colorSpace = THREE.SRGBColorSpace; tex.repeat.set(1 / COLS, 1 / DIRS.length); tex.offset.set(0, 0);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+      const sc = 0.62 * (AGE_SCALE[(look as Look).age ?? "hs"] ?? 1);
+      sp.scale.set(sc * 0.7, sc, 1); sp.position.set(x, 1.42, z); sp.userData.rider = 1; sp.userData.baseY = 1.42; sp.userData.bob = n; g.add(sp);
     };
-    for (let i = 0; i < 8; i++) { const x = -2.45 + i * 0.98; rider(x, -1.15, i, Math.PI); if (i % 2 === 0) rider(x, 1.15, i + 9, 0); }
-    rider(-3.65, 0.15, 4, Math.PI / 2);
+    for (let i = 0; i < 8; i++) { const x = -2.45 + i * 0.98; rider(x, -1.05, i); if (i % 2 === 0) rider(x, 1.05, i + 8); }
+    rider(-3.55, 0.15, 3);
     for (const sz of [-1.32, 1.32]) {
       const rail = new THREE.Mesh(new THREE.BoxGeometry(8.7, 0.1, 0.06), blk); rail.position.set(0.55, 1.35, sz); g.add(rail);
       for (let i = 0; i < 8; i++) {
@@ -999,7 +1035,7 @@ export class HallScene {
       g.traverse((c) => { if (c.userData.radius) c.userData.radius *= 1.15; });
       const door = g.getObjectByName("cardoor") as THREE.Mesh;
       const stopX = stop.x - W / 2;
-      g.rotation.y = Math.PI; g.position.set(stopX - 55, 0, OUTSIDE.roadY - H / 2); g.visible = false; this.scene.add(g);
+      g.rotation.y = Math.PI; g.position.set(stopX - 55, 0, OUTSIDE.roadY - H / 2 - 2.6); g.visible = false; this.scene.add(g);
       this.cars.push({ g, door, from: stopX - 55, to: stopX, t: 0, mode: "idle" });
     });
   }
@@ -1070,6 +1106,7 @@ export class HallScene {
     return { x, z };
   }
   private tickLife(t: number) {
+    for (const u of this.windUniforms) u.value = t;
     for (const m of this.leaves) { m.position.y -= m.userData.fall * 0.016; m.rotation.x += 0.04; m.rotation.z += 0.03; m.position.x += Math.sin(t + m.position.z) * 0.01; if (m.position.y < 0.15) m.position.y = 6 + Math.random() * 3; const gx = m.position.x + W / 2, gz = m.position.z + H / 2; if (gx > 2 && gx < W - 2 && gz > 2 && gz < H - 2) m.position.x += m.position.x > 0 ? 0.4 : -0.4; }
     this.birds.forEach((b) => { b.phase += 0.016 * b.speed * 2; const a = t * b.speed + b.phase; b.g.position.set(Math.cos(a) * b.r, b.y + Math.sin(a * 2) * 0.45, Math.sin(a) * b.r * 0.72 + 8); b.g.rotation.y = -a + Math.PI / 2; const f = Math.sin(t * b.flap); const L = b.g.getObjectByName("wingL"), R = b.g.getObjectByName("wingR"); if (L) L.rotation.x = f * 0.7; if (R) R.rotation.x = -f * 0.7; });
     for (const s of this.squirrels) {
@@ -1228,6 +1265,7 @@ export class HallScene {
       if (c.mode === "in") { c.t += dt; const k = Math.min(1, c.t / 3.2), e = 1 - Math.pow(1 - k, 3), nx = c.from + (c.to - c.from) * e; this.rollWheels(c.g, nx - c.g.position.x); c.g.position.x = nx; if (this.arrivalHide && c === lead) this.player.pos.set(c.g.position.x, 0, c.g.position.z - 1.2); if (k >= 1) { c.mode = "wait"; c.t = 0; if (c === lead && this.onCarStopped) { const f = this.onCarStopped; this.onCarStopped = () => {}; f(); } } }
       else if (c.mode === "wait") { c.t += dt; c.door.rotation.y = Math.min(1.15, c.t * 2.4); if (c.t > 18) { c.mode = "out"; c.t = 0; } }
       else if (c.mode === "out") { c.t += dt; c.door.rotation.y = Math.max(0, c.door.rotation.y - dt * 2.4); const sp = Math.min(14, 4 + c.t * 4) * dt; this.rollWheels(c.g, -sp); c.g.position.x -= sp; if (c.g.position.x < c.from - 8) { c.g.visible = false; c.mode = "idle"; c.g.position.x = c.from; } }
+      if (c.g.visible) this.keepOffBus(c.g);
     }
   }
 
