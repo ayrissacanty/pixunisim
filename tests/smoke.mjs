@@ -9,6 +9,11 @@ import { chromium } from "playwright";
 const PORT = process.env.SMOKE_PORT || "8799";
 const BASE = `http://127.0.0.1:${PORT}`;
 // page -> must contain a <canvas> after load (3D scenes)
+// Time for the first 3D frame in software GL (SwiftShader on CI). The hallway builds the most shader programs (~55 on the first frame),
+// and SwiftShader compiles them in one go, which freezes the page for ~75 s on a 4-core box and more than 150 s on a GitHub runner.
+// A real GPU does this in a second or two. Script errors and 404s are still checked on every page; only the start-up wait is longer.
+const CANVAS_MS = { "hallway3d.html": 300000 };
+const canvasMs = (page) => Number(process.env.SMOKE_CANVAS_MS) || CANVAS_MS[page] || 150000;
 const PAGES = [
   ["index.html", false], ["hallway3d.html", true], ["classroom3d.html", true], ["auditorium3d.html", true],
   ["news.html", false], ["phone.html", false], ["opendoor.html", false], ["fieldtrip.html", true],
@@ -52,7 +57,7 @@ for (const [page, needsCanvas] of PAGES) {
     const res = await p.goto(`${BASE}/${page}`, { waitUntil: needsCanvas ? "commit" : "domcontentloaded", timeout: 60000 });
     if (!res || !res.ok()) problems.push(`page status ${res && res.status()}`);
     // 3D scenes can take a minute to start in software GL (CI/sandbox); a phone GPU does it in seconds
-    if (needsCanvas) { try { await p.waitForSelector("canvas", { timeout: 150000, state: "attached" }); } catch { problems.push("no <canvas> appeared within 150s"); } }
+    if (needsCanvas) { const ms = canvasMs(page); try { await p.waitForSelector("canvas", { timeout: ms, state: "attached" }); } catch { problems.push(`no <canvas> appeared within ${ms / 1000}s`); } }
     await p.waitForTimeout(needsCanvas ? 5000 : (page === "index.html" ? 8000 : 3000));
     if (process.env.SMOKE_SHOTS) await p.screenshot({ path: `${process.env.SMOKE_SHOTS}/${page.replace(/\//g, "_")}.png` }).catch(() => {});
   } catch (e) { problems.push("load failed: " + e.message.split("\n")[0]); }

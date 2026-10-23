@@ -64,3 +64,10 @@ export class TexCache {
   dispose() { this.m.forEach((t) => t.dispose()); this.m.clear(); }
 }
 export const NORMAL_KINDS = new Set(["knit", "cable", "argyle", "fairisle", "denim", "wood", "tile", "carpet", "plaster", "stripes", "plaid", "dots", "hearts", "stars"]);
+
+/** Cache key for material options, with textures keyed by uuid. The textures must be swapped out BEFORE JSON.stringify:
+ *  stringify calls Texture.toJSON() before a replacer sees the value, and that PNG-encodes the texture's canvas on every lookup. */
+export function optsKey(o: object): string {
+  const swap = (v: any): any => (v && v.isTexture ? v.uuid : Array.isArray(v) ? v.map(swap) : v && typeof v === "object" && v.constructor === Object ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, swap(x)])) : v);
+  return JSON.stringify(swap(o));
+}

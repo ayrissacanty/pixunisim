@@ -11,7 +11,7 @@ import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { lightAo } from "../shared/pixarScene";
 import type { MatKind, MatOpts, Mood, Style, StyleRig } from "./types";
-import { TexCache } from "./char-parts/tex";
+import { TexCache, optsKey } from "./char-parts/tex";
 import { shadowSize, dprCap } from "../shared/polish";
 import { Sky, lerpMood, moodTarget, newMoodState, stats } from "./char-parts/mood";
 
@@ -37,7 +37,7 @@ export function createPixar(): Style {
   }
 
   function mat(kind: MatKind, color: string | number, o: MatOpts = {}): THREE.Material {
-    const key = `${kind}|${new THREE.Color(color as any).getHexString()}|${JSON.stringify(o, (k, v) => (v && v.isTexture ? v.uuid : v))}`;
+    const key = `${kind}|${new THREE.Color(color as any).getHexString()}|${optsKey(o)}`;
     let m = cache.get(key); if (m) return m;
     const col = new THREE.Color(color as any);
     const p: THREE.MeshPhysicalMaterialParameters = { color: col, transparent: !!o.transparent, opacity: o.opacity ?? 1, side: o.side ?? THREE.FrontSide, map: o.map ?? null, normalMap: o.normalMap ?? null };

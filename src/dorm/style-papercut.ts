@@ -2,7 +2,7 @@
 import { dprCap } from "../shared/polish";
 import * as THREE from "three";
 import type { MatKind, MatOpts, Mood, Style, StyleRig } from "./types";
-import { TexCache } from "./char-parts/tex";
+import { TexCache, optsKey } from "./char-parts/tex";
 import { Sky, lerpMood, moodTarget, newMoodState, stats } from "./char-parts/mood";
 
 const KRAFT = new THREE.Color("#f3e7cf");
@@ -13,7 +13,7 @@ export function createPapercut(): Style {
   const rep = (t: THREE.Texture, r?: [number, number]) => { if (!r) return t; const k = t.clone(); k.repeat.set(r[0], r[1]); k.needsUpdate = true; own.push(k); return k; };
 
   function mat(kind: MatKind, color: string | number, o: MatOpts = {}): THREE.Material {
-    const key = `${kind}|${new THREE.Color(color as any).getHexString()}|${JSON.stringify(o, (k, v) => (v && v.isTexture ? v.uuid : v))}`;
+    const key = `${kind}|${new THREE.Color(color as any).getHexString()}|${optsKey(o)}`;
     let m = cache.get(key); if (m) return m;
     const c = new THREE.Color(color as any).lerp(KRAFT, kind === "skin" || kind === "eye" || kind === "emissive" ? 0 : 0.05);
     let map = o.map ?? null;
