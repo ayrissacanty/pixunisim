@@ -162,11 +162,24 @@ export const lanternTex = (col: string) => mk(256, 256, (c, w, h) => {
 export const lockerStripTex = (cols: string[]) => mk(264 * cols.length, 640, (c) => { cols.forEach((col, i) => c.drawImage(lockerTex(col, i * 3 + 1).image as HTMLCanvasElement, i * 264, 0)); }, true);
 
 export const groundTex = () => mk(256, 256, (c, w, h) => {
-  c.fillStyle = "#7EBF6A"; c.fillRect(0, 0, w, h);
-  for (let k = 0; k < 40; k++) { const x = hash(k, 5) * w, y = hash(k, 9) * h, r = 14 + hash(k, 2) * 28; c.fillStyle = k & 1 ? "rgba(190,230,140,.35)" : "rgba(40,110,55,.22)"; c.beginPath(); c.ellipse(x, y, r, r * 0.55, hash(k, 4), 0, 7); c.fill(); }
-  for (let k = 0; k < 520; k++) {
-    const x = hash(k, 11) * w, y = hash(k, 12) * h, len = 7 + hash(k, 13) * 14, lean = (hash(k, 14) - 0.5) * 6;
-    c.strokeStyle = ["#2F7A3A", "#4E9A48", "#8FCB62", "#1F6A32", "#C9E58A"][k % 5]; c.lineWidth = 1.4; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + lean, y - len * 0.6, x + lean * 1.4, y - len); c.stroke();
+  c.fillStyle = "#6EAE5C"; c.fillRect(0, 0, w, h);
+  const blob = (x: number, y: number, r: number, col: string) => {
+    for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) {
+      const g = c.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
+      g.addColorStop(0, col); g.addColorStop(1, "rgba(0,0,0,0)");
+      c.fillStyle = g; c.beginPath(); c.arc(x + ox, y + oy, r, 0, 7); c.fill();
+    }
+  };
+  for (let k = 0; k < 28; k++) blob(hash(k, 5) * w, hash(k, 9) * h, 18 + hash(k, 2) * 22, k & 1 ? "rgba(186,224,120,.28)" : "rgba(30,100,48,.16)");
+  c.lineCap = "round";
+  for (let k = 0; k < 700; k++) {
+    const x = hash(k, 11) * w, y = hash(k, 12) * h, len = 5 + hash(k, 13) * 10, lean = (hash(k, 14) - 0.5) * 4;
+    c.strokeStyle = ["rgba(47,122,58,.5)", "rgba(78,154,72,.45)", "rgba(143,203,98,.4)", "rgba(31,106,50,.38)", "rgba(201,229,138,.38)"][k % 5];
+    c.lineWidth = 1.1;
+    const draw = (ox: number, oy: number) => { c.beginPath(); c.moveTo(x + ox, y + oy); c.quadraticCurveTo(x + ox + lean, y + oy - len * 0.55, x + ox + lean * 1.2, y + oy - len); c.stroke(); };
+    draw(0, 0);
+    if (x < 18) draw(w, 0); if (x > w - 18) draw(-w, 0);
+    if (y < 18) draw(0, h); if (y > h - 18) draw(0, -h);
   }
 }, true);
 

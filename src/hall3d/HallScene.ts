@@ -465,9 +465,25 @@ export class HallScene {
   }
   private windUniforms: { value: number }[] = [];
   private _leaf?: THREE.BufferGeometry;
+  private _softLeaf?: THREE.Texture;
+  private _crown?: THREE.MeshStandardMaterial;
+  /** a leaf with a soft edge, so a crown reads as foliage instead of hard cards */
+  private softLeafTex() {
+    if (this._softLeaf) return this._softLeaf;
+    const cv = document.createElement("canvas"); cv.width = cv.height = 64; const c = cv.getContext("2d")!;
+    const g = c.createRadialGradient(32, 34, 2, 32, 32, 30);
+    g.addColorStop(0, "rgba(168,214,96,0.92)"); g.addColorStop(0.45, "rgba(46,140,62,0.7)"); g.addColorStop(1, "rgba(30,90,40,0)");
+    c.fillStyle = g; c.beginPath(); c.moveTo(32, 3); c.bezierCurveTo(60, 16, 56, 46, 32, 61); c.bezierCurveTo(8, 46, 4, 16, 32, 3); c.fill();
+    c.strokeStyle = "rgba(18,70,28,0.28)"; c.lineWidth = 1.1; c.beginPath(); c.moveTo(32, 12); c.quadraticCurveTo(34, 32, 32, 52); c.stroke();
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; this._softLeaf = t; return t;
+  }
+  private crownMat() {
+    if (this._crown) return this._crown;
+    this._crown = this.windMat({ map: this.softLeafTex() }); return this._crown;
+  }
   /** leaves and blades sway from the tip, so the edges stay soft instead of stiff */
   private windMat(opts: { color?: string; map?: THREE.Texture } = {}) {
-    const m = new THREE.MeshStandardMaterial({ color: opts.color ?? "#ffffff", map: opts.map, roughness: 0.68, side: THREE.DoubleSide, transparent: !!opts.map, alphaTest: opts.map ? 0.18 : 0, depthWrite: !opts.map });
+    const m = new THREE.MeshStandardMaterial({ color: opts.color ?? "#ffffff", map: opts.map, roughness: 0.68, side: THREE.DoubleSide, transparent: !!opts.map, alphaTest: opts.map ? 0.04 : 0, depthWrite: !opts.map });
     const uTime = { value: 0 }; this.windUniforms.push(uTime);
     m.onBeforeCompile = (shader) => {
       shader.uniforms.uTime = uTime;
@@ -490,17 +506,15 @@ export class HallScene {
   }
   private tree(x: number, z: number, s = 1) {
     const g = new THREE.Group(), wood = this.plain("#8A5A32");
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * s, 0.28 * s, 2.1 * s, 8), wood); trunk.position.y = 1.0 * s; trunk.castShadow = true; g.add(trunk);
-    const cols = ["#1F8A45", "#2E9B4A", "#E8833A", "#3CB371", "#C2452D", "#67B34A"];
-    [[0.1, 1.7, 0.05, 0.5], [-0.28, 1.85, -0.12, -0.6], [0.32, 2.05, -0.08, 0.7], [0, 2.3, 0.22, -0.3]].forEach(([bx, by, bz, rz], i) => {
-      const br = new THREE.Mesh(new THREE.CylinderGeometry(0.03 * s, 0.06 * s, 0.9 * s, 5), wood); br.position.set(bx * s, by * s, bz * s); br.rotation.z = rz; g.add(br);
-      for (let k = 0; k < 16; k++) {
-        const leaf = new THREE.Mesh(this.leafGeo(), this.windMat({ color: cols[(i + k) % cols.length] }));
-        const a = k * 0.55, rad = (k < 8 ? 0.18 : 0.42) * s;
-        leaf.position.set(bx * s + Math.cos(a) * rad, by * s + 0.22 * s + (k % 4) * 0.08 * s, bz * s + Math.sin(a) * rad);
-        leaf.rotation.set(0.4 + (k % 3) * 0.25, a, 0.35); leaf.scale.setScalar(s * (k < 8 ? 0.85 : 0.62 + (k % 3) * 0.12)); g.add(leaf);
-      }
-    });
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.11 * s, 0.26 * s, 2.2 * s, 8), wood); trunk.position.y = 1.05 * s; trunk.castShadow = true; g.add(trunk);
+    const geo = new THREE.PlaneGeometry(0.7, 0.95), mat = this.crownMat();
+    for (let k = 0; k < 46; k++) {
+      const leaf = new THREE.Mesh(geo, mat);
+      const a = k * 2.399, rad = (0.12 + (k % 8) * 0.09) * s, y = (1.45 + (k % 6) * 0.2) * s;
+      leaf.position.set(Math.cos(a) * rad, y, Math.sin(a) * rad);
+      leaf.rotation.set(0.25 + (k % 4) * 0.22, a, (k % 5) * 0.15);
+      leaf.scale.setScalar(s * (0.72 + (k % 3) * 0.16)); g.add(leaf);
+    }
     g.position.set(x, 0, z); this.scene.add(g);
   }
   private fountain(x: number, z: number) {
@@ -641,10 +655,10 @@ export class HallScene {
     const S = this.scene;
     const gt = this.rep("grass", () => T.groundTex(), 60, 60), ground = new THREE.Mesh(new THREE.PlaneGeometry(480, 480), this.std(gt)); ground.rotation.x = -Math.PI / 2; ground.position.y = -0.04; ground.receiveShadow = true; S.add(ground);
     const bladeCv = document.createElement("canvas"); bladeCv.width = 32; bladeCv.height = 64; const bc2 = bladeCv.getContext("2d")!;
-    const fade = bc2.createLinearGradient(0, 64, 0, 0); fade.addColorStop(0, "rgba(18,78,28,0.95)"); fade.addColorStop(0.55, "rgba(62,150,58,0.8)"); fade.addColorStop(1, "rgba(190,220,90,0)");
+    const fade = bc2.createLinearGradient(0, 64, 0, 0); fade.addColorStop(0, "rgba(18,78,28,0)"); fade.addColorStop(0.22, "rgba(28,100,42,0.45)"); fade.addColorStop(0.62, "rgba(62,150,58,0.72)"); fade.addColorStop(1, "rgba(210,230,120,0)");
     bc2.fillStyle = fade; bc2.beginPath(); bc2.moveTo(16, 1); bc2.quadraticCurveTo(30, 28, 22, 63); bc2.lineTo(10, 63); bc2.quadraticCurveTo(2, 28, 16, 1); bc2.fill();
     const bladeMap = new THREE.CanvasTexture(bladeCv); bladeMap.colorSpace = THREE.SRGBColorSpace;
-    const bladeN = 1600, bladeG = new THREE.PlaneGeometry(0.16, 0.62);
+    const bladeN = 2800, bladeG = new THREE.PlaneGeometry(0.22, 0.7);
     const bladeMat = this.windMat({ map: bladeMap }); bladeMat.vertexColors = true;
     const bladeMat2 = this.windMat({ map: bladeMap }); bladeMat2.vertexColors = true;
     const blades = new THREE.InstancedMesh(bladeG, bladeMat, bladeN);
@@ -653,7 +667,8 @@ export class HallScene {
     const shades = ["#2F7A3A", "#4E9A48", "#8FCB62", "#1F6A32", "#6AAA48"];
     const roadZ = OUTSIDE.roadY - H / 2;
     for (let i = 0; i < bladeN; i++) {
-      let x = (hash(i, 4) - 0.5) * 230, z = (hash(i, 5) - 0.5) * 190 + 8, sc = 0.55 + hash(i, 9) * 1.15;
+      const tuft = Math.floor(i / 7);
+      let x = (hash(tuft, 4) - 0.5) * 220 + (hash(i, 21) - 0.5) * 1.6, z = (hash(tuft, 5) - 0.5) * 180 + 8 + (hash(i, 22) - 0.5) * 1.6, sc = 0.45 + hash(i, 9) * 1.05;
       const inBuilding = Math.abs(x) < W / 2 + 1.2 && Math.abs(z) < H / 2 + 1.2;
       if (inBuilding) { x += x < 0 ? -(W / 2 + 3) : W / 2 + 3; }
       const onRoad = Math.abs(z - roadZ) < 3.3, onWalk = Math.abs(x) < 5.5 && z > H / 2 - 0.5 && z < H / 2 + 16;
@@ -665,6 +680,22 @@ export class HallScene {
       be.y += 1.15; bq.setFromEuler(be); bm.compose(new THREE.Vector3(x, sc * 0.22, z), bq, new THREE.Vector3(sc * 0.85, sc, sc * 0.85)); blades2.setMatrixAt(i, bm); blades2.setColorAt(i, bcol);
     }
     blades.receiveShadow = blades2.receiveShadow = true; S.add(blades, blades2);
+    const tuftCv = document.createElement("canvas"); tuftCv.width = tuftCv.height = 64; const tc = tuftCv.getContext("2d")!;
+    const tg = tc.createRadialGradient(32, 36, 2, 32, 34, 30); tg.addColorStop(0, "rgba(120,180,70,0.55)"); tg.addColorStop(0.6, "rgba(50,130,55,0.28)"); tg.addColorStop(1, "rgba(40,110,50,0)");
+    tc.fillStyle = tg; tc.beginPath(); tc.ellipse(32, 36, 26, 18, 0, 0, 7); tc.fill();
+    const tuftMap = new THREE.CanvasTexture(tuftCv); tuftMap.colorSpace = THREE.SRGBColorSpace;
+    const tuftMat = this.windMat({ map: tuftMap }); tuftMat.vertexColors = true;
+    const tufts = new THREE.InstancedMesh(new THREE.PlaneGeometry(1.15, 0.55), tuftMat, 900);
+    for (let i = 0; i < 900; i++) {
+      let x = (hash(i, 30) - 0.5) * 210, z = (hash(i, 31) - 0.5) * 170 + 8;
+      const inBuilding = Math.abs(x) < W / 2 + 1 && Math.abs(z) < H / 2 + 1;
+      const onRoad = Math.abs(z - roadZ) < 3.1, onWalk = Math.abs(x) < 5 && z > H / 2 && z < H / 2 + 16;
+      if (inBuilding || onRoad || onWalk) { x = (i % 2 ? 1 : -1) * (W / 2 + 8 + (i % 5)); z = (i % 3 - 1) * 24; }
+      be.set(-0.4, hash(i, 32) * 6.28, 0.15); bq.setFromEuler(be);
+      const sc = 0.7 + hash(i, 33) * 0.8;
+      bm.compose(new THREE.Vector3(x, 0.12, z), bq, new THREE.Vector3(sc, sc * 0.7, sc)); tufts.setMatrixAt(i, bm); tufts.setColorAt(i, bcol.set(shades[i % shades.length]));
+    }
+    S.add(tufts);
     this.flat(this.rep("stoneP", () => T.stoneTex(), 2, 8), 9, 24, 0, H / 2 + 13, -0.02);
     const disc = new THREE.Mesh(new THREE.CircleGeometry(9, 40), this.std(this.rep("stoneD", () => T.stoneTex(), 5, 5))); disc.rotation.x = -Math.PI / 2; disc.position.set(0, -0.015, H / 2 + 30); disc.receiveShadow = true; S.add(disc);
     // instanced paper trees: a trunk + a faceted crown each
@@ -679,15 +710,15 @@ export class HallScene {
       spots.push({ x, z, s: 0.8 + hash(i, 3) * 0.9 });
     }
     const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.16, 0.28, 2.0, 7), this.plain("#8A5A32"), spots.length);
-    const per = 26;
-    const leafMat = this.windMat({ color: "#ffffff" }); leafMat.vertexColors = true;
-    const leaves = new THREE.InstancedMesh(this.leafGeo(), leafMat, spots.length * per);
+    const per = 42;
+    const leafMat = this.windMat({ map: this.softLeafTex() }); leafMat.vertexColors = true;
+    const leaves = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.85, 1.05), leafMat, spots.length * per);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), leafCol = new THREE.Color();
     const greens = ["#1F8A45", "#2F9A4A", "#67B34A", "#E8833A", "#3CB371", "#C2452D", "#8FCB62"];
     spots.forEach((p, i) => {
       q.identity(); m4.compose(new THREE.Vector3(p.x, 0.95 * p.s, p.z), q, new THREE.Vector3(p.s, p.s * 1.15, p.s)); trunk.setMatrixAt(i, m4);
       for (let k = 0; k < per; k++) {
-        const inner = k < 10, a = hash(i, 20 + k) * 6.28, rad = (inner ? 0.08 + hash(i, 40 + k) * 0.38 : 0.42 + hash(i, 40 + k) * 0.85) * p.s, y = (inner ? 1.85 + hash(i, 60 + k) * 0.7 : 1.55 + hash(i, 60 + k) * 1.55) * p.s;
+        const inner = k < 16, a = hash(i, 20 + k) * 6.28, rad = (inner ? 0.05 + hash(i, 40 + k) * 0.45 : 0.28 + hash(i, 40 + k) * 0.7) * p.s, y = (1.35 + hash(i, 60 + k) * 1.35) * p.s;
         e.set(0.35 + hash(i, 70 + k), a, 0.25); q.setFromEuler(e);
         const sc = p.s * (inner ? 0.72 : 1);
         m4.compose(new THREE.Vector3(p.x + Math.cos(a) * rad, y, p.z + Math.sin(a) * rad), q, new THREE.Vector3(sc, sc, sc));
@@ -898,42 +929,32 @@ export class HallScene {
     const roadZ = OUTSIDE.roadY - H / 2, g = new THREE.Group();
     const wall = this.plain("#F4E4C8"), roofM = this.plain("#8C4A32"), trim = this.plain("#6B3A2A");
     const glass = new THREE.MeshPhysicalMaterial({ color: "#cfeaf6", roughness: 0.06, metalness: 0, transparent: true, opacity: 0.45, depthWrite: false });
-    const side = (x: number) => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.28, 3.35, 7.8), wall); m.position.set(x, 1.68, 0.15); m.castShadow = true; g.add(m); };
-    side(-4.2); side(4.2);
-    const back = new THREE.Mesh(new THREE.BoxGeometry(8.7, 3.35, 0.28), wall); back.position.set(0, 1.68, -3.75); back.castShadow = true; g.add(back);
-    const jamb = (x: number) => { const m = new THREE.Mesh(new THREE.BoxGeometry(2.15, 3.35, 0.28), wall); m.position.set(x, 1.68, 3.85); m.castShadow = true; g.add(m); };
-    jamb(-3.05); jamb(3.05);
-    const lintel = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.72, 0.28), wall); lintel.position.set(0, 3.0, 3.85); g.add(lintel);
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(9.6, 0.22, 8.6), roofM); roof.position.y = 3.5; roof.castShadow = true; g.add(roof);
-    const pitch = new THREE.Mesh(new THREE.ConeGeometry(6.6, 1.7, 4), roofM); pitch.position.y = 4.5; pitch.rotation.y = Math.PI / 4; pitch.castShadow = true; g.add(pitch);
-    const chim = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.35, 0.5), trim); chim.position.set(2.7, 4.4, -1.5); g.add(chim);
-    for (const [x, z] of [[-4.38, -1.3], [-4.38, 1.5], [4.38, -1.3], [4.38, 1.5]] as const) {
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.28, 1.08), trim); frame.position.set(x, 1.85, z); g.add(frame);
-      const win = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.05, 0.86), glass); win.position.set(x, 1.85, z); g.add(win);
-    }
-    const porch = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.14, 1.7), this.plain("#C4A882")); porch.position.set(0, 0.18, 4.8); porch.castShadow = true; g.add(porch);
-    const step = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.1, 0.7), this.plain("#A89070")); step.position.set(0, 0.06, 5.7); g.add(step);
-    for (const x of [-1.9, 1.9]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.5, 0.16), trim); p.position.set(x, 1.35, 5.35); g.add(p); }
-    const plate = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.42), new THREE.MeshBasicMaterial({ map: T.signTex("THE DORMS", "#6B3A2A"), transparent: true }));
-    plate.position.set(0, 2.55, 4.05); g.add(plate);
-    // the other half of the student duplex. An adult house stays a single cottage.
-    const ux = 8.7;
-    const sideR = new THREE.Mesh(new THREE.BoxGeometry(0.28, 3.35, 7.8), wall); sideR.position.set(4.2 + ux, 1.68, 0.15); sideR.castShadow = true; g.add(sideR);
-    const back2 = new THREE.Mesh(new THREE.BoxGeometry(ux, 3.35, 0.28), wall); back2.position.set(4.2 + ux / 2, 1.68, -3.75); g.add(back2);
-    const jamb2 = (x: number) => { const m = new THREE.Mesh(new THREE.BoxGeometry(2.15, 3.35, 0.28), wall); m.position.set(x, 1.68, 3.85); g.add(m); };
-    jamb2(4.2 + 2.2); jamb2(4.2 + ux - 2.2);
-    const lintel2 = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.72, 0.28), wall); lintel2.position.set(4.2 + ux / 2, 3.0, 3.85); g.add(lintel2);
-    const roof2 = new THREE.Mesh(new THREE.BoxGeometry(ux + 0.4, 0.22, 8.6), roofM); roof2.position.set(4.2 + ux / 2, 3.5, 0); g.add(roof2);
-    const pitch2 = new THREE.Mesh(new THREE.ConeGeometry(5.2, 1.7, 4), roofM); pitch2.position.set(4.2 + ux / 2, 4.5, 0); pitch2.rotation.y = Math.PI / 4; g.add(pitch2);
-    for (const z of [-1.2, 1.4]) { const frame = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.28, 1.08), trim); frame.position.set(4.32 + ux, 1.85, z); g.add(frame); const win = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.05, 0.86), glass); win.position.set(4.38 + ux, 1.85, z); g.add(win); }
-    const porch2 = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.14, 1.7), this.plain("#C4A882")); porch2.position.set(4.2 + ux / 2, 0.18, 4.8); g.add(porch2);
-    const door2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.2, 0.08), trim); door2.position.set(4.2 + ux / 2, 1.15, 3.85); g.add(door2);
-    const bed2 = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.32, 1.2), this.plain("#F7F1E6")); bed2.position.set(4.2 + ux - 2.2, 0.4, -1.5); g.add(bed2);
-    const quilt2 = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.1, 1.05), this.plain("#E07A66")); quilt2.position.set(4.2 + ux - 2.2, 0.58, -1.45); g.add(quilt2);
-    const plate2 = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.36), new THREE.MeshBasicMaterial({ map: T.signTex("B", "#6B3A2A"), transparent: true })); plate2.position.set(4.2 + ux / 2, 2.5, 4.05); g.add(plate2);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(16.8, 3.25, 7.5), wall); body.position.set(4.2, 1.66, 0.15); body.castShadow = true; g.add(body);
+    const party = new THREE.Mesh(new THREE.BoxGeometry(0.22, 3.4, 7.7), trim); party.position.set(4.2, 1.7, 0.15); g.add(party);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(17.4, 0.24, 8.3), roofM); roof.position.set(4.2, 3.4, 0.15); roof.castShadow = true; g.add(roof);
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(17.2, 0.7, 2.4), roofM); ridge.position.set(4.2, 3.85, 0.15); ridge.castShadow = true; g.add(ridge);
+    const chim = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.2, 0.5), trim); chim.position.set(-2.4, 4.3, -1.4); g.add(chim);
+    const chim2 = chim.clone(); chim2.position.set(10.6, 4.3, -1.4); g.add(chim2);
+    const doorAt = (x: number) => {
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(1.35, 2.35, 0.12), trim); frame.position.set(x, 1.2, 3.95); g.add(frame);
+      const door = new THREE.Mesh(new THREE.BoxGeometry(1.05, 2.05, 0.08), this.plain("#6E8F62")); door.position.set(x, 1.12, 4.02); g.add(door);
+    };
+    doorAt(0); doorAt(8.4);
+    const winAt = (x: number, z: number, sx = 0.08) => {
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(sx < 0 ? 1.05 : 0.08, 1.15, sx < 0 ? 0.08 : 1.05), trim); frame.position.set(x, 1.85, z); g.add(frame);
+      const win = new THREE.Mesh(new THREE.BoxGeometry(sx < 0 ? 0.82 : 0.05, 0.92, sx < 0 ? 0.05 : 0.82), glass); win.position.set(x, 1.85, z); g.add(win);
+    };
+    for (const x of [-1.8, 1.8, 6.6, 10.2]) winAt(x, 3.92, -1);
+    for (const [x, z] of [[-4.22, -1.2], [-4.22, 1.5], [12.62, -1.2], [12.62, 1.5]] as const) winAt(x, z, 1);
+    const porch = new THREE.Mesh(new THREE.BoxGeometry(16.2, 0.14, 1.6), this.plain("#C4A882")); porch.position.set(4.2, 0.16, 4.7); porch.castShadow = true; g.add(porch);
+    for (const x of [-1.5, 1.5, 6.9, 9.9]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.4, 0.14), trim); p.position.set(x, 1.3, 5.3); g.add(p); }
+    const plate = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 0.4), new THREE.MeshBasicMaterial({ map: T.signTex("THE DORMS", "#6B3A2A"), transparent: true }));
+    plate.position.set(4.2, 2.85, 4.02); g.add(plate);
+    const num = (x: number, t: string) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.36), new THREE.MeshBasicMaterial({ map: T.signTex(t, "#6B3A2A"), transparent: true })); p.position.set(x, 2.35, 4.04); g.add(p); };
+    num(-0.9, "A"); num(9.3, "B");
     g.position.set(this.dormX - 10, 0, roadZ - 12); this.scene.add(g); this.dormHouse = g;
     const cols = ["#C23B2E", "#2F5FA8", "#E7E2D4", "#1C1C1C", "#C9842A", "#3E8B4F", "#6B5AA8", "#D4536A"];
-    const slots = [{ off: 16, rel: 0.4, dir: 1, z: -2.45 }, { off: 28, rel: 0.15, dir: 1, z: -2.45 }, { off: -20, rel: 0.25, dir: 1, z: -2.55 }, { off: -34, rel: -0.1, dir: 1, z: -2.55 }, { off: 22, rel: -6, dir: -1, z: -2.7 }, { off: 8, rel: -6, dir: -1, z: -2.7 }, { off: -12, rel: -6, dir: -1, z: -2.85 }, { off: 36, rel: -5, dir: -1, z: -2.85 }];
+    const slots = [{ off: 22, rel: 0.4, dir: 1, z: -5.2 }, { off: 34, rel: 0.15, dir: 1, z: -5.3 }, { off: -18, rel: 0.25, dir: 1, z: -5.2 }, { off: -32, rel: -0.1, dir: 1, z: -5.4 }, { off: 46, rel: -6, dir: -1, z: -5.5 }, { off: -46, rel: -6, dir: -1, z: -5.4 }, { off: -58, rel: -6, dir: -1, z: -5.6 }, { off: 58, rel: -5, dir: -1, z: -5.5 }];
     slots.forEach((s, i) => {
       const car = this.makeCar(cols[i], i);
       car.rotation.y = s.dir > 0 ? Math.PI : 0; car.position.set(this.dormX + s.off, 0, roadZ + s.z); this.scene.add(car);
@@ -962,8 +983,10 @@ export class HallScene {
   private keepOffBus(car: THREE.Object3D) {
     const B = this.bus; if (!B || !B.visible) return;
     const dx = car.position.x - B.position.x, dz = car.position.z - B.position.z;
-    if (Math.abs(dz) < 2.4 && Math.abs(dx) < 8) car.position.x = B.position.x + (dx >= 0 ? 9 : -9);
-    if (car.position.z > B.position.z - 1.6) car.position.z = B.position.z - 2.5;
+    if (Math.abs(dz) < 4.8 && Math.abs(dx) < 11) {
+      car.position.z = B.position.z - 5.4;
+      car.position.x = B.position.x + (dx >= 0 ? 13 : -13);
+    }
   }
   private buildBus() {
     const g = new THREE.Group(), yel = this.plain("#1E7A40"), blk = this.plain("#2b2b34"), chrome = this.plain("#E7EEF2");
@@ -974,14 +997,14 @@ export class HallScene {
     const hood = new THREE.Mesh(this.clay(2.15, 1.2, 2.35, 0.22), yel); hood.position.set(-4.5, 1.22, 0); hood.castShadow = true; g.add(hood);
     const roof = new THREE.Mesh(this.clay(8.3, 0.22, 2.3, 0.1), this.plain("#145E32")); roof.position.set(0.7, 2.9, 0); roof.castShadow = true; g.add(roof);
     const floor = new THREE.Mesh(new THREE.BoxGeometry(8.2, 0.08, 2.1), this.plain("#6b5344")); floor.position.set(0.7, 0.78, 0); g.add(floor);
-    for (let i = 0; i < 7; i++) { const seat = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.42, 2.05), this.plain(i % 2 ? "#3d4a6b" : "#2f6b4f")); seat.position.set(-2.3 + i * 0.95, 1.15, 0); g.add(seat); }
+    for (let i = 0; i < 7; i++) { const seat = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.18, 0.55), this.plain(i % 2 ? "#3d4a6b" : "#2f6b4f")); seat.position.set(-2.3 + i * 0.95, 0.95, -0.45); g.add(seat); const seat2 = seat.clone(); seat2.position.z = 0.45; g.add(seat2); }
     const rider = (x: number, z: number, n: number) => {
       const mine = n === 0 && Social.profile?.avatar;
       const look = mine ? { ...toLook(Social.profile.avatar, 11), tag: false, sit: true } : { ...ROSTER[n % ROSTER.length].look, sit: true };
-      const tex = new THREE.CanvasTexture(bakeSheet(look as Look)); tex.colorSpace = THREE.SRGBColorSpace; tex.repeat.set(1 / COLS, 1 / DIRS.length); tex.offset.set(0, 0);
+      const tex = new THREE.CanvasTexture(bakeSheet(look as Look)); tex.colorSpace = THREE.SRGBColorSpace; tex.repeat.set(1 / COLS, 1 / DIRS.length); tex.offset.set(0, 1 - 1 / DIRS.length);
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
-      const sc = 0.62 * (AGE_SCALE[(look as Look).age ?? "hs"] ?? 1);
-      sp.scale.set(sc * 0.7, sc, 1); sp.position.set(x, 1.42, z); sp.userData.rider = 1; sp.userData.baseY = 1.42; sp.userData.bob = n; g.add(sp);
+      const sc = 0.95 * (AGE_SCALE[(look as Look).age ?? "hs"] ?? 1);
+      sp.scale.set(sc * 0.72, sc, 1); sp.position.set(x, 1.62, z); sp.userData.rider = 1; sp.userData.baseY = 1.62; sp.userData.bob = n; g.add(sp);
     };
     for (let i = 0; i < 8; i++) { const x = -2.45 + i * 0.98; rider(x, -1.05, i); if (i % 2 === 0) rider(x, 1.05, i + 8); }
     rider(-3.55, 0.15, 3);
