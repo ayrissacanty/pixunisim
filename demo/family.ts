@@ -3,6 +3,7 @@
  *  avatar, grades and phone data follow them to any device the parent signs in on. Guests can still play with nothing saved online.
  *  Locker PHOTOS never leave the device. The backend is swappable (window.__FAMILY_BACKEND) so the whole flow can be tested without a cloud back end. */
 import { gradesFromState } from "../src/hall3d/lockerui";
+import { rememberCurrent } from "../src/hall3d/mates";
 import { isMainAccount, parentGrade, setParentGrade } from "../src/class3d/gradeband";
 import { SUBJECT_NAME } from "../src/game/progress";
 
@@ -170,7 +171,7 @@ const paintBtn = () => {
 /** switch the device to a kid (or to guest): save the current one, swap the local data, then reload so every part of the game re-reads it */
 async function activate(kid: KidDoc | null, importLocal = false): Promise<void> {
   try { const kd = kid ?? null; if (kd && USER) { localStorage.setItem("unify.family.link", JSON.stringify({ uid: USER.uid, kid: kd.id, band: (kd as any).age ?? (kd as any).band ?? "hs", grade: gradeOf(kd) })); setParentGrade(gradeOf(kd)); } else localStorage.removeItem("unify.family.link"); } catch { /* private mode */ }
-  if (USER && activeKid) await pushNow();
+  if (USER && activeKid) { rememberCurrent(); await pushNow(); }
   const before = lget();
   if (kid && USER) {
     if (before.mode !== "family" && anyLocal()) { const g: Record<string, string | null> = {}; for (const k of SYNC) g[k] = readKey(k); writeKey(GUEST_BACKUP, JSON.stringify(g)); }   // never lose guest progress

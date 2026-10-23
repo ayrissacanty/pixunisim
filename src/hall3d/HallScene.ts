@@ -18,6 +18,9 @@ import { Mood, Gfx } from "./mood";
 import { seasonOf, weatherNow } from "../game/world";
 import { buildHallDetails } from "./hallDetails";
 import { isPixar } from "../shared/look";
+import { rememberCurrent, roommateFor } from "./mates";
+import { createDorm, defaultDormLayout, type DormApiPlus } from "../dorm/room";
+import { createChar3D, type Char3DEx } from "../dorm/char3d";
 import { PixarHall, PixarCrowd } from "./pixarHall";
 import { getStyle } from "../dorm/style";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
@@ -62,7 +65,7 @@ export class HallScene {
   /** scripted walking (arrival from the bus, walking in) that ignores walls and input */
   cine: { pts: THREE.Vector3[]; done?: () => void; speed: number } | null = null; bus: THREE.Group | null = null; private busState: { t: number; mode: "idle" | "in" | "wait" | "out"; from: number; to: number; span: number; arm: THREE.Mesh; door: THREE.Mesh } | null = null; onBusStopped: () => void = () => {};
   private nameStar: THREE.Object3D | null = null; private vowelPos: { x: number }[] = []; private signAt: THREE.Vector3 | null = null; private signCamT = -1; private rideT = -1; private afterRide: (() => void) | null = null; private dormX = -86;
-  private dormHouse: THREE.Object3D | null = null; private dormRoom: THREE.Object3D | null = null; private dormBed = new THREE.Vector3(); private dormDesk = new THREE.Vector3(); private dormDoor = new THREE.Vector3();
+  private dormHouse: THREE.Object3D | null = null; private dormRoom: THREE.Object3D | null = null; private dormApi: DormApiPlus | null = null; private mateChar: Char3DEx | null = null; private dormBed = new THREE.Vector3(); private dormDesk = new THREE.Vector3(); private dormDoor = new THREE.Vector3();
   private morn: "" | "look" | "wake" | "dress" | "desk" | "out" | "ride" = ""; private mornT = 0; private mornSwapped = false; private mornDay: AvatarSpec | null = null; private mornDone: (() => void) | null = null; private spin = 0;
   onDress: (() => void) | null = null; onBulletin: (() => void) | null = null;
   private cars: { g: THREE.Group; door: THREE.Mesh; from: number; to: number; t: number; mode: "idle" | "in" | "wait" | "out" }[] = []; private onCarStopped: () => void = () => {};
@@ -927,31 +930,31 @@ export class HallScene {
   }
   private buildCommute() {
     const roadZ = OUTSIDE.roadY - H / 2, g = new THREE.Group();
-    const wall = this.plain("#F4E4C8"), roofM = this.plain("#8C4A32"), trim = this.plain("#6B3A2A");
+    const wall = this.plain("#F4E4C8"), roofM = this.plain("#8C4A32"), trim = this.plain("#6B3A2A"), teal = this.plain("#3E9A96");
     const glass = new THREE.MeshPhysicalMaterial({ color: "#cfeaf6", roughness: 0.06, metalness: 0, transparent: true, opacity: 0.45, depthWrite: false });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(16.8, 3.25, 7.5), wall); body.position.set(4.2, 1.66, 0.15); body.castShadow = true; g.add(body);
-    const party = new THREE.Mesh(new THREE.BoxGeometry(0.22, 3.4, 7.7), trim); party.position.set(4.2, 1.7, 0.15); g.add(party);
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(17.4, 0.24, 8.3), roofM); roof.position.set(4.2, 3.4, 0.15); roof.castShadow = true; g.add(roof);
-    const ridge = new THREE.Mesh(new THREE.BoxGeometry(17.2, 0.7, 2.4), roofM); ridge.position.set(4.2, 3.85, 0.15); ridge.castShadow = true; g.add(ridge);
-    const chim = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.2, 0.5), trim); chim.position.set(-2.4, 4.3, -1.4); g.add(chim);
-    const chim2 = chim.clone(); chim2.position.set(10.6, 4.3, -1.4); g.add(chim2);
-    const doorAt = (x: number) => {
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(1.35, 2.35, 0.12), trim); frame.position.set(x, 1.2, 3.95); g.add(frame);
-      const door = new THREE.Mesh(new THREE.BoxGeometry(1.05, 2.05, 0.08), this.plain("#6E8F62")); door.position.set(x, 1.12, 4.02); g.add(door);
+    const glow = new THREE.MeshStandardMaterial({ color: "#ffe1a8", emissive: "#ffb15a", emissiveIntensity: 0.55, roughness: 0.4 });
+    const Wd = 20, Dp = 8.2, Fh = 3.05;
+    const shell = (y: number) => {
+      const back = new THREE.Mesh(new THREE.BoxGeometry(Wd, Fh, 0.28), wall); back.position.set(2.2, y + Fh / 2, -3.9); back.castShadow = true; g.add(back);
+      const left = new THREE.Mesh(new THREE.BoxGeometry(0.28, Fh, Dp), wall); left.position.set(-7.7, y + Fh / 2, 0.1); g.add(left);
+      const right = new THREE.Mesh(new THREE.BoxGeometry(0.28, Fh, Dp), wall); right.position.set(12.1, y + Fh / 2, 0.1); g.add(right);
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(Wd, 0.16, Dp), this.plain("#C4A882")); slab.position.set(2.2, y, 0.1); slab.receiveShadow = true; g.add(slab);
     };
-    doorAt(0); doorAt(8.4);
-    const winAt = (x: number, z: number, sx = 0.08) => {
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(sx < 0 ? 1.05 : 0.08, 1.15, sx < 0 ? 0.08 : 1.05), trim); frame.position.set(x, 1.85, z); g.add(frame);
-      const win = new THREE.Mesh(new THREE.BoxGeometry(sx < 0 ? 0.82 : 0.05, 0.92, sx < 0 ? 0.05 : 0.82), glass); win.position.set(x, 1.85, z); g.add(win);
-    };
-    for (const x of [-1.8, 1.8, 6.6, 10.2]) winAt(x, 3.92, -1);
-    for (const [x, z] of [[-4.22, -1.2], [-4.22, 1.5], [12.62, -1.2], [12.62, 1.5]] as const) winAt(x, z, 1);
-    const porch = new THREE.Mesh(new THREE.BoxGeometry(16.2, 0.14, 1.6), this.plain("#C4A882")); porch.position.set(4.2, 0.16, 4.7); porch.castShadow = true; g.add(porch);
-    for (const x of [-1.5, 1.5, 6.9, 9.9]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.4, 0.14), trim); p.position.set(x, 1.3, 5.3); g.add(p); }
-    const plate = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 0.4), new THREE.MeshBasicMaterial({ map: T.signTex("THE DORMS", "#6B3A2A"), transparent: true }));
-    plate.position.set(4.2, 2.85, 4.02); g.add(plate);
-    const num = (x: number, t: string) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.36), new THREE.MeshBasicMaterial({ map: T.signTex(t, "#6B3A2A"), transparent: true })); p.position.set(x, 2.35, 4.04); g.add(p); };
-    num(-0.9, "A"); num(9.3, "B");
+    shell(0); shell(Fh); shell(Fh * 2);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(Wd + 0.6, 0.28, Dp + 0.5), roofM); roof.position.set(2.2, Fh * 3 + 0.1, 0.1); roof.castShadow = true; g.add(roof);
+    const party = new THREE.Mesh(new THREE.BoxGeometry(0.16, Fh * 3, Dp), trim); party.position.set(2.2, Fh * 1.5, 0.1); g.add(party);
+    for (let f = 0; f < 3; f++) for (const x of [-5.4, -2.2, 0.6, 4.4, 7.2, 10]) {
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(1.35, 1.35, 0.1), trim); frame.position.set(x, f * Fh + 1.7, 4.15); g.add(frame);
+      const win = new THREE.Mesh(new THREE.BoxGeometry(1.05, 1.05, 0.06), f === 0 && x < 2 ? glow : glass); win.position.set(x, f * Fh + 1.7, 4.2); g.add(win);
+    }
+    const lobby = (x: number) => { const d = new THREE.Mesh(new THREE.BoxGeometry(1.3, 2.3, 0.12), this.plain("#6E8F62")); d.position.set(x, 1.2, 4.22); g.add(d); };
+    lobby(-1.1); lobby(5.4);
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(Wd - 0.4, 0.08, 0.08), teal);
+    rail.position.set(2.2, Fh + 0.9, 4.35); g.add(rail); const rail2 = rail.clone(); rail2.position.y = Fh * 2 + 0.9; g.add(rail2);
+    const porch = new THREE.Mesh(new THREE.BoxGeometry(8.4, 0.14, 1.5), this.plain("#C4A882")); porch.position.set(2.2, 0.12, 5.05); g.add(porch);
+    const plate = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 0.46), new THREE.MeshBasicMaterial({ map: T.signTex("THE DORMS", "#6B3A2A"), transparent: true }));
+    plate.position.set(2.2, Fh * 3 - 0.35, 4.28); g.add(plate);
+    const lamp = new THREE.PointLight(0xffb15a, 6, 14, 2); lamp.position.set(0, 2.2, 1.2); g.add(lamp);
     g.position.set(this.dormX - 10, 0, roadZ - 12); this.scene.add(g); this.dormHouse = g;
     const cols = ["#C23B2E", "#2F5FA8", "#E7E2D4", "#1C1C1C", "#C9842A", "#3E8B4F", "#6B5AA8", "#D4536A"];
     const slots = [{ off: 22, rel: 0.4, dir: 1, z: -5.2 }, { off: 34, rel: 0.15, dir: 1, z: -5.3 }, { off: -18, rel: 0.25, dir: 1, z: -5.2 }, { off: -32, rel: -0.1, dir: 1, z: -5.4 }, { off: 46, rel: -6, dir: -1, z: -5.5 }, { off: -46, rel: -6, dir: -1, z: -5.4 }, { off: -58, rel: -6, dir: -1, z: -5.6 }, { off: 58, rel: -5, dir: -1, z: -5.5 }];
@@ -1034,26 +1037,35 @@ export class HallScene {
     g.rotation.y = Math.PI; g.position.set(this.dormX, 0, OUTSIDE.busStop.y - H / 2 + 1.15); g.visible = false; this.scene.add(g); this.bus = g; this.busState = { t: 0, mode: "idle", from: this.dormX, to: stopX, span: 15, arm, door };
     this.buildDormRoom();
   }
-  /** the bedroom you wake up in: bed, then the computer with today's classes */
+  /** the movie dorm, the same room as My Dorm, inside the left apartment, with a same-band roommate on the second bed */
   private buildDormRoom() {
-    const roadZ = OUTSIDE.roadY - H / 2, g = new THREE.Group();
-    const wall = this.plain("#F6E7D2"), floor = this.plain("#C4A882"), trim = this.plain("#6B3A2A");
-    const base = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.08, 6.2), floor); base.position.y = 0.04; base.receiveShadow = true; g.add(base);
-    const rug = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.02, 2.2), this.plain("#E07A66")); rug.position.set(0, 0.09, -0.4); g.add(rug);
-    const panel = (w: number, h: number, d: number, x: number, y: number, z: number) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wall); m.position.set(x, y, z); g.add(m); };
-    panel(7.2, 2.8, 0.12, 0, 1.4, -3.05); panel(0.12, 2.8, 6.2, -3.55, 1.4, 0); panel(0.12, 2.8, 6.2, 3.55, 1.4, 0);
-    panel(2.4, 2.8, 0.12, -2.3, 1.4, 3.05); panel(2.4, 2.8, 0.12, 2.3, 1.4, 3.05);
-    const door = new THREE.Mesh(new THREE.BoxGeometry(1.3, 2.3, 0.08), trim); door.position.set(-0.7, 1.15, 3.08); door.name = "dormDoor"; g.add(door);
-    const bed = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.35, 1.3), this.plain("#F7F1E6")); bed.position.set(-1.5, 0.4, -1.7); g.add(bed);
-    const quilt = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.12, 1.15), this.plain("#9EC9E8")); quilt.position.set(-1.5, 0.6, -1.65); g.add(quilt);
-    const pillow = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.16, 0.4), this.plain("#fff")); pillow.position.set(-1.5, 0.72, -2.15); g.add(pillow);
-    const desk = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.7, 0.7), this.plain("#E7D3B0")); desk.position.set(1.5, 0.5, 1.5); g.add(desk);
-    const mon = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.6, 0.06), this.plain("#1C2430")); mon.position.set(1.5, 1.15, 1.25); g.add(mon);
-    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.78, 0.48), new THREE.MeshBasicMaterial({ color: "#F3E7CF" })); screen.position.set(1.5, 1.15, 1.29); g.add(screen);
-    g.position.set(this.dormX - 10, 0, roadZ - 12); g.visible = false; this.scene.add(g); this.dormRoom = g;
-    this.dormBed.copy(g.position).add(new THREE.Vector3(-1.5, 0, -1.5));
-    this.dormDesk.copy(g.position).add(new THREE.Vector3(1.1, 0, 0.7));
-    this.dormDoor.copy(g.position).add(new THREE.Vector3(0, 0, 4.2));
+    const roadZ = OUTSIDE.roadY - H / 2;
+    const layout = defaultDormLayout();
+    const lamp = layout.items.find((i) => i.uid === "d_flamp");
+    if (lamp) { lamp.x = -0.2; lamp.z = 1.7; }
+    layout.items = layout.items.filter((i) => i.uid !== "d_bean" && i.uid !== "d_cush");
+    layout.items.push({ uid: "d_matebed", def: "bed", x: 1.15, z: 0.45, rot: Math.PI, color: "#E8567C" });
+    const api = createDorm(getStyle("pixar"), layout);
+    api.setLabels(false); api.setMood({ hour: 8 });
+    const g = api.group; g.name = "movieDorm";
+    g.position.set(this.dormX - 12.7, 0.18, roadZ - 11.85);
+    g.visible = false; this.dormRoom = g; this.dormApi = api;
+    this.dormBed.copy(g.position).add(new THREE.Vector3(-0.9, 0, -0.35));
+    this.dormDesk.copy(g.position).add(new THREE.Vector3(-1.15, 0, -0.55));
+    this.dormDoor.copy(g.position).add(new THREE.Vector3(2.7, 0, 1.3));
+    rememberCurrent();
+    let selfId: string | null = null; try { selfId = (JSON.parse(localStorage.getItem("unify.family.link") || "null") as { kid?: string } | null)?.kid ?? null; } catch { /* none */ }
+    const mate = roommateFor(Social.profile?.avatar?.age || "hs", selfId);
+    const ch = createChar3D(getStyle("pixar"), mate.spec); ch.setBag("hidden"); ch.play("sit");
+    ch.root.position.set(1.15, Math.max(0, 0.46 - ch.seatHeight), 0.45); ch.root.rotation.y = 0.35; g.add(ch.root); this.mateChar = ch;
+    const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.signTex(mate.real ? mate.name : mate.name + " · roommate", "#2F6FB5"), transparent: true, depthWrite: false }));
+    tag.scale.set(1.25, 0.32, 1); tag.position.set(1.15, 1.48, 0.45); g.add(tag);
+    const warm = new THREE.PointLight(0xffb15a, 5, 7, 2); warm.position.set(0, 2.15, 0); g.add(warm);
+  }
+  private showDormRoom() {
+    const g = this.dormRoom; if (!g) return;
+    if (!g.parent) this.scene.add(g);
+    g.visible = true;
   }
   /** two family cars on the west curb, opposite the bus, so car riders are dropped off in view */
   private buildCars() {
@@ -1189,7 +1201,7 @@ export class HallScene {
     this.setAvatar(pj);
     this.player.pos.copy(this.dormBed); this.player.dir = 0; this.player.sprite.visible = true; this.player.blob.visible = true; this.arrivalHide = false;
     if (this.dormHouse) this.dormHouse.visible = true;
-    if (this.dormRoom) this.dormRoom.visible = true;
+    if (this.dormRoom) this.dormRoom.visible = false;
     this.parkBusAtDorm();
     this.morn = "look";
   }
@@ -1251,7 +1263,7 @@ export class HallScene {
   private tickMorning(dt: number) {
     if (this.morn === "look") {
       this.mornT += dt;
-      if (this.mornT > 4.5) { this.morn = "wake"; this.mornT = 0; }
+      if (this.mornT > 4.5) { this.morn = "wake"; this.mornT = 0; this.showDormRoom(); }
       return;
     }
     if (this.morn !== "wake") return;
@@ -1727,7 +1739,11 @@ export class HallScene {
     if (showingYard && this.dormHouse && this.bus) {
       const h = this.dormHouse.position, b = this.bus.position;
       pos = new THREE.Vector3(b.x + 5.5, 4.4, b.z + 8); look = new THREE.Vector3((h.x + b.x) / 2 + 1, 1.8, (h.z + b.z) / 2);
-    } else if (inRoom) { pos = new THREE.Vector3(P.x + 1.7, 2.2, P.z + 2.3); look = new THREE.Vector3(P.x, 1.2, P.z); }
+    } else if (inRoom && this.dormRoom) {
+      const o = this.dormRoom.position;
+      pos = new THREE.Vector3(o.x + 0.15, o.y + 1.62, o.z + 1.55);
+      look = new THREE.Vector3(o.x - 0.2, o.y + 1.15, o.z - 0.55);
+    }
     else if (toBus && this.bus) { const b = this.bus.position; pos = new THREE.Vector3((P.x + b.x) / 2 + 6, 4.2, b.z + 8); look = new THREE.Vector3(b.x, 1.7, b.z); }
     else if (riding && this.bus) {
       const b = this.bus.position, k = this.rideT / 15;
@@ -1745,7 +1761,7 @@ export class HallScene {
       const ceil = (this.floor === 1 ? FLOOR_Y + WALL_H : under ? FLOOR_Y : 99) - 0.7;
       if (pos.y > ceil) pos.y = ceil;
     }
-    const k = snap || showingYard || (this.rideT >= 0 && this.rideT < 0.4) ? 1 : Math.min(1, dt * 5); this.camPos.lerp(pos, k); this.camLook.lerp(look, k); this.camera.position.copy(this.camPos).multiplyScalar(IS); this.camera.lookAt(this.camLook.clone().multiplyScalar(IS));
+    const k = snap || showingYard || inRoom || (this.rideT >= 0 && this.rideT < 0.4) ? 1 : Math.min(1, dt * 5); this.camPos.lerp(pos, k); this.camLook.lerp(look, k); this.camera.position.copy(this.camPos).multiplyScalar(IS); this.camera.lookAt(this.camLook.clone().multiplyScalar(IS));
     // sun follows the action; the shadow box widens in overview
     const R = this.rideT >= 0 ? 36 : this.view === "overview" ? 32 : 14, c = this.rideT >= 0 && this.bus ? this.bus.position : this.view === "overview" ? new THREE.Vector3(0, 0, 3) : P;
     this.sun.target.position.copy(c); if (this.px) this.sun.position.set(c.x + 11, 9, c.z + 7); else this.sun.position.set(c.x + 7, 15, c.z + 9);   // Pixar: a low golden sun
@@ -1804,6 +1820,10 @@ export class HallScene {
       if (this.doorAnim.t > 1.55) { this.finishDoor(); this.doorAnim = null; }
     }
     this.updateCamera(dt);
+    if (this.dormApi && this.dormRoom?.parent) {
+      this.dormApi.setCameraPosition(this.dormRoom.worldToLocal(this.camera.position.clone()));
+      this.dormApi.update(dt); this.mateChar?.update(dt);
+    }
     this.fadeOccluders(dt);
     const pix = !!this.px;
     this.player.sprite.visible = !pix && this.view !== "first" && !this.arrivalHide; this.player.blob.visible = !pix && this.view !== "first" && !this.arrivalHide;
