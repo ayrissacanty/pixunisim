@@ -54,7 +54,10 @@ for (const [page, needsCanvas] of PAGES) {
   p.on("console", (m) => { if (m.type() === "error" && !noise(m.text())) problems.push("console: " + m.text().slice(0, 160)); });
   p.on("response", (r) => { if (r.status() >= 400 && r.url().startsWith(BASE) && !r.url().includes("/api/") && !noise(r.url())) problems.push(`${r.status()} ${r.url().replace(BASE, "")}`); });
   try {
-    const res = await p.goto(`${BASE}/${page}`, { waitUntil: needsCanvas ? "commit" : "domcontentloaded", timeout: 60000 });
+    // index.html embeds the 3D hallway in an iframe, so its first software-GL frame can stall the page for minutes in CI as well
+    const heavy = needsCanvas || page === "index.html";
+    const res = await p.goto(`${BASE}/${page}`, { waitUntil: heavy ? "commit" : "domcontentloaded", timeout: 60000 });
+    if (page === "index.html") await p.waitForLoadState("domcontentloaded", { timeout: canvasMs("hallway3d.html") }).catch(() => problems.push("index.html did not finish loading"));
     if (!res || !res.ok()) problems.push(`page status ${res && res.status()}`);
     // 3D scenes can take a minute to start in software GL (CI/sandbox); a phone GPU does it in seconds
     if (needsCanvas) { const ms = canvasMs(page); try { await p.waitForSelector("canvas", { timeout: ms, state: "attached" }); } catch { problems.push(`no <canvas> appeared within ${ms / 1000}s`); } }
