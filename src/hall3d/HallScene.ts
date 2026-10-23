@@ -63,7 +63,7 @@ export class HallScene {
   cine: { pts: THREE.Vector3[]; done?: () => void; speed: number } | null = null; bus: THREE.Group | null = null; private busState: { t: number; mode: "idle" | "in" | "wait" | "out"; from: number; to: number; span: number; arm: THREE.Mesh; door: THREE.Mesh } | null = null; onBusStopped: () => void = () => {};
   private nameStar: THREE.Object3D | null = null; private vowelPos: { x: number }[] = []; private signAt: THREE.Vector3 | null = null; private signCamT = -1; private rideT = -1; private afterRide: (() => void) | null = null; private dormX = -86;
   private dormHouse: THREE.Object3D | null = null; private dormRoom: THREE.Object3D | null = null; private dormBed = new THREE.Vector3(); private dormDesk = new THREE.Vector3(); private dormDoor = new THREE.Vector3();
-  private morn: "" | "wake" | "dress" | "desk" | "out" | "ride" = ""; private mornT = 0; private mornSwapped = false; private mornDay: AvatarSpec | null = null; private mornDone: (() => void) | null = null; private spin = 0;
+  private morn: "" | "look" | "wake" | "dress" | "desk" | "out" | "ride" = ""; private mornT = 0; private mornSwapped = false; private mornDay: AvatarSpec | null = null; private mornDone: (() => void) | null = null; private spin = 0;
   onDress: (() => void) | null = null; onBulletin: (() => void) | null = null;
   private cars: { g: THREE.Group; door: THREE.Mesh; from: number; to: number; t: number; mode: "idle" | "in" | "wait" | "out" }[] = []; private onCarStopped: () => void = () => {};
   yaw = 0; pitch = 0.36; zoom = 1; fpitch = 0; navLabel = "";
@@ -653,10 +653,12 @@ export class HallScene {
     const shades = ["#2F7A3A", "#4E9A48", "#8FCB62", "#1F6A32", "#6AAA48"];
     const roadZ = OUTSIDE.roadY - H / 2;
     for (let i = 0; i < bladeN; i++) {
-      let x = (hash(i, 4) - 0.5) * 150, z = (hash(i, 5) - 0.5) * 130 + 8, sc = 0.55 + hash(i, 9) * 1.15;
+      let x = (hash(i, 4) - 0.5) * 230, z = (hash(i, 5) - 0.5) * 190 + 8, sc = 0.55 + hash(i, 9) * 1.15;
       const inBuilding = Math.abs(x) < W / 2 + 1.2 && Math.abs(z) < H / 2 + 1.2;
       if (inBuilding) { x += x < 0 ? -(W / 2 + 3) : W / 2 + 3; }
       const onRoad = Math.abs(z - roadZ) < 3.3, onWalk = Math.abs(x) < 5.5 && z > H / 2 - 0.5 && z < H / 2 + 16;
+      const inDorm = x > this.dormX - 26 && x < this.dormX + 6 && z > roadZ - 20 && z < roadZ + 2;
+      if (inDorm) { x += x < this.dormX - 10 ? -6 : 8; z -= 6; sc *= 0.7; }
       if (onRoad || onWalk) { const n = 0.6 + hash(i, 11) * 1.4; if (onRoad) z += z < roadZ ? -n : n; else x += x < 0 ? -n : n; sc *= 0.28 + hash(i, 12) * 0.35; }
       be.set(0.05 + hash(i, 6) * 0.4, hash(i, 7) * 6.28, (hash(i, 8) - 0.5) * 0.35); bq.setFromEuler(be);
       bm.compose(new THREE.Vector3(x, sc * 0.22, z), bq, new THREE.Vector3(sc, sc, sc)); blades.setMatrixAt(i, bm); blades.setColorAt(i, bcol.set(shades[i % shades.length]));
@@ -668,10 +670,11 @@ export class HallScene {
     // instanced paper trees: a trunk + a faceted crown each
     const spots: { x: number; z: number; s: number }[] = [];
     for (let i = 0; i < 900 && spots.length < 190; i++) {
-      const x = (hash(i, 1) - 0.5) * 150, z = (hash(i, 2) - 0.5) * 140 + 8;
+      const x = (hash(i, 1) - 0.5) * 230, z = (hash(i, 2) - 0.5) * 190 + 8;
       if (Math.abs(x) < W / 2 + 5 && Math.abs(z) < H / 2 + 5) continue;                   // keep clear of the building
       if (Math.abs(x) < 8 && z > H / 2 - 1 && z < H / 2 + 28) continue;
       if (z > OUTSIDE.roadY - H / 2 - 7 && z < OUTSIDE.roadY - H / 2 + 4) continue;
+      if (x > this.dormX - 26 && x < this.dormX + 6 && z > roadZ - 20 && z < roadZ + 2) continue;
       if (Math.hypot(x, z - (H / 2 + 30)) < 11) continue;
       spots.push({ x, z, s: 0.8 + hash(i, 3) * 0.9 });
     }
@@ -696,6 +699,8 @@ export class HallScene {
     for (const x of [-50, -40, -30, 36, 46]) this.tree(x, H / 2 + 1.8, 1.15);
     for (const x of [-46, -30, 30, 46]) this.tree(x, -H / 2 - 1.8, 1.15);
     for (const z of [-30, -16, 16, 30]) { this.tree(-W / 2 - 2.1, z, 1.15); this.tree(W / 2 + 2.1, z, 1.15); }
+    const dormLawnX = this.dormX - 16, dormLawnZ = roadZ - 22;
+    this.tree(dormLawnX - 10, dormLawnZ, 1.2); this.tree(dormLawnX + 28, dormLawnZ, 1.05); this.tree(dormLawnX + 8, dormLawnZ - 6, 1.1);
     // little paper houses and hills ringing the lawn
     const wallCols = ["#FF8A78", "#FFD15C", "#5EE0A0", "#7EC8FF", "#FFB077", "#C9A6FF"], roofCols = ["#E25B45", "#C9843A", "#3D7CC9", "#D4536A"];
     for (let i = 0; i < 26; i++) {
@@ -1163,7 +1168,7 @@ export class HallScene {
     if (this.dormHouse) this.dormHouse.visible = true;
     if (this.dormRoom) this.dormRoom.visible = true;
     this.parkBusAtDorm();
-    this.morn = "wake";
+    this.morn = "look";
   }
   paintHair(color: string) {
     const next = { ...this.playerSpec, hair: color }, p = this.player.pos.clone(), d = this.player.dir;
@@ -1221,6 +1226,11 @@ export class HallScene {
     };
   }
   private tickMorning(dt: number) {
+    if (this.morn === "look") {
+      this.mornT += dt;
+      if (this.mornT > 4.5) { this.morn = "wake"; this.mornT = 0; }
+      return;
+    }
     if (this.morn !== "wake") return;
     this.mornT += dt; this.spin = 6.5; this.player.moving = false; this.player.frame = 0;
     if (this.mornT > 0.85 && !this.mornSwapped && this.mornDay) {
@@ -1688,9 +1698,13 @@ export class HallScene {
     const P = this.player.pos, st = Math.sin(this.yaw), ct = Math.cos(this.yaw); let pos: THREE.Vector3, look: THREE.Vector3;
     const sign = this.signAt && this.signCamT >= 0 && this.signCamT < 6.4;
     const riding = this.rideT >= 0 && this.rideT < 15 && this.bus;
+    const showingYard = this.morn === "look" && this.dormHouse && this.bus;
     const inRoom = this.morn === "wake" || this.morn === "dress" || this.morn === "desk";
     const toBus = this.morn === "out" && this.bus;
-    if (inRoom) { pos = new THREE.Vector3(P.x + 1.7, 2.2, P.z + 2.3); look = new THREE.Vector3(P.x, 1.2, P.z); }
+    if (showingYard && this.dormHouse && this.bus) {
+      const h = this.dormHouse.position, b = this.bus.position;
+      pos = new THREE.Vector3(b.x + 5.5, 4.4, b.z + 8); look = new THREE.Vector3((h.x + b.x) / 2 + 1, 1.8, (h.z + b.z) / 2);
+    } else if (inRoom) { pos = new THREE.Vector3(P.x + 1.7, 2.2, P.z + 2.3); look = new THREE.Vector3(P.x, 1.2, P.z); }
     else if (toBus && this.bus) { const b = this.bus.position; pos = new THREE.Vector3((P.x + b.x) / 2 + 6, 4.2, b.z + 8); look = new THREE.Vector3(b.x, 1.7, b.z); }
     else if (riding && this.bus) {
       const b = this.bus.position, k = this.rideT / 15;
@@ -1708,7 +1722,7 @@ export class HallScene {
       const ceil = (this.floor === 1 ? FLOOR_Y + WALL_H : under ? FLOOR_Y : 99) - 0.7;
       if (pos.y > ceil) pos.y = ceil;
     }
-    const k = snap || (this.rideT >= 0 && this.rideT < 0.4) ? 1 : Math.min(1, dt * 5); this.camPos.lerp(pos, k); this.camLook.lerp(look, k); this.camera.position.copy(this.camPos).multiplyScalar(IS); this.camera.lookAt(this.camLook.clone().multiplyScalar(IS));
+    const k = snap || showingYard || (this.rideT >= 0 && this.rideT < 0.4) ? 1 : Math.min(1, dt * 5); this.camPos.lerp(pos, k); this.camLook.lerp(look, k); this.camera.position.copy(this.camPos).multiplyScalar(IS); this.camera.lookAt(this.camLook.clone().multiplyScalar(IS));
     // sun follows the action; the shadow box widens in overview
     const R = this.rideT >= 0 ? 36 : this.view === "overview" ? 32 : 14, c = this.rideT >= 0 && this.bus ? this.bus.position : this.view === "overview" ? new THREE.Vector3(0, 0, 3) : P;
     this.sun.target.position.copy(c); if (this.px) this.sun.position.set(c.x + 11, 9, c.z + 7); else this.sun.position.set(c.x + 7, 15, c.z + 9);   // Pixar: a low golden sun

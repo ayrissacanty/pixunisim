@@ -44,7 +44,6 @@ $("bCloset").onclick = () => { lock(true); creator.show("Closet"); };
 $("bFriends").onclick = () => social.journal.toggle();
 const chip = $("talkChip"); social.onNearby = (p) => { chip.classList.toggle("show", !!p); if (p) chip.textContent = `Talk to ${p.def?.first} (T)`; };
 chip.onclick = () => { if (social.nearby) social.talkTo(social.nearby); };
-if (!Social.profile.hasAvatar) setTimeout(() => { lock(true); creator.show(); }, 600); else setTimeout(askAssess, 900);
 $("bTake").onclick = () => { lock(true); void runPlacement().then((r) => { lock(false); if (r) hall.onToast("Starting points saved. Extra lessons are in each classroom."); }); };
 const held: Record<string, boolean> = {};
 const upd = () => { hall.input.x = (held.r ? 1 : 0) - (held.l ? 1 : 0); hall.input.y = (held.d ? 1 : 0) - (held.u ? 1 : 0); };
@@ -117,7 +116,7 @@ const atBoard = () => {
 };
 const skip = document.createElement("button"); skip.id = "skipArr"; skip.textContent = "Skip arrival ▸"; skip.style.cssText = "position:fixed;right:12px;bottom:96px;z-index:50;display:none;font:inherit;font-size:14px;padding:6px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.7);background:#F3E7CF;color:#4A3B3F;box-shadow:0 2px 0 #C9B28A;cursor:pointer"; document.body.appendChild(skip); skip.onclick = () => hall.skipCine();
 setInterval(() => { skip.style.display = hall.cine || (dayStarted && hall.inputLocked && !document.querySelector(".tmWrap.show, #creator.show") && hall.bus?.visible) ? "block" : "none"; }, 300);
-const startDay = () => { if (dayStarted || new URLSearchParams(location.search).has("nobus")) return; dayStarted = true; flowActive = true; setTimeout(() => hall.startMorning(() => { flowActive = false; inside(); }), 400); };
+const startDay = () => { if (dayStarted || new URLSearchParams(location.search).has("nobus")) return; dayStarted = true; flowActive = true; setTimeout(() => hall.startMorning(() => { flowActive = false; if (Social.profile.hasAvatar && Progress.assessOn && !Progress.assessment()) askAssess(); inside(); }), 400); };
 const outfitKey = "unify.outfit.saved";
 const todayStr = () => new Date().toDateString();
 const weekStr = () => { const d = new Date(), one = new Date(d.getFullYear(), 0, 1); return d.getFullYear() + "-" + Math.ceil(((+d - +one) / 86400000 + one.getDay() + 1) / 7); };
@@ -144,7 +143,7 @@ const dressPanel = () => {
 };
 hall.onDress = dressPanel;
 hall.onBulletin = () => { openTimes({ mustPick: true }); const done = () => { removeEventListener("unify:times-closed", done); hall.leaveForBus(); }; addEventListener("unify:times-closed", done); };
-if (Social.profile.hasAvatar) setTimeout(startDay, 1500); else creator.onSave = ((orig) => (spec, nm) => { orig(spec, nm); setTimeout(startDay, 1400); })(creator.onSave);
+setTimeout(startDay, 600);
 addEventListener("message", (e) => { const m = e.data; if (m && m.type === "unify:exit" && afterStage) { const f = afterStage; afterStage = null; classGuided = true; setTimeout(f, 700); } });
 /* ---- visible guide: assembly first (light pillar over the auditorium + banner + "Take me there"), then the first class ---- */
 {
