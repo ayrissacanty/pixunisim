@@ -17,7 +17,7 @@ assert.doesNotMatch(scene, /#D7F4FF/, "upstairs is no longer a cyan loft");
 assert.match(scene, /plaster/, "the second floor has a ceiling under it");
 assert.match(campus, /x: 34, y: 46/, "columns frame the main hall");
 assert.match(build, /"look\.js"/, "the movie look script is published");
-assert.match(hallHtml, /hall3d\.js\?v=45/, "the page asks for the new hall bundle");
+assert.match(hallHtml, /hall3d\.js\?v=46/, "the page asks for the new hall bundle");
 assert.match(bundle, /efe6d6|f3efe6/i, "the built hall includes the stone upstairs");
 
 console.log("hall look tests passed");

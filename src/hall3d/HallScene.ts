@@ -214,7 +214,6 @@ export class HallScene {
     wall(g0 + W / 2 + 0.3, (-W / 2 - 0.3 + g0) / 2, sz, true, 5); wall(W / 2 + 0.3 - g1, (g1 + W / 2 + 0.3) / 2, sz, true, 5);
     this.box(g1 - g0, 0.9, 0.3, [outer, outer, cap, outer, outer, this.std(this.rep("wall", () => T.wallTex(), 2))], (g0 + g1) / 2, WALL_H - 0.45, sz, { outline: false });
     this.mountSchoolName((g0 + g1) / 2, H / 2);
-    this.card(this.tex("exit", () => T.bannerTex("WELCOME")), 5.2, 0.8, (g0 + g1) / 2, 6.55, H / 2 + 0.72, 0, true);
     this.card(this.tex("vista", () => this.vistaTex()), 2.4, 1.7, g0 - 2.2, 2.3, H / 2 - 0.2, Math.PI, true);
     this.card(this.tex("vista", () => this.vistaTex()), 2.4, 1.7, g1 + 2.2, 2.3, H / 2 - 0.2, Math.PI, true);
     this.card(this.tex("clock", () => T.clockTex()), 1.1, 1.1, -9, 3.05, -H / 2 + 0.17, 0);
@@ -361,13 +360,19 @@ export class HallScene {
   /** the front people arrive at: two-story red brick, white columns, blue roof, cupola, like the schoolhouse photo */
   private buildSchoolhouse() {
     const S = this.scene, zWall = H / 2, white = this.plain("#F7F4EF"), blue = this.plain("#1E4FA3"), brick = this.brickMat(), stone = this.plain("#D9D4C8"), gold = this.plain("#F0B429"), doorC = this.plain("#8A4B24");
-    const g0 = ENTRANCE.gap.x0 - W / 2, g1 = ENTRANCE.gap.x1 - W / 2, FH = 6.7;
-    const wing = (w: number, x: number) => { const m = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.4, w), FH, 0.28), brick); m.position.set(x, FH / 2 + 0.04, zWall + 0.46); m.castShadow = true; m.receiveShadow = true; S.add(m); };
-    wing(g0 + W / 2 - 0.3, (-W / 2 + g0) / 2); wing(W / 2 - g1 - 0.3, (g1 + W / 2) / 2);
-    const fill = new THREE.Mesh(new THREE.BoxGeometry(g1 - g0 + 0.5, 2.55, 0.28), brick); fill.position.set(0, 5.4, zWall + 0.46); fill.castShadow = true; S.add(fill);
-    const belt = new THREE.Mesh(new THREE.BoxGeometry(W + 0.6, 0.16, 0.4), white); belt.position.set(0, 3.55, zWall + 0.54); S.add(belt);
-    const corn = new THREE.Mesh(new THREE.BoxGeometry(W + 1.8, 0.26, 0.62), white); corn.position.set(0, FH + 0.06, zWall + 0.5); corn.castShadow = true; S.add(corn);
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(W + 2.6, 0.2, 4.8), blue); roof.position.set(0, FH + 0.38, zWall + 0.55); roof.rotation.x = 0.14; roof.castShadow = true; S.add(roof);
+    const g0 = ENTRANCE.gap.x0 - W / 2, g1 = ENTRANCE.gap.x1 - W / 2, FH = 7.25;
+    const wing = (w: number, x: number) => { const m = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.4, w), FH, 0.32), brick); m.position.set(x, FH / 2 + 0.02, zWall + 0.48); m.castShadow = true; m.receiveShadow = true; S.add(m); };
+    wing(g0 + W / 2 - 0.2, (-W / 2 + g0) / 2); wing(W / 2 - g1 - 0.2, (g1 + W / 2) / 2);
+    const fill = new THREE.Mesh(new THREE.BoxGeometry(g1 - g0 + 0.4, 3.9, 0.32), brick); fill.position.set(0, 5.28, zWall + 0.48); fill.castShadow = true; S.add(fill);
+    // the walk-in stays a real doorway, not an 8-metre hole into the hall
+    const pier = (x: number, w: number) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, 3.25, 0.36), brick); m.position.set(x, 1.64, zWall + 0.5); m.castShadow = true; S.add(m); };
+    pier((g0 - 1.15) / 2, -1.15 - g0); pier((1.15 + g1) / 2, g1 - 1.15);
+    const belt = new THREE.Mesh(new THREE.BoxGeometry(W + 0.8, 0.18, 0.46), white); belt.position.set(0, 3.62, zWall + 0.58); S.add(belt);
+    const corn = new THREE.Mesh(new THREE.BoxGeometry(W + 2.4, 0.28, 1.35), white); corn.position.set(0, 7.12, zWall + 0.95); corn.castShadow = true; S.add(corn);
+    // a real gable: front slope up to a ridge, back slope down over the upstairs so the open hall does not show
+    const front = new THREE.Mesh(new THREE.BoxGeometry(W + 1.4, 0.28, 6.05), blue); front.position.set(0, 8.38, zWall - 1.5); front.rotation.x = 0.46; front.castShadow = true; S.add(front);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(W + 1.4, 0.28, 8.2), blue); back.position.set(0, 8.55, zWall - 8.1); back.rotation.x = -0.29; back.castShadow = true; S.add(back);
+    for (const s of [-1, 1]) { const q = new THREE.Mesh(new THREE.BoxGeometry(0.62, FH, 0.48), white); q.position.set(s * (W / 2 - 0.05), FH / 2, zWall + 0.62); q.castShadow = true; S.add(q); }
     const arch = (x: number, y: number, z: number, rot: number) => {
       const g = new THREE.Group();
       const pane = new THREE.Mesh(new THREE.BoxGeometry(0.78, 1.22, 0.05), new THREE.MeshStandardMaterial({ color: "#7EB6FF", emissive: "#1E4FD0", emissiveIntensity: 0.45, roughness: 0.15 })); pane.position.y = 0.5; g.add(pane);
@@ -393,17 +398,20 @@ export class HallScene {
     const pedRoof = new THREE.Mesh(new THREE.ShapeGeometry(ped), blue); pedRoof.position.set(0, 4.34, zWall + 2.2); pedRoof.scale.set(1.06, 1.06, 1); S.add(pedRoof);
     const seal = new THREE.Mesh(new THREE.CircleGeometry(0.4, 20), gold); seal.position.set(0, 5.05, zWall + 2.7); S.add(seal);
     for (let i = 0; i < 5; i++) { const step = new THREE.Mesh(new THREE.BoxGeometry(7.4 + i * 0.7, 0.16, 0.62), stone); step.position.set(0, 0.1 + i * 0.14, zWall + 3.35 + i * 0.55); step.receiveShadow = true; S.add(step); }
-    const jamb = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.55, 0.14), white); jamb.position.set(0, 1.28, zWall + 0.58); S.add(jamb);
-    for (const sx of [-0.36, 0.36]) { const door = new THREE.Mesh(new THREE.BoxGeometry(0.66, 2.28, 0.1), doorC); door.position.set(sx, 1.2, zWall + 0.66); S.add(door); }
+    const jamb = new THREE.Mesh(new THREE.BoxGeometry(2.55, 3.15, 0.16), white); jamb.position.set(0, 1.58, zWall + 0.64); S.add(jamb);
+    for (const sx of [-0.42, 0.42]) { const door = new THREE.Mesh(new THREE.BoxGeometry(0.78, 2.45, 0.1), doorC); door.position.set(sx, 1.28, zWall + 0.72); S.add(door); const lite = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.7, 0.04), new THREE.MeshStandardMaterial({ color: "#9EC6FF", emissive: "#2E6BD6", emissiveIntensity: 0.35, roughness: 0.15 })); lite.position.set(sx, 2.05, zWall + 0.78); S.add(lite); }
+    const fan = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.55, 0.06), new THREE.MeshStandardMaterial({ color: "#9EC6FF", emissive: "#2E6BD6", emissiveIntensity: 0.3, roughness: 0.15 })); fan.position.set(0, 2.95, zWall + 0.74); S.add(fan);
     const tower = new THREE.Group();
-    const baseT = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.35, 2.2), brick); baseT.position.y = 0.68; tower.add(baseT);
-    const lan = new THREE.Mesh(new THREE.BoxGeometry(1.65, 1.55, 1.55), white); lan.position.y = 2.05; tower.add(lan);
-    for (const rot of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) { const win = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.78, 0.08), new THREE.MeshStandardMaterial({ color: "#163A9A", emissive: "#3D6BFF", emissiveIntensity: 0.55 })); win.position.set(Math.sin(rot) * 0.82, 2.1, Math.cos(rot) * 0.82); win.rotation.y = rot; tower.add(win); }
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.98, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), blue); dome.position.y = 2.85; tower.add(dome);
-    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.07, 0.85, 8), gold); spire.position.y = 3.95; tower.add(spire);
-    tower.position.set(0, FH + 0.15, zWall + 0.35); S.add(tower);
-    const bush = (x: number, z: number, s: number) => { const b = new THREE.Mesh(new THREE.SphereGeometry(s, 16, 12), this.plain("#1B8A34")); b.scale.y = 0.68; b.position.set(x, s * 0.5, z); b.castShadow = true; S.add(b); };
-    bush(-9.2, zWall + 6.4, 1.15); bush(-11.1, zWall + 5.4, 0.78); bush(9.4, zWall + 6.5, 1.2); bush(11.3, zWall + 5.3, 0.74);
+    const baseT = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.7, 2.3), white); baseT.position.y = 0.35; tower.add(baseT);
+    const brickBase = new THREE.Mesh(new THREE.BoxGeometry(2.15, 0.85, 1.9), brick); brickBase.position.y = 1.05; tower.add(brickBase);
+    const lan = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.45, 1.55), white); lan.position.y = 2.15; tower.add(lan);
+    for (const rot of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) { const win = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.85, 0.08), new THREE.MeshStandardMaterial({ color: "#163A9A", emissive: "#3D6BFF", emissiveIntensity: 0.45 })); win.position.set(Math.sin(rot) * 0.84, 2.2, Math.cos(rot) * 0.8); win.rotation.y = rot; tower.add(win); }
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(1.02, 28, 16, 0, Math.PI * 2, 0, Math.PI / 2), blue); dome.position.y = 2.9; tower.add(dome);
+    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.06, 0.9, 8), gold); spire.position.y = 4.05; tower.add(spire);
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), gold); ball.position.y = 4.5; tower.add(ball);
+    tower.position.set(0, 9.55, zWall - 4.15); S.add(tower);
+    const bush = (x: number, z: number, s: number) => { const b = new THREE.Mesh(new THREE.SphereGeometry(s, 18, 14), this.plain("#1B8A34")); b.scale.y = 0.62; b.position.set(x, s * 0.45, z); b.castShadow = true; S.add(b); };
+    bush(-6.4, zWall + 6.1, 1.15); bush(-8.1, zWall + 5.2, 0.78); bush(6.5, zWall + 6.2, 1.2); bush(8.3, zWall + 5.1, 0.76);
   }
   private brickMat() {
     const cv = document.createElement("canvas"); cv.width = cv.height = 128; const g = cv.getContext("2d")!;
@@ -1086,7 +1094,7 @@ export class HallScene {
     const roadZ = OUTSIDE.roadY - H / 2;
     const layout = defaultDormLayout();
     const lamp = layout.items.find((i) => i.uid === "d_flamp");
-    if (lamp) { lamp.x = -0.2; lamp.z = 1.7; }
+    if (lamp) { lamp.x = -1.55; lamp.z = -1.35; }
     layout.items = layout.items.filter((i) => i.uid !== "d_bean" && i.uid !== "d_cush");
     layout.items.push({ uid: "d_matebed", def: "bed", x: 1.15, z: 0.45, rot: Math.PI, color: "#E8567C" });
     const api = createDorm(getStyle("pixar"), layout);
@@ -1105,6 +1113,7 @@ export class HallScene {
     const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.signTex(mate.real ? mate.name : mate.name + " · roommate", "#2F6FB5"), transparent: true, depthWrite: false }));
     tag.scale.set(1.25, 0.32, 1); tag.position.set(1.15, 1.48, 0.45); g.add(tag);
     const warm = new THREE.PointLight(0xffb15a, 5, 7, 2); warm.position.set(0, 2.15, 0); g.add(warm);
+    const lid = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.08, 5.05), this.plain("#FFF4E4")); lid.position.set(0, 2.58, 0); lid.receiveShadow = true; g.add(lid);
   }
   private showDormRoom() {
     const g = this.dormRoom; if (!g) return;
@@ -1309,7 +1318,7 @@ export class HallScene {
       this.mornT += dt;
       if (this.mornT > 4.5) {
         this.morn = "wake"; this.mornT = 0; this.showDormRoom();
-        this.yaw = 0.15; this.pitch = 0.42; this.zoom = 1.12;
+        this.yaw = 0.08; this.pitch = 0.24; this.zoom = 0.92;
         if (this.dormHouse) this.dormHouse.visible = false;
       }
       return;
@@ -1856,7 +1865,7 @@ export class HallScene {
     } else if (inRoom && this.dormRoom) {
       if (this.dormHouse) this.dormHouse.visible = false;
       const o = this.dormRoom.position, yaw = this.yaw, pit = Math.max(0.18, Math.min(1.05, this.pitch));
-      const dist = 4.8 * Math.max(0.72, this.zoom), cp = Math.cos(pit);
+      const dist = 5.6 * Math.max(0.78, this.zoom), cp = Math.cos(pit);
       pos = new THREE.Vector3(o.x + Math.sin(yaw) * cp * dist, o.y + 1.2 + Math.sin(pit) * dist * 0.72, o.z + Math.cos(yaw) * cp * dist);
       look = new THREE.Vector3(o.x, o.y + 1.05, o.z - 0.15);
     }
