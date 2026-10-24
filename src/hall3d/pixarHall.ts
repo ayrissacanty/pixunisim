@@ -27,8 +27,8 @@ const GRADE = {
   uniforms: { tDiffuse: { value: null as THREE.Texture | null } },
   vertexShader: "varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }",
   fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c=texture2D(tDiffuse,vUv); float lu=dot(c.rgb,vec3(.299,.587,.114));
-    c.rgb=mix(vec3(lu),c.rgb,1.42); c.rgb=pow(max(c.rgb,0.0),vec3(.93));
-    c.rgb*=mix(vec3(.93,1.04,1.1),vec3(1.08,.98,.9),smoothstep(.08,.68,lu));
+    c.rgb=mix(vec3(lu),c.rgb,1.72); c.rgb=pow(max(c.rgb,0.0),vec3(.97));
+    c.rgb*=mix(vec3(.98,1.02,1.04),vec3(1.06,1.0,.96),smoothstep(.08,.72,lu));
     float v=smoothstep(.62,1.2,length(vUv-.5)*1.15); c.rgb*=1.-v*.1; gl_FragColor=c; }`,
 };
 
@@ -108,7 +108,7 @@ export class PixarHall {
   readonly crowd: PixarCrowd; private composer: EffectComposer | null = null; private failed = false; private w = 1; private h = 1; private bloom: UnrealBloomPass | null = null; private shafts: THREE.Mesh | null = null;
   private rim1: THREE.DirectionalLight; private rim2: THREE.DirectionalLight; private warm: THREE.PointLight; private cool: THREE.PointLight; private skyCv = document.createElement("canvas"); private skyTex: THREE.CanvasTexture; private fog: THREE.Fog;
   constructor(private r: THREE.WebGLRenderer, private scene: THREE.Scene, private cam: THREE.PerspectiveCamera, private sun: THREE.DirectionalLight, private hemi: THREE.HemisphereLight) {
-    r.shadowMap.type = THREE.PCFShadowMap; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05; r.outputColorSpace = THREE.SRGBColorSpace;
+    r.shadowMap.type = THREE.PCFShadowMap; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.12; r.outputColorSpace = THREE.SRGBColorSpace;
     const pm = new THREE.PMREMGenerator(r), env = new RoomEnvironment(), rt = pm.fromScene(env, 0.04); scene.environment = rt.texture; scene.environmentIntensity = 0.28; pm.dispose(); env.dispose();
     this.skyCv.width = 4; this.skyCv.height = 128; this.skyTex = new THREE.CanvasTexture(this.skyCv); this.skyTex.colorSpace = THREE.SRGBColorSpace; scene.background = this.skyTex;
     this.fog = scene.fog = new THREE.Fog(HAZE.getHex(), 90 * IS, 280 * IS);
@@ -158,7 +158,7 @@ export class PixarHall {
     const tune = (m: THREE.Material | undefined, o: THREE.Mesh) => {
       if (!m || seen.has(m)) return; seen.add(m); const s = m as THREE.MeshStandardMaterial; if (!s.isMeshStandardMaterial) return;
       if (s.flatShading) { s.flatShading = false; s.needsUpdate = true; }
-      if (!s.map && !s.emissiveMap) { s.color.getHSL(hsl); if (hsl.s > 0.04) s.color.setHSL(hsl.h, Math.min(0.82, hsl.s * 1.2), Math.min(0.72, hsl.l * 1.04)); }
+      if (!s.map && !s.emissiveMap) { s.color.getHSL(hsl); if (hsl.s > 0.04) s.color.setHSL(hsl.h, Math.min(1, hsl.s * 1.45), hsl.l); }
       s.envMapIntensity = 0.55;
       if (o === tags.floor) { s.roughness = 0.42; s.metalness = 0.02; s.envMapIntensity = 0.7; }
       else if (lock.has(m)) { s.roughness = 0.4; s.metalness = 0.12; s.envMapIntensity = 0.5; }

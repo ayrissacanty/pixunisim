@@ -86,7 +86,7 @@ iframe.on{display:block}
 <div id="shotToast" role="status" aria-live="polite"></div>
 <div id="phoneWrap"><iframe id="fPhone" title="Flip phone" allowtransparency="true" allow="fullscreen"></iframe></div>
 <main>
-  <iframe id="fHall" class="on" src="hallway3d.html?v=44" title="Hallway"></iframe>
+  <iframe id="fHall" class="on" src="hallway3d.html?v=45" title="Hallway"></iframe>
   <iframe id="fNews" title="UNIFY News" allow="geolocation; autoplay"></iframe>
   <iframe id="fAud" title="Classroom"></iframe>
   <iframe id="fOpen" title="The Open Door" allow="camera; microphone; display-capture; fullscreen; autoplay"></iframe>
@@ -105,7 +105,7 @@ const $=id=>document.getElementById(id);
 const F={hall:$('fHall'),news:$('fNews'),aud:$('fAud'),stage:$('fStage'),open:$('fOpen'),trip:$('fTrip'),mail:$('fMail'),desk:$('fDesk'),dorm:$('fDorm'),parent:$('fParent')};
 const NAMES={math:'Math',ela:'ELA',science:'Science',history:'History',careers:'CarryingCareers',life:'Life Lessons',news:'Newsroom',open:'The Open Door',trip:'VR Field Trip'};
 const HINT='Walk into a doorway to enter a lesson';
-let pendingAtt=[],fromDoor=false,view='hall',audReady=false,pending=null,room='A',audPage='classroom3d.html?v=8',curSubject=null;
+let pendingAtt=[],fromDoor=false,view='hall',audReady=false,pending=null,room='A',audPage='classroom3d.html?v=9',curSubject=null;
 function show(v){
  if(view==='news'&&v!=='news'&&F.news.contentWindow)F.news.contentWindow.postMessage({type:'unify:hide'},'*');
  view=v;for(const k in F)F[k].classList.toggle('on',k===v);
